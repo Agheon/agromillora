@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>LOGIN AGROMILLORA</title>
+    <link rel="stylesheet" href="/public/css/bootstrap.materia.min.css">
+    <link rel="stylesheet" href="/public/css/toastr.min.css">
+    <link rel="stylesheet" href="/public/fontawesome/css/fontawesome-all.min.css">
+    <style>
+    body {
+        margin: 0;
+        padding: 0;
+        /*  Background fallback in case of IE8 & down, or in case video doens't load, such as with slower connections  */
+        background: #333;
+        background-attachment: fixed;
+        background-size: cover;
+        background-image: url("/public/img/home2.jpg");
+        background-repeat: no-repeat;
+    }
+
+    .white-text {
+        color:white !important;
+    }
+
+    ::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
+        color: #b2bec3 !important;
+        opacity: 1; /* Firefox */
+    }
+
+    :-ms-input-placeholder { /* Internet Explorer 10-11 */
+        color: #b2bec3 !important;
+    }
+
+    ::-ms-input-placeholder { /* Microsoft Edge */
+        color: #b2bec3 !important;
+    }
+    </style>
+</head>
+<body>
+    
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4"></div>
+            <div class="col-md-4" style="background-color: transparent;">
+                <center>
+                    <div class="card" style="margin-top:15%; background-color:rgba(0, 0, 0, 0.6) !important;">
+                        <img class="card-img-top" src="/public/img/logo.png" alt="Card image cap" style="max-width:250px; margin-top:5%;">
+                        <div class="card-body" style="color:white;">
+                           
+                            <form method="post" action="/login">
+                                <div id="forms">
+                                    <div class="input-group margin-bottom-sm">
+                                        <span style="width:30px" class="input-group-addon"><br><center><i class="fas fa-user"></i></center></span>
+                                        <input id="rut" name="rut" class="form-control white-text" type="text" placeholder="Rut del usuario">
+                                    </div>
+                                    <div class="input-group">
+                                        <span style="width:30px" class="input-group-addon"><br><center><i class="fas fa-key"></i></center></span>
+                                        <input id="password" name="password" class="form-control white-text" type="password" placeholder="Password">
+                                    </div>
+                                    <br>
+                                    {{#if message}}
+                                    <div class="alert alert-dismissible alert-warning">
+                                        <button type="button" class="close" data-dismiss="alert">&times;</button>
+                                        {{message}}
+                                    </div>
+                                    <br>
+                                    {{/if}}
+                                    <input type="submit" class="btn btn-dark btn-block" value="Iniciar sesión">
+                                    <br>
+                                    <br>
+                                    <marquee>  © 2018 Agromillora Group - All rights reserved. </marquee>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </center>
+            </div>
+            <div class="col-md-4"></div>
+        </div>
+    </div>
+    
+    <div style="background:rgba(255,255,255, 0.2); border-radius:10px; padding:10px; bottom:10px !important; position: absolute;">
+        <center>
+            <p style="color:black; font-size:15px">Desarrollado por</p>
+            <img src="/public/img/logo_michcom.png" alt="" style="max-width:150px">
+        </center>
+    </div>
+    <script src="/public/js/jquery.min.js"></script>
+    <script src="/public/js/bootstrap.min.js"></script>
+    <script src="/public/js/jquery.rut.min.js"></script>
+    <script>
+
+    $(document).ready(function() {
+        $('#rut').focus()
+        
+        $('#rut').on('keyup', function() {
+            this.value = rutFunc(this.value)
+        })
+    });
+
+    function rutFunc (rut) {
+        return $.formatRut(rut)
+    }
+
+    function cleanRut (rut) {
+        var replace1 = rut.split('.').join('');
+        var replace2 = replace1.replace('-', '');
+        return replace2;
+    }
+
+</script>
+</body>
+</html>

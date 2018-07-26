@@ -1,0 +1,450 @@
+{{!< layout/default}}
+
+{{#extend "css"}}
+    <style>
+        .sended {
+            color: #2196F3;
+        }
+
+        .approved {
+            color: #2196F3;
+        }
+
+        .beaten {
+            color: #9E9E9E;
+        }
+
+        .draft {
+            color: #9E9E9E;
+        }
+
+        .rejected {
+            color: #F44336;
+        }
+
+        .topmenu {
+            padding-left:10px;
+            padding-right:10px;
+            padding-top:20px;
+            padding-bottom:20px;
+        }
+
+        .topmenu select {
+            width:220px;
+        }
+
+        body {
+            color:black;
+        }
+
+        #budget-table tbody { 
+            cursor: pointer; 
+        }
+    </style>
+{{/extend}}
+<div class="topmenu">
+    <div class="row">
+        <div class="col-md-2 col-sm-4 col-xs-12">
+            <select id="budget-filter" name="state">
+                <option></option>
+                <option value="sended">TODOS LOS PRESUPUESTOS</option>
+                <option value="sended">EN BORRADOR</option>
+                <option value="sended">ENVIADOS</option>
+                <option value="beaten">VENCIDOS</option>
+                <option value="approved">APROBADOS</option>
+                <option value="rejected">RECHAZADOS</option>
+            </select>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-12">
+            <button class="btn btn-primary" type="button" id="newBudget">
+                <i class="fas fa-plus"></i>&nbsp;Nuevo presupuesto
+            </button>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-12">
+            <div class="dropdown">
+                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Importar datos
+                </button>
+                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    <a class="dropdown-item" href="#"><img style="max-width:30px;" src="public/img/excel.png" alt=""> IMPORTAR DATOS DE EXCEL</a>   
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
+    
+</div>
+
+<table id="budget-table" class="table table-hover">
+    <thead>
+        <tr>
+            <th scope="col">FECHA</th>
+            <th scope="col">NÚMERO DE LA COTIZACIÓN</th>
+            <th scope="col">NOMBRE DE REFERENCIA</th>
+            <th scope="col">NOMBRE DEL CLIENTE</th>
+            <th scope="col">ESTADO</th>
+            <th scope="col">COSTO</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>29/05/2018 18:00</th>
+            <td>AGM-7</td>
+            <td>6000 PLANTAS</td>
+            <td>CLIENTE 4</td>
+            <td class="approved">APROBADO</td>
+            <td>CLP 86,870,000</td>
+        </tr>
+        <tr>
+            <td>29/05/2018 17:50</th>
+            <td>AGM-6</td>
+            <td>50000 OLIVOS</td>
+            <td>CLIENTE 4</td>
+            <td class="draft">BORRADOR</td>
+            <td>CLP 9,000,000</td>
+        </tr>
+        <tr>
+            <td>29/05/2018 17:40</th>
+            <td>AGM-5</td>
+            <td>50000 OLIVOS</td>
+            <td>CLIENTE 4</td>
+            <td class="rejected">RECHAZADO</td>
+            <td>CLP 10,000,000</td>
+        </tr>
+        <tr>
+            <td>29/05/2018 17:30</th>
+            <td>AGM-4</td>
+            <td>30000 OLIVOS</td>
+            <td>CLIENTE 4</td>
+            <td class="sended">ENVIADO</td>
+            <td>CLP 9,999,999</td>
+        </tr>
+        <tr>
+            <td>29/05/2018 17:20</th>
+            <td>AGM-3</td>
+            <td>30000 GUINDOS</td>
+            <td>CLIENTE 3</td>
+            <td class="beaten">VENCIDO</td>
+            <td>CLP 8,888,888</td>
+        </tr>
+        <tr>
+            <td>29/05/2018 17:10</th>
+            <td>AGM-2</td>
+            <td>30000 OLIVOS</td>
+            <td>CLIENTE 2</td>
+            <td class="beaten">VENCIDO</td>
+            <td>CLP 7,777,777</td>
+        </tr>
+        <tr>
+            <td>29/05/2018 17:00</th>
+            <td>AGM-1</td>
+            <td>30000 GUINDOS</td>
+            <td>CLIENTE 1</td>
+            <td class="beaten">VENCIDO</td>
+            <td>CLP 6,666,666</td>
+        </tr>
+    </tbody>
+</table> 
+
+<!-- Modal -->
+<div class="modal fade" id="budgetModal" tabindex="-1" role="dialog" aria-labelledby="modal_title">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modal_title"></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modal_body"></div>
+            <div class="modal-footer" id="modal_footer"></div>
+        </div>
+    </div>
+</div>
+    
+   
+
+{{#extend "js"}}
+<script>
+let rowSelected
+let rowDataSelected
+let datatable
+let layouts = []
+let serverTime = ''
+
+$(document).ready(function() {
+    $('#budget-filter').select2({
+        placeholder: 'Filtrar por estado'
+    });
+    $('#budget-link').css('color', '#2196F3');
+
+    datatable = $('#budget-table')
+    .DataTable( {
+        "ordering": false,
+        "iDisplayLength": 100,
+        "oLanguage": {
+            "sSearch": "buscar: "
+        },
+        "responsive": false
+    });
+
+    $('#budget-table tbody').on('click', 'tr', function() {
+        rowDataSelected = datatable.row($(this)).data();
+        chargeModal();
+    });
+});
+
+const chargeModal = () => {
+    console.log(rowDataSelected)
+    $('#budgetModal').modal('show');
+    $('#modal_title').html(`Presupuesto ${rowDataSelected[1]} <span class="badge badge-primary">APROBADO</span>`)
+    $('#modal_body').html(`
+        <div class="row">
+            <div class="col-md-6">
+               <center> <img style="margin-top:50px;" src="/public/img/agromillora.png" alt=""> </center>
+            </div>
+            <div class="col-md-6" style="text-align:right">
+                <p><b>Razón social: AGROMILLORA SUR S.A.</b></p>
+                <p>Rut: 96827470-8 </p>
+                <p>Dirección: Parcela 17 Loteo B,C Y D. San Gerardo, Rio Claro. Molina Chile</p>
+                <p>Teléfono: (56-75) 249 2924</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4"><hr></div>
+            <div class="col-md-4" style="text-align:center;"><h3 style="color:#2196F3;">COTIZACIÓN</h3></div>
+            <div class="col-md-4"><hr></div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <p>Cliente:</p>
+                <h5 style="color:#2196F3;">${rowDataSelected[3]}</h5>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-hover">
+                    <tbody>
+                        <tr>
+                            <td style="background:#ecf0f1">Fecha de cotización</td>
+                            <td>${rowDataSelected[0]}</td>
+                        </tr>
+                        <tr>
+                            <td style="background:#ecf0f1">Fecha de vencimiento</td>
+                            <td>15/06/2018 0:00</td>
+                        </tr>
+                        <tr">
+                            <td style="background:#ecf0f1">Referencia</td>
+                            <td>${rowDataSelected[2]}</td>
+                        </tr>
+                    </tbody>
+                </table> 
+            </div>
+        </div>
+
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Descripción</th>
+                    <th scope="col">Cant.</th>
+                    <th scope="col">Precio unitario</th>
+                    <th scope="col">Impuesto: %</th>
+                    <th scope="col">Precio</th>
+                </tr>
+            </thead>
+            <tbody style="color:#7f8c8d;">
+                <tr>
+                    <td>1</td>
+                    <td>PLANTAS 10 CM</td>
+                    <td>1,000</td>
+                    <td>10,000</td>
+                    <td>19,00</td>
+                    <td>11,900,000</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>PLANTAS 15 CM</td>
+                    <td>2,000</td>
+                    <td>12,000</td>
+                    <td>19,00</td>
+                    <td>28,560,000</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>PLANTAS 20 CM</td>
+                    <td>3,000</td>
+                    <td>13,000</td>
+                    <td>19,00</td>
+                    <td>46,410,000</td>
+                </tr>
+            </tbody>
+        </table> 
+
+        <br>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <p>DATOS CUENTA CORRIENTE</p>
+                <p>Razón social : 96.827.470-8</p>
+                <p>N° Cuenta : 0123456789</p>
+                <p>Banco: BANCO DE AGROMILLORA</p>
+                <p>Email: contacto@agromillora.com</p>
+            </div>
+            <div class="col-md-4">
+                <table class="table table-hover">
+                    <tbody>
+                        <tr>
+                            <td>SUB TOTAL</td>
+                            <td style="text-align:right;">73,000,000</td>
+                        </tr>
+                        <tr>
+                            <td>IVA(19%)</td>
+                            <td style="text-align:right;">13,870,000</td>
+                        </tr>
+                        <tr style="color:#4CAF50;">
+                            <td>TOTAL</td>
+                            <td style="text-align:right;">CLP 86,870,000</td>
+                        </tr>
+                    </tbody>
+                </table> 
+            </div>
+        </div>
+
+        <br>
+        <hr>
+        <br>
+    `)
+
+    $('#modal_footer').html(`
+        <button type="button" class="btn btn-danger"><i class="fas fa-file-pdf"></i> EXPORTAR A PDF</button>
+        <button type="button" class="btn btn-primary"><i class="fas fa-at"></i> ENVIAR POR CORREO</button>   
+    `)
+}
+
+$('#newBudget').on('click', function(){
+    $('#budgetModal').modal('show');
+
+    $('#modal_title').html(`
+        Presupuesto <span class="badge badge-secondary">En creación </span>
+    `)
+
+    $('#modal_body').html(`
+        Plantilla seleccionada <select id="selectLayout" name="layoutName"></select>
+        <hr>
+        <div class="row">
+            <div class="col-md-6">
+                <center> <img style="margin-top:50px;" src="/public/img/agromillora.png" alt=""> </center>
+            </div>
+            <div class="col-md-6" style="text-align:right">
+                <p><b>Razón social: <span id="businessName"></span></b></p>
+                <p>Rut: <span id="businessRut"></span> </p>
+                <p>Dirección: <span id="businessAddress"></span></p>
+                <p>Teléfono/s: <span id="businessPhones"></span></p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4"><hr></div>
+            <div class="col-md-4" style="text-align:center;"><h3 style="color:#2196F3;">COTIZACIÓN</h3></div>
+            <div class="col-md-4"><hr></div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <p>Cliente:</p>
+                <center><select id="selectClient" name="clientName"></select></center>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-hover">
+                    <tbody>
+                        <tr>
+                            <td style="background:#ecf0f1">Fecha de cotización</td>
+                            <td><span id="serverTime"></span></td>
+                        </tr>
+                        <tr>
+                            <td style="background:#ecf0f1">Fecha de vencimiento</td>
+                            <td>15/06/2018 0:00</td>
+                        </tr>
+                        <tr">
+                            <td style="background:#ecf0f1">Referencia</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table> 
+            </div>
+        </div>
+    `)
+
+    getLayouts().then(res=>{
+        if(res) {
+            let s2layouts = res.reduce((arr, el, i)=>{
+                return arr.concat({
+                    id: i,
+                    text: el.layoutName
+                })
+            }, [])
+
+            $('#selectLayout').select2({
+                width:'40%',
+                data: s2layouts
+            });
+
+            $('#selectClient').select2({
+                width:'80%',
+                data: s2layouts
+            });
+
+            getTime().then(time=>{
+                console.log(time)
+                //$('serverTime').t
+            })
+
+            printLayout()
+        }
+   })
+})
+
+
+function printLayout() {
+    let selectedLayout = $('#selectLayout').select2('data')[0].text
+    
+    let selectedLayouData = layouts.filter(function(el) {
+        return el.layoutName == selectedLayout
+    })[0]
+
+    console.log(selectedLayouData)
+    $('#businessName').text(selectedLayouData.generalInfo.businessName)
+    $('#businessRut').text(rutFunc(selectedLayouData.generalInfo.rut))
+    $('#businessAddress').text(selectedLayouData.generalInfo.address)
+
+    let businessPhonesText = selectedLayouData.generalInfo.phones.reduce((txt, el, i)=>{
+        return txt += `${el}<br>`
+    }, '')
+
+    $('#businessPhones').html(businessPhonesText)
+
+
+}
+
+function getLayouts() {
+    return new Promise(resolve=>{
+        ajax({
+            url:"api/layout/getAll"
+        }).then(res=> {
+            console.log(res)
+            layouts = res.ok
+            
+            if(res.ok) {
+                resolve(res.ok)
+            } else if (res.err) {
+                toastr.warning(res.err)
+                resolve(null)
+            }
+            
+        })
+    })
+}
+</script>
+{{/extend}}
