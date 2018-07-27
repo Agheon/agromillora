@@ -164,7 +164,7 @@ const Products = [
                         }
                         db.insert(newProductObj).then(insertRes=>{
                             if(insertRes.ok) {
-                                resolve({ok: `PRODUCTO <b>${name}</b> AGREGADO CORRECTAMENTE`})
+                                resolve({ok: `PRODUCTO <b>${type} ${name}</b> AGREGADO CORRECTAMENTE`})
                             }
                         })
                     }
@@ -176,6 +176,210 @@ const Products = [
                 name: Joi.string().required(),
                 price: Joi.string().required(),
                 stock: Joi.string().required(),
+                type: Joi.string().required()
+            })
+        }
+    }
+},
+{
+    method: 'POST',
+    path: '/api/product/modProduct',
+    options: {
+        handler: (request, h) => {
+            let originalName  = request.payload.originalName
+            let originalType  = request.payload.originalType
+            let name          = request.payload.name
+            let price         = request.payload.price
+            let stock         = request.payload.stock
+            let type          = request.payload.type
+            
+            console.log(originalName, originalType)
+            return new Promise(resolve => {
+                db.find({
+                    selector: {
+                        _id: {
+                            $gt: 0
+                        },
+                        type: 'product',
+                        name: originalName,
+                        type_product: originalType
+                    }
+                }).then(result => {
+                    console.log(result)
+                    if (result.docs[0]) { // existe el original por lo tanto puedo modificarlo
+                        let modProductObj = result.docs[0]
+                        db.find({ // busco si ya existe el producto con el nombre y tipo a modificar 
+                            selector: {
+                                _id: {
+                                    $gt: 0
+                                },
+                                type: 'product',
+                                name: name,
+                                type_product: type
+                            }
+                        }).then(result2 => {
+                            if(result2.docs[0]) {
+                                if(result2.docs[0].status == 'disabled') {
+                                    resolve({err: `PRODUCTO <b>${type} ${name}</b> YA EXISTE <b>EN ESTADO DESHABILITADO</b>`})
+                                } else {
+                                    resolve({err: `PRODUCTO <b>${type} ${name}</b> YA EXISTE <b>EN ESTADO HABILITADO</b>`})
+                                }   
+                            } else {
+                                console.log(modProductObj)
+                                modProductObj.name          = name
+                                modProductObj.type_product  = type
+                                modProductObj.price         = price
+                                modProductObj.stock         = stock
+
+                                db.insert(modProductObj).then(modRes=>{
+                                    if(modRes.ok) {
+                                        resolve({ok: `PRODUCTO <b>${type} ${name}</b> MODIFICADO CORRECTAMENTE`})
+                                    }
+                                })
+                            }
+                            
+                        })
+                        
+                    } else { // no existe el original por lo tanto no puedo modificarlo
+                        resolve({err: `NO EXISTE EL PRODUCTO DE NOMBRE <b>${originalName}</b> y tipo <b>${originalType}</b>`})
+                    }
+                })
+            });
+        },
+        validate: {
+            payload: Joi.object().keys({
+                originalName: Joi.string().required(),
+                originalType: Joi.string().required(),
+                name: Joi.string().required(),
+                price: Joi.string().required(),
+                stock: Joi.string().required(),
+                type: Joi.string().required()
+            })
+        }
+    }
+},
+{
+    method: 'POST',
+    path: '/api/product/disable',
+    options: {
+        handler: (request, h) => {
+            let name  = request.payload.name
+            let type  = request.payload.type
+            console.log(name, type)
+            return new Promise(resolve => {
+                db.find({
+                    selector: {
+                        _id: {
+                            $gt: 0
+                        },
+                        type: 'product',
+                        name: name,
+                        type_product: type
+                    }
+                }).then(result => {
+                    console.log(result)
+                    if (result.docs[0]) {
+                        let productObj = result.docs[0]
+                        productObj.status = 'disabled'
+
+                        db.insert(productObj).then(disableRes=>{
+                            if(disableRes.ok) {
+                                resolve({ok: `PRODUCTO <b>${type} ${name}</b> DESHABILITADO CORRECTAMENTE`})
+                            }
+                        })
+                    } else {
+                        resolve({err: `NO SE ENCUENTRA EL PRODUCTO`})
+                    }
+                })
+            });
+        },
+        validate: {
+            payload: Joi.object().keys({
+                name: Joi.string().required(),
+                type: Joi.string().required()
+            })
+        }
+    }
+},
+{
+    method: 'POST',
+    path: '/api/product/delete',
+    options: {
+        handler: (request, h) => {
+            let name  = request.payload.name
+            let type  = request.payload.type
+            console.log(name, type)
+            return new Promise(resolve => {
+                db.find({
+                    selector: {
+                        _id: {
+                            $gt: 0
+                        },
+                        type: 'product',
+                        name: name,
+                        type_product: type
+                    }
+                }).then(result => {
+                    if (result.docs[0]) {
+                        let productObj = result.docs[0]
+
+                        db.destroy(productObj._id,productObj._rev).then(deleteRes=>{
+                            if(deleteRes.ok) {
+                                resolve({ok: `PRODUCTO <b>${type} ${name}</b> ELIMINADO CORRECTAMENTE`})
+                            }
+                        })
+                    } else {
+                        resolve({err: `NO SE ENCUENTRA EL PRODUCTO`})
+                    }
+                })
+            });
+        },
+        validate: {
+            payload: Joi.object().keys({
+                name: Joi.string().required(),
+                type: Joi.string().required()
+            })
+        }
+    }
+},
+{
+    method: 'POST',
+    path: '/api/product/enable',
+    options: {
+        handler: (request, h) => {
+            let name  = request.payload.name
+            let type  = request.payload.type
+            console.log(name, type)
+            return new Promise(resolve => {
+                db.find({
+                    selector: {
+                        _id: {
+                            $gt: 0
+                        },
+                        type: 'product',
+                        name: name,
+                        type_product: type
+                    }
+                }).then(result => {
+                    console.log(result)
+                    if (result.docs[0]) {
+                        let productObj = result.docs[0]
+                        productObj.status = 'enabled'
+
+                        db.insert(productObj).then(enableRes=>{
+                            if(enableRes.ok) {
+                                resolve({ok: `PRODUCTO <b>${type} ${name}</b> HABILITADO CORRECTAMENTE`})
+                            }
+                        })
+                    } else {
+                        resolve({err: `NO SE ENCUENTRA EL PRODUCTO`})
+                    }
+                })
+            });
+        },
+        validate: {
+            payload: Joi.object().keys({
+                name: Joi.string().required(),
                 type: Joi.string().required()
             })
         }

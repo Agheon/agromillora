@@ -46,7 +46,7 @@
                                 <tr>
                                     <th>Nombre</th>
                                     <th>Tipo</th>
-                                    <th>Precio c/u CLP</th>
+                                    <th>Precio c/u CLP $</th>
                                     <th>Stock</th>
                                 </tr>
                             </thead>
@@ -79,7 +79,7 @@
                                 <tr>
                                     <th>Nombre</th>
                                     <th>Tipo</th>
-                                    <th>Precio c/u CLP</th>
+                                    <th>Precio c/u CLP $</th>
                                     <th>Stock</th>
                                 </tr>
                             </thead>
@@ -139,109 +139,123 @@ let productRowSelectedData
 let disabledProductRowSelected
 let disabledProductRowSelectedData
 let allTypes = [] // Todos los tipos de productos
+let pillsOpenTimes = {
+    products: 0,
+    disabledProducts: 0
+}
 
 $(document).ready(function(){
     chargeProductsTable()
 })
 
 function chargeProductsTable() {
-    if ($.fn.DataTable.isDataTable('#tableProducts')) {
-        $('#tableProducts').DataTable().clear().destroy()
-    }
-    
-    datatableProducts = $('#tableProducts')
-    .DataTable( {
-        ordering: true,
-        iDisplayLength: 50,
-        oLanguage: {
-            sSearch: 'buscar: '
-        },
-        responsive: false,
-        columns: [
-            { data: 'name' },
-            { data: 'type' },
-            { data: 'price', type: 'num-fmt' },
-            { data: 'stock', type: 'num-fmt' }                
-        ],
-        initComplete: function (settings, json) {
-            ajax({
-                url: 'api/product/getAll'
-            }).then(res => {
-                if (res.err) {
-                    toastr.warning(res.err)
-                    $('#loadingProducts').empty()
-                } else if(res.ok) {
-                    datatableProducts.rows.add(res.ok).draw()
-                    $('#loadingProducts').empty()
-                }      
-            })
-        }
-    })
+    pillsOpenTimes.products++
+    if(pillsOpenTimes.products <= 1){
+        datatableProducts = $('#tableProducts')
+        .DataTable( {
+            ordering: true,
+            iDisplayLength: 50,
+            oLanguage: {
+                sSearch: 'buscar: '
+            },
+            responsive: false,
+            columns: [
+                { data: 'name' },
+                { data: 'type' },
+                { data: 'price', type: 'num-fmt' },
+                { data: 'stock', type: 'num-fmt' }                
+            ],
+            initComplete: function (settings, json) {
+                ajax({
+                    url: 'api/product/getAll'
+                }).then(res => {
+                    if (res.err) {
+                        toastr.warning(res.err)
+                        $('#loadingProducts').empty()
+                    } else if(res.ok) {
+                        datatableProducts.rows.add(res.ok).draw()
+                        $('#loadingProducts').empty()
+                    }      
+                })
+            }
+        })
 
-    $('#tableProducts tbody').on('click', 'tr', function () {
-        if ($(this).hasClass('selected')) {
-            $(this).removeClass('selected')
-            $('#optionModProduct').prop('disabled', true)
-            $('#optionDisableProduct').prop('disabled', true)
-        } else {
-            datatableProducts.$('tr.selected').removeClass('selected')
-            $(this).addClass('selected')
-            $('#optionModProduct').prop('disabled', false)
-            $('#optionDisableProduct').prop('disabled', false)
-            productRowSelectedData = datatableProducts.row($(this)).data()
-            productRowSelected = datatableProducts.row($(this))
-        }
-    })
+        
+        $('#tableProducts tbody').on('click', 'tr', function () {
+            if ($(this).hasClass('selected')) {
+                $(this).removeClass('selected')
+                $('#optionModProduct').prop('disabled', true)
+                $('#optionDisableProduct').prop('disabled', true)
+            } else {
+                datatableProducts.$('tr.selected').removeClass('selected')
+                $(this).addClass('selected')
+                $('#optionModProduct').prop('disabled', false)
+                $('#optionDisableProduct').prop('disabled', false)
+                productRowSelectedData = {
+                    name: $(datatableProducts.row($(this)).data().name).text().toLowerCase(),
+                    type: datatableProducts.row($(this)).data().type.toLowerCase(),
+                    price: removeCommas(datatableProducts.row($(this)).data().price),
+                    stock: removeCommas(datatableProducts.row($(this)).data().stock)
+                }
+                productRowSelected = datatableProducts.row($(this))
+            }
+        })
+    }
 }
 
 function chargeDisabledProductsTable() {
-    if ($.fn.DataTable.isDataTable('#tableDisabledProducts')) {
-        $('#tableDisabledProducts').DataTable().clear().destroy()
+    pillsOpenTimes.disabledProducts++
+    if(pillsOpenTimes.disabledProducts <= 1){
+        datatableDisabledProducts = $('#tableDisabledProducts')
+        .DataTable( {
+            ordering: true,
+            iDisplayLength: 50,
+            oLanguage: {
+                sSearch: 'buscar: '
+            },
+            responsive: false,
+            columns: [
+                { data: 'name' },
+                { data: 'type' },
+                { data: 'price', type: 'num-fmt' },
+                { data: 'stock', type: 'num-fmt' }               
+            ],
+            initComplete: function (settings, json) {
+                ajax({
+                    url: 'api/product/getAllDisabled'
+                }).then(res => {
+                    if (res.err) {
+                        toastr.warning(res.err)
+                        $('#loadingDisabledProducts').empty()
+                    } else if(res.ok) {
+                        datatableDisabledProducts.rows.add(res.ok).draw()
+                        $('#loadingDisabledProducts').empty()
+                    }      
+                })
+            }
+        })
+
+        $('#tableDisabledProducts tbody').on('click', 'tr', function () {
+            if ($(this).hasClass('selected')) {
+                $(this).removeClass('selected')
+                $('#optionEnableProduct').prop('disabled', true)
+                $('#optionDeleteProduct').prop('disabled', true)
+            } else {
+                datatableDisabledProducts.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+                $('#optionEnableProduct').prop('disabled', false)
+                $('#optionDeleteProduct').prop('disabled', false)
+                disabledProductRowSelectedData = {
+                    name: $(datatableDisabledProducts.row($(this)).data().name).text().toLowerCase(),
+                    type: datatableDisabledProducts.row($(this)).data().type.toLowerCase(),
+                    price: removeCommas(datatableDisabledProducts.row($(this)).data().price),
+                    stock: removeCommas(datatableDisabledProducts.row($(this)).data().stock)
+                }
+                disabledProductRowSelected = datatableDisabledProducts.row($(this))
+            }
+        })
     }
     
-    datatableDisabledProducts = $('#tableDisabledProducts')
-    .DataTable( {
-        ordering: true,
-        iDisplayLength: 50,
-        oLanguage: {
-            sSearch: 'buscar: '
-        },
-        responsive: false,
-        columns: [
-            { data: 'name' },
-            { data: 'type' },
-            { data: 'price', type: 'num-fmt' },
-            { data: 'stock', type: 'num-fmt' }               
-        ],
-        initComplete: function (settings, json) {
-            ajax({
-                url: 'api/product/getAllDisabled'
-            }).then(res => {
-                if (res.err) {
-                    toastr.warning(res.err)
-                    $('#loadingDisabledProducts').empty()
-                } else if(res.ok) {
-                    datatableDisabledProducts.rows.add(res.ok).draw()
-                    $('#loadingDisabledProducts').empty()
-                }      
-            })
-        }
-    })
-
-    $('#tableDisabledProducts tbody').on('click', 'tr', function () {
-        if ($(this).hasClass('selected')) {
-            $(this).removeClass('selected')
-            $('#optionEnableProduct').prop('disabled', true)
-            $('#optionDeleteProduct').prop('disabled', true)
-        } else {
-            datatableDisabledProducts.$('tr.selected').removeClass('selected');
-            $(this).addClass('selected');
-            $('#optionEnableProduct').prop('disabled', false)
-            $('#optionDeleteProduct').prop('disabled', false)
-            disabledProductRowSelectedData = datatableDisabledProducts.row($(this)).data()
-            disabledProductRowSelected = datatableDisabledProducts.row($(this))
-        }
-    })
 }
 
 $('#pillProducts').on('click', function(){
@@ -256,7 +270,7 @@ $('#pillDisabledProducts').on('click', function(){
     }
 })
 
-$('#optionCreateProduct').on('click', function() {
+$('#optionCreateProduct').on('click', function() { // CREAR PRODUCTO
     getAllTypes().then(res=>{
         if(res.ok) {
             $('#productModal').modal('show');
@@ -320,7 +334,7 @@ $('#optionCreateProduct').on('click', function() {
             $('#saveProduct').on('click', function(){
                 $('#saveProduct').attr('disabled', true);
 
-                let newProductName   = removeExtraSpaces($('#newProductName').val())
+                let newProductName   = removeExtraSpaces($('#newProductName').val().toLowerCase())
                 let newProductPrice  = removeExtraSpaces($('#newProductPrice').val())
                 let newProductStock  = removeExtraSpaces($('#newProductStock').val())
                 let newProductType   = removeExtraSpaces($('#newProductType').select2('data')[0].text).toLowerCase()
@@ -410,9 +424,336 @@ $('#optionCreateProduct').on('click', function() {
         } else if(res.err) {
             toastr.warning('PARA CREAR UN NUEVO PRODUCTO DEBE EXISTIR COMO MÍNIMO 1 TIPO DE PRODUCTO')
         }
-    })
+    })   
+})
 
+$('#optionModProduct').on('click', function() { // MODIFICAR PRODUCTO
+    getAllTypes().then(res=>{
+        if(res.ok) {
+            $('#productModal').modal('show');
+            $('#modal_title').html(`Modificar producto`)
+            $('#modal_body').html(`   
+                <div class="row">
+                    <div class="col-md-4" style="margin-top:10px;">
+                        Nombre del producto
+                        <input value="${productRowSelectedData.name}" id="modProductName" type="text" placeholder="Nombre del producto" class="form-control border-input">
+                    </div>
+                    
+                    <div class="col-md-4" style="margin-top:10px;">
+                        Precio por unidad en CLP
+                        <input value="${productRowSelectedData.price}" id="modProductPrice" min="0" type="number" placeholder="Precio del producto" class="form-control border-input justNumbers">
+                    </div>
+
+                    <div class="col-md-4" style="margin-top:10px;">
+                        Stock del producto
+                        <input value="${productRowSelectedData.stock}" id="modProductStock" min="0" type="number" placeholder="Stock del producto" class="form-control border-input justNumbers">
+                    </div>
+
+                    <div class="col-md-4" style="margin-top:10px;">
+                        Seleccione tipo de producto
+                        <select id="modProductType" name="modProductType"></select>
+                    </div>
+
+                    <div class="col-md-12" id="modProductErrorMessage"></div>
+                </div>   
+            `)
+
+            $('#modal_footer').html(`
+                <button class="btn btn-dark" data-dismiss="modal">
+                    <i style="color:#e74c3c;" class="fas fa-times"></i> Cancelar
+                </button>
+
+                <button class="btn btn-dark" id="saveModProduct">
+                    <i style="color:#3498db;" class="fas fa-check"></i> Modificar
+                </button>
+            `)
+
+            setTimeout(() => {       
+                $('#modProductName').focus()           
+            }, 500);
+
+            let s2types = res.ok.reduce((arr, el, i)=>{
+                return arr.concat({
+                    id: i,
+                    text: capitalizeFirst(el)
+                })
+            }, [])
+
+            $('#modProductType').select2({
+                width:'100%',
+                data: s2types
+            })
+            
+            setTimeout(() => { 
+                let s2typeSelected = s2types.filter(function(item) {
+                    return item.text == capitalizeFirst(productRowSelectedData.type)
+                })[0]
+                
+                if(typeof s2typeSelected != 'undefined') {
+                    $('#modProductType').val(s2typeSelected.id).trigger('change')  
+                } else {
+                    $('#modProductType').val(0).trigger('change')  
+                }
+                $('#modProductName').focus() 
+                        
+            }, 100);
+            
+
+            $('.justNumbers').keyup(function (){
+                this.value = (this.value + '').replace(/[^0-9]/g, ''); 
+            });
+
+            $('#saveModProduct').on('click', function(){
+                $('#saveModProduct').attr('disabled', true);
+
+                let modProductName   = removeExtraSpaces($('#modProductName').val().toLowerCase())
+                let modProductPrice  = removeExtraSpaces($('#modProductPrice').val())
+                let modProductStock  = removeExtraSpaces($('#modProductStock').val())
+                let modProductType   = removeExtraSpaces($('#modProductType').select2('data')[0].text).toLowerCase()
+                let modProductValidateCounter = 0
+                let modProductValidateHTML = ''
+                
+                if(modProductName.length > 0) { 
+                    modProductValidateCounter++ // 1
+                } else {
+                    modProductValidateHTML += '<br>* Debe ingresar un <b>nombre</b> de producto'
+                }
+
+                if(modProductPrice.length > 0) {
+                    modProductValidateCounter++ // 2
+                } else {
+                    modProductValidateHTML += '<br>* Debe ingresar un <b>precio</b> de producto'
+                }
+
+                if(modProductStock.length > 0) {
+                    modProductValidateCounter++ // 3
+                } else {
+                    modProductValidateHTML += '<br>* Debe ingresar un <b>stock</b> de product'
+                }
+
+                if(modProductValidateCounter == 3) {
+                    $('#modProductErrorMessage').empty()
+
+                    swal({
+                        reverseButtons: true,
+                        title: `¿Estás seguro de modificar el producto de nombre <b>${modProductName}</b>?`,
+                        text: '',
+                        type: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Sí, Modificar',
+                        cancelButtonText: 'No, Cancelar',
+                        confirmButtonClass: 'btn btn-primary',
+                        cancelButtonClass: 'btn btn-danger',
+                        buttonsStyling: false
+                    }).then(function (action) {
+                        if (action.value) {
+                            ajax({
+                                url: 'api/product/modProduct',
+                                type: 'POST',
+                                data: {
+                                    originalName: productRowSelectedData.name,
+                                    originalType: productRowSelectedData.type,
+                                    name: modProductName,
+                                    price: modProductPrice,
+                                    stock: modProductStock,
+                                    type: modProductType
+                                }
+                            }).then(res=>{
+                                if(res.ok) {
+                                    toastr.success(res.ok)
+                                    $('#productModal').modal('hide')
+
+                                    removeRow({table: datatableProducts, row: productRowSelected})
+                                    addRow({
+                                        table: datatableProducts,
+                                        name: modProductName,
+                                        price: modProductPrice,
+                                        stock: modProductStock,
+                                        type: modProductType
+                                    })
+
+                                } else if(res.err) {
+                                    toastr.warning(res.err)
+                                    $('#saveModProduct').attr('disabled', false);
+                                }
+                            })
+                        } else {
+                            $('#saveModProduct').attr('disabled', false);
+                        }
+                    });
+ 
+                } else {
+                    $('#newProductErrorMessage').html(`
+                    <br>
+                    <div class="alert alert-dismissible alert-warning">
+                        <h4 class="alert-heading">Antes de modificar el producto, solucione los siguientes errores:</h4>
+                        <p class="mb-0">${modProductValidateHTML}</p>
+                    </div>
+                    `)
+                    $('#saveModProduct').attr('disabled', false);
+                }
+
+            })
+        } else if(res.err) {
+            toastr.warning('PARA MODIFICAR UN PRODUCTO DEBE EXISTIR COMO MÍNIMO 1 TIPO DE PRODUCTO')
+        }
+    })   
+})
+
+$('#optionEnableProduct').on('click', function() {
+    $('#optionEnableProduct').attr('disabled', true)
+    console.log(disabledProductRowSelectedData.name, disabledProductRowSelectedData.type)
+    swal({
+        reverseButtons: true,
+        title: `¿Estás seguro de habilitar el producto <b>${disabledProductRowSelectedData.type} ${disabledProductRowSelectedData.name}</b>?`,
+        text: '',
+        type: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, Habilitar',
+        cancelButtonText: 'No, Cancelar',
+        confirmButtonClass: 'btn btn-primary',
+        cancelButtonClass: 'btn btn-danger',
+        buttonsStyling: false
+    }).then(function (action) {
+        if (action.value) {
+            ajax({
+                url: 'api/product/enable',
+                type: 'POST',
+                data: {
+                    name: disabledProductRowSelectedData.name,
+                    type: disabledProductRowSelectedData.type
+                }
+            }).then(res=>{
+                if(res.ok) {
+                    removeRow({table: datatableDisabledProducts, row: disabledProductRowSelected})
+                    
+                    if(pillsOpenTimes.products > 0) {
+                        addRow({ // añadir producto habilitado a tabla de productos habilitados
+                            table: datatableProducts,
+                            name: disabledProductRowSelectedData.name,
+                            price: disabledProductRowSelectedData.price,
+                            stock: disabledProductRowSelectedData.stock,
+                            type: disabledProductRowSelectedData.type
+                        })
+                    }
+
+                    toastr.success(res.ok)
+                    $('#optionEnableProduct').attr('disabled', true)
+                    $('#optionDeleteProduct').attr('disabled', true)
+                } else if(res.err) {
+                    toastr.error(res.err)
+                    $('#optionEnableProduct').attr('disabled', false)
+                }
+                
+            })
+        } else {
+            $('#optionEnableProduct').attr('disabled', false)
+        }
+    })
     
+})
+
+$('#optionDeleteProduct').on('click', function() {
+    $('#optionDeleteProduct').attr('disabled', true)
+    console.log(disabledProductRowSelectedData.name, disabledProductRowSelectedData.type)
+    swal({
+        reverseButtons: true,
+        title: `¿Estás seguro de <b>eliminar</b> el producto <b>${disabledProductRowSelectedData.type} ${disabledProductRowSelectedData.name}</b>?`,
+        text: '',
+        type: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, Eliminar',
+        cancelButtonText: 'No, Cancelar',
+        confirmButtonClass: 'btn btn-primary',
+        cancelButtonClass: 'btn btn-danger',
+        buttonsStyling: false
+    }).then(function (action) {
+        if (action.value) {
+            ajax({
+                url: 'api/product/delete',
+                type: 'POST',
+                data: {
+                    name: disabledProductRowSelectedData.name,
+                    type: disabledProductRowSelectedData.type
+                }
+            }).then(res=>{
+                if(res.ok) {
+                    removeRow({table: datatableDisabledProducts, row: disabledProductRowSelected})
+                    
+                    toastr.success(res.ok)
+                    $('#optionEnableProduct').attr('disabled', true)
+                    $('#optionDeleteProduct').attr('disabled', true)
+                } else if(res.err) {
+                    toastr.error(res.err)
+                    $('#optionDeleteProduct').attr('disabled', false)
+                }
+                
+            })
+        } else {
+            $('#optionEnableProduct').attr('disabled', false)
+        }
+    });
+    
+})
+
+$('#optionDisableProduct').on('click', function() {
+    $('#optionDisableProduct').attr('disabled', true)
+    console.log(productRowSelectedData.name, productRowSelectedData.type)
+    swal({
+        reverseButtons: true,
+        title: `¿Estás seguro de deshabilitar el producto <b>${productRowSelectedData.type} ${productRowSelectedData.name}</b>?`,
+        text: '',
+        type: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, Deshabilitar',
+        cancelButtonText: 'No, Cancelar',
+        confirmButtonClass: 'btn btn-primary',
+        cancelButtonClass: 'btn btn-danger',
+        buttonsStyling: false
+    }).then(function (action) {
+        if (action.value) {
+            ajax({
+                url: 'api/product/disable',
+                type: 'POST',
+                data: {
+                    name: productRowSelectedData.name,
+                    type: productRowSelectedData.type
+                }
+            }).then(res=>{
+                if(res.ok) {
+                    removeRow({table: datatableProducts, row: productRowSelected})
+                    
+                    if(pillsOpenTimes.disabledProducts > 0) {
+                        addRow({ // añadir producto deshabilitado a tabla de productos deshabilitados
+                            table: datatableDisabledProducts,
+                            name: productRowSelectedData.name,
+                            price: productRowSelectedData.price,
+                            stock: productRowSelectedData.stock,
+                            type: productRowSelectedData.type
+                        })
+                    }
+
+                    toastr.success(res.ok)
+                    $('#optionDisableProduct').attr('disabled', true)
+                    $('#optionModProduct').attr('disabled', true)
+                } else if(res.err) {
+                    toastr.error(res.err)
+                    $('#optionDisableProduct').attr('disabled', false)
+                }
+                
+            })
+        } else {
+            $('#optionDisableProduct').attr('disabled', false)
+        }
+    });
     
 })
 
@@ -584,6 +925,13 @@ function addRow({table, name, type, price, stock}) {
     setTimeout(() => {
         $(newProductAdded).css( 'color', '#484848' )
     }, 5000);
+}
+
+function removeRow({table, row}) {
+    table
+        .row( row )
+        .remove()
+        .draw()
 }
 
 $('.btnSecond').on('click', function() {
