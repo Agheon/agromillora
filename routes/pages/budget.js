@@ -5,7 +5,7 @@ const Budget = {
         handler: (request, h) => {
             let credentials = request.auth.credentials;
 
-            return h.view('budget', { credentials: credentials, admin:'ok' })
+            return h.view('budget', { credentials: credentials })
         }
     }
 };
