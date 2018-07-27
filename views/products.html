@@ -24,17 +24,17 @@
                 <div class="row">
                     <div class="col-md-2 col-xs-12">
                         <br>
-                        <button class="btn btn-dark btn-block" id="optionCreateProduct">
+                        <button class="btn btn-dark btn-block btnSecond" id="optionCreateProduct">
                             <i style="color:#3498db;" class="fas fa-plus"></i> Nuevo producto
                         </button>
-                        <button class="btn btn-dark btn-block" id="optionTypeProduct">
+                        <button class="btn btn-dark btn-block btnSecond" id="optionTypeProduct">
                             <i style="color:#1abc9c;" class="fas fa-list-ul"></i> Tipos de productos
                         </button>
                         <hr>
-                        <button class="btn btn-dark btn-block" id="optionModProduct" disabled>
+                        <button class="btn btn-dark btn-block btnSecond2" id="optionModProduct" disabled>
                             <i style="color:#f1c40f;" class="fas fa-edit"></i> Modificar producto
                         </button>
-                        <button class="btn btn-dark btn-block" id="optionDisableProduct" disabled>
+                        <button class="btn btn-dark btn-block btnSecond2" id="optionDisableProduct" disabled>
                             <i style="color:#e74c3c;" class="fas fa-ban"></i> Deshabilitar producto
                         </button>
                     </div>
@@ -65,10 +65,10 @@
                 <div class="row">
                     <div class="col-md-2 col-xs-12">
                         <br>
-                        <button class="btn btn-dark btn-block" id="optionEnableProduct" disabled>
+                        <button class="btn btn-dark btn-block btnSecond2" id="optionEnableProduct" disabled>
                             <i style="color:#3498db;" class="fas fa-check"></i> Habilitar producto
                         </button>
-                        <button class="btn btn-dark btn-block" id="optionDeleteProduct" disabled>
+                        <button class="btn btn-dark btn-block btnSecond2" id="optionDeleteProduct" disabled>
                             <i style="color:#e74c3c;" class="fas fa-times"></i> Eliminar producto
                         </button>
                     </div>
@@ -585,6 +585,13 @@ function addRow({table, name, type, price, stock}) {
         $(newProductAdded).css( 'color', '#484848' )
     }, 5000);
 }
+
+$('.btnSecond').on('click', function() {
+    $('.btnSecond').attr('disabled', true)
+    setTimeout(() => {
+        $('.btnSecond').attr('disabled', false)
+    }, 1000);
+})
 
 </script>
 {{/extend}}
