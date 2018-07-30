@@ -33,6 +33,10 @@
             width:220px;
         }
 
+        .btn-xs {
+            padding:10px;
+        }
+
         body {
             color:black;
         }
@@ -42,15 +46,15 @@
         }
 
         #inCreation {
-            animation: pulse1 3s infinite;
+            animation: pulse1 2s infinite;
         }
 
         @keyframes pulse1 {
             0% {
-                background-color: #9E9E9E;
+                background-color: #2ecc71;
             }
             100% {
-                background-color: #2ecc71;
+                background-color: #9E9E9E;
             }
         }
     </style>
@@ -184,7 +188,13 @@ let rowSelected
 let rowDataSelected
 let datatable
 let layouts = []
+let products = []
 let serverTime = ''
+let productsAddedToBudget = 0
+let addingProductStatus = 0
+let productSelectedObj = {}
+let s2ValueToAdd = ''
+let s2EnabledProducts = [] // productos habilitados de productos (values)
 
 $(document).ready(function() {
     $('#budget-filter').select2({
@@ -337,6 +347,11 @@ const chargeModal = () => {
 }
 
 $('#newBudget').on('click', function(){
+    addingProductStatus = 0
+    productsAddedToBudget = 0
+    s2ValueToAdd = ''
+    productSelectedObj = {}
+    s2EnabledProducts = []
     $('#budgetModal').modal('show');
 
     $('#modal_title').html(`
@@ -388,48 +403,107 @@ $('#newBudget').on('click', function(){
                 </table> 
             </div>
         </div>
-
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">Descripción</th>
-                    <th scope="col">Cant.</th>
-                    <th scope="col">Precio unitario</th>
-                    <th scope="col">Impuesto: %</th>
-                    <th scope="col">Precio</th>
-                </tr>
-            </thead>
-            <tbody style="color:#7f8c8d;">
-                <tr>
-                    <td>1</td>
-                    <td>PLANTAS 10 CM</td>
-                    <td>1,000</td>
-                    <td>10,000</td>
-                    <td>19,00</td>
-                    <td>11,900,000</td>
-                </tr>
-                <tr>
-                    <td>2</td>
-                    <td>PLANTAS 15 CM</td>
-                    <td>2,000</td>
-                    <td>12,000</td>
-                    <td>19,00</td>
-                    <td>28,560,000</td>
-                </tr>
-                <tr>
-                    <td>3</td>
-                    <td>PLANTAS 20 CM</td>
-                    <td>3,000</td>
-                    <td>13,000</td>
-                    <td>19,00</td>
-                    <td>46,410,000</td>
-                </tr>
-            </tbody>
-        </table> 
-
+        
+        <hr>
+        <div class="row">
+            <div class="col-md-6">     
+                <center><select id="selectProductToAdd"><option value="default">Seleccione un producto</option></select></center>     
+            </div>
+            <div class="col-md-6">
+                <button class="btn btn-dark btn-block" id="addProductToBudget">
+                    <i style="color:#3498db;" class="fas fa-plus"></i> Añadir producto
+                </button>
+            </div>
+        </div>
         <br>
+        <div id="budgetProductSelected"></div>
+        <div id="budgetProductsTable"></div>
     `)
+
+    $('#modal_footer').html(`
+        <button class="btn btn-dark" data-dismiss="modal">
+            <i style="color:#e74c3c;" class="fas fa-times"></i> Cerrar
+        </button>
+        <button class="btn btn-secondary" id="saveDraftBudget">
+            <i class="fas fa-save"></i> Guardar como borrador
+        </button>
+        <button class="btn btn-primary" id="saveBudget">
+            <i class="fas fa-save"></i> Guardar presupuesto
+        </button>
+    `)
+
+    $('#addProductToBudget').on('click', function() {
+        console.log('addingStatus: ' +addingProductStatus)
+        console.log('counter: ' +productsAddedToBudget)
+        if(addingProductStatus == 1) {
+            if(productsAddedToBudget == 0) {
+                productsAddedToBudget = 1 // contador de productos añadidos
+                $('#budgetProductsTable').html(`
+                <div class="card bg-light">
+                    <div class="card-header">Productos de presupuesto</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-12 table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <td>Producto</td>
+                                            <td>Precio c/u</td>
+                                            <td>Unidades</td>
+                                            <td>Fecha estimada de entrega</td>
+                                            <td></td>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tableBudgetProductsTbody">
+                                        <tr id="row${s2ValueToAdd}">
+                                            <td><center>${productSelectedObj.type} ${$(productSelectedObj.name).text()}</center></td>
+                                            <td><center>${productSelectedObj.price}</center></td>
+                                            <td>${$('#budgetProductStock').val()}</td>
+                                            <td>${$('#budgetProductDateOfDelivery').val()}</td>
+                                            <td><button onclick="removeBudgetProduct('${s2ValueToAdd}')" id="${s2ValueToAdd}" type="button" class="btn btn-danger btn-xs">x</button></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `)
+            } else {
+                productsAddedToBudget++
+                $('#tableBudgetProductsTbody').append(`
+                    <tr id="row${s2ValueToAdd}">
+                        <td><center>${productSelectedObj.type} ${$(productSelectedObj.name).text()}</center></td>
+                        <td><center>${productSelectedObj.price}</center></td>
+                        <td>${$('#budgetProductStock').val()}</td>
+                        <td>${$('#budgetProductDateOfDelivery').val()}</td>
+                        <td><button onclick="removeBudgetProduct('${s2ValueToAdd}')" id="${s2ValueToAdd}" type="button" class="btn btn-danger btn-xs">x</button></td>
+                    </tr>
+                `)
+            }
+            
+            console.log(s2ValueToAdd)
+            $(`#selectProductToAdd>option[value="${s2ValueToAdd}"]`).attr('disabled',true).change();
+            $('#selectProductToAdd').select2({width:'80%'});
+
+            s2EnabledProducts = s2EnabledProducts.filter(function(item) {
+                return item !== s2ValueToAdd
+            })
+            
+            if(s2EnabledProducts[0]) {
+                $('#selectProductToAdd').val('default').trigger('change')
+                $('#budgetProductSelected').empty()
+            } else {
+                $('#selectProductToAdd').val('default').trigger('change')
+                $('#addProductToBudget').attr('disabled', true)
+                $('#budgetProductSelected').empty()
+            }
+            
+            addingProductStatus = 0
+        } else {
+            toastr.warning('Debe seleccionar un producto')
+        }
+    })
 
     getLayouts().then(res=>{
         if(res) {
@@ -449,7 +523,107 @@ $('#newBudget').on('click', function(){
                 width:'80%',
                 data: s2layouts
             });
+            
+            getProducts().then(products=>{
+                let s2products = products.reduce((arr, el, i)=>{
+                    s2EnabledProducts.push(`${i}-${el.type.toLowerCase()}`)
+                    return arr.concat({
+                        id: `${i}-${el.type.toLowerCase()}`,
+                        text: $(el.name).text()
+                    })
+                }, [])
 
+                $('#selectProductToAdd').select2({
+                    width:'80%',
+                    placeholder: 'Seleccione un producto',
+                    data: s2products
+                })
+                
+                $('#selectProductToAdd').on('select2:select', function (e) {
+                    let selectProductVal = $('#selectProductToAdd').val()
+                    if(selectProductVal != 'default') {
+                        addingProductStatus = 1
+                    
+                        let formatProductType = selectProductVal.substring(selectProductVal.indexOf('-') + 1);
+                        let productNameSelected = $('#selectProductToAdd').select2('data')[0].text.toLowerCase()
+                        s2ValueToAdd = selectProductVal
+                        productSelectedObj = products.filter(function(el) {
+                            return $(el.name).text().toLowerCase() == productNameSelected && el.type.toLowerCase() == formatProductType
+                        })[0]
+
+                        $('#budgetProductSelected').html(`
+                            <div class="row">  
+                                <div class="col-md-12 table-responsive">
+                                    <div style="background:#ecf0f1;">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <td>Producto</td>
+                                                    <td>Precio c/u</td>
+                                                    <td>Unidades</td>
+                                                    <td>Fecha estimada de entrega</td>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><center>${productSelectedObj.type} ${$(productSelectedObj.name).text()}</center></td>
+                                                    <td><center>${productSelectedObj.price}</center></td>
+                                                    <td><input id="budgetProductStock" type="number" value="1" placeholder="Unidades" class="form-control border-input"></td>
+                                                    <td><input id="budgetProductDateOfDelivery" type="text" value="" placeholder="Fecha de entrega" class="form-control border-input"></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        `)
+                        getTime().then(time=>{
+                            let currentServerTime = time
+                            let formatCurrentServerTime = moment(time).format('DD/MM/YYYY') 
+                            let defaultExpirationDate = moment(currentServerTime).add(1,'month').format('DD/MM/YYYY')
+
+                            $('#budgetProductDateOfDelivery').val(formatCurrentServerTime)
+                            $('#budgetProductDateOfDelivery').daterangepicker({
+                                "locale": {
+                                    "format": "DD/MM/YYYY",
+                                    "daysOfWeek": [
+                                    "Dom",
+                                    "Lun",
+                                    "Mar",
+                                    "Mie",
+                                    "Jue",
+                                    "Vie",
+                                    "Sab"
+                                    ],
+                                    "monthNames": [
+                                    "Enero",
+                                    "Febrero",
+                                    "Marzo",
+                                    "Abril",
+                                    "Mayo",
+                                    "Junio",
+                                    "Julio",
+                                    "Agosto",
+                                    "Septiembre",
+                                    "Octubre",
+                                    "Noviembre",
+                                    "Diciembre"
+                                    ],
+                                    "firstDay": 1
+                                },
+                                drops: "up",
+                                singleDatePicker: true,
+                                showDropdowns: true,
+                                minDate: formatCurrentServerTime
+                            });
+                        })
+                    } else {
+                        $('#budgetProductSelected').empty()
+                    }
+                    
+                });
+            })
+            
             getTime().then(time=>{
                 let currentServerTime = time
                 let formatCurrentServerTime = moment(time).format('DD/MM/YYYY') 
@@ -490,9 +664,42 @@ $('#newBudget').on('click', function(){
                     showDropdowns: true,
                     minDate: formatCurrentServerTime
                 });
+
             })
+              
+            
             
             printLayout()
+
+            $('#addProductToBudget').on('click', function() {
+                /*
+                $('#budgetProductsTable').html(`
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Producto</th>
+                            <th scope="col">Cant.</th>
+                            <th scope="col">Precio unitario</th>
+                            <th scope="col">Precio</th>
+                        </tr>
+                    </thead>
+                    <tbody style="color:#7f8c8d;" id="tbodyBudgetProductsTable"></tbody>
+                </table>
+                `)
+                
+                $('#tbodyBudgetProductsTable').append(`
+                    <tr>
+                        <td>1</td>
+                        <td>PLANTAS 10 CM</td>
+                        <td>1,000</td>
+                        <td>10,000</td>
+                        <td>19,00</td>
+                    </tr>
+                `)
+                */
+
+            })
         }
    })
 })
@@ -522,10 +729,8 @@ function getLayouts() {
         ajax({
             url:"api/layout/getAll"
         }).then(res=> {
-            console.log(res)
-            layouts = res.ok
-            
             if(res.ok) {
+                layouts = res.ok
                 resolve(res.ok)
             } else if (res.err) {
                 toastr.warning(res.err)
@@ -534,6 +739,37 @@ function getLayouts() {
             
         })
     })
+}
+
+function getProducts() {
+    return new Promise(resolve=>{
+        ajax({
+            url:"api/product/getAll"
+        }).then(res=> {
+            if(res.ok) {
+                products = res.ok
+
+                resolve(res.ok)
+            } else if (res.err) {
+                toastr.warning(res.err)
+                resolve(null)
+            }     
+        })
+    })
+}
+
+function removeBudgetProduct(productToRemove) {
+   // $('#tableBudgetProductsTbody')
+    $(`[id='row${productToRemove}']`).empty()
+    s2EnabledProducts.push(productToRemove)
+    $(`#selectProductToAdd>option[value="${productToRemove}"]`).attr('disabled',false).change();
+    $('#selectProductToAdd').select2({width:'80%'});
+    console.log(s2EnabledProducts)
+    productsAddedToBudget--
+    $('#addProductToBudget').attr('disabled',false)
+    if(productsAddedToBudget == 0) {
+        $('#budgetProductsTable').empty()
+    }
 }
 </script>
 {{/extend}}

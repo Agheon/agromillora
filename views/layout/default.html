@@ -193,7 +193,7 @@
 
         function removeCommas(amount) {
             let replace = amount.split(',').join('');
-            return replace;
+            return parseInt(replace);
         }
 
         const number_format = (amount, decimals) => {
