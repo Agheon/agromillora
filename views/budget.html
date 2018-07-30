@@ -375,7 +375,7 @@ $('#newBudget').on('click', function(){
 
         <div class="row">
             <div class="col-md-4"><hr></div>
-            <div class="col-md-4" style="text-align:center;"><h3 style="color:#2196F3;">COTIZACIÓN</h3></div>
+            <div class="col-md-4" style="text-align:center;"><h3 style="color:#2196F3;">PRESUPUESTO</h3></div>
             <div class="col-md-4"><hr></div>
         </div>
 
@@ -388,7 +388,7 @@ $('#newBudget').on('click', function(){
                 <table class="table table-hover">
                     <tbody>
                         <tr>
-                            <td style="background:#ecf0f1">Fecha de cotización</td>
+                            <td style="background:#ecf0f1">Fecha de presupuesto</td>
                             <td><span id="serverDate"></span></td>
                         </tr>
                         <tr>
@@ -418,10 +418,45 @@ $('#newBudget').on('click', function(){
         <br>
         <div id="budgetProductSelected"></div>
         <div id="budgetProductsTable"></div>
+
+        <div class="accordion" id="accordionExample">
+            <div class="card">
+                <div class="card-header" id="headingOne">
+                <h5 class="mb-0">
+                    <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                        Información importante del presupuesto
+                    </button>
+                </h5>
+                </div>
+            </div>
+
+            <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
+                <div class="card-body">
+                    <p><b>•	Los portainjertos podrían ser entregados antes de la fecha que aparece en la cotización, se avisará en forma oportuna.</b></p>
+                    <br>
+                    <h4><b>La fecha de reserva, será el orden de entrega de los mismos.
+                    Si por razones de fuerza mayor, fuese imposible responder con la planta en este periodo, puede quedar la reserva como anticipo para la próxima fecha o se hará la devolución íntegra del saldo proporcional del anticipo pagado, a lo que corresponda con lo no entregado.</b></h4>
+                    <br>
+                    <p>•	El precio de la planta es puesta bajo camión, que proveerá el cliente en las instalaciones de AGROMILLORA SUR S.A. San Gerardo, Río Claro, Talca, en la fecha que oportunamente se informara vía correo electrónico.</p>
+                    <p>•	Responderemos por el estado de entrega de la planta solo dentro del plazo que se fije para su retiro y se recomienda hacerla en un camión con baranda, con carpa o cerrado</p>
+                    <p>•	La aceptación, vía correo electrónico, de la presente cotización implicara una aceptación irrevocable de las condiciones expresadas en la misma.</p>
+                    <p>•	En consideración a la naturaleza vegetal del material contratado, se entiende que la época fijada para la entrega del mismo es meramente referencial. Así, entendiendo que una entrega fuera de plazo podrá redundar como condición máxima en la indemnización que tendrá como tope la devolución del saldo a lo que no se haya despachado. </p>
+                    <p>•	La entrega posterior o en una época ciertamente inconveniente para el proceso requerido por el cliente y reconocido por Agromillora, sólo dará derecho a ser reembolsado por el valor de las plantas pagadas y no entregadas; sin derecho a recargo ni indemnización adicional de ninguna especie.</p>
+
+                    <p>•	El cliente declara que en su calidad de viverista o productor tiene la debida experiencia para la manipulación del material contratado, razón por la cual, desde el retiro del mismo se hace desde ya responsable del estado de dicho material, sin que pueda desde aquel instante, atribuirse unilateralmente responsabilidad alguna a Agromillora acerca del estado y calidad de la planta.</p>
+                    <p>•	Como consecuencia de lo anterior y encontrándose en cabal entendimiento de sus efectos el cliente exime expresamente a Agromillora de toda responsabilidad que acontezca de un hecho posterior al retiro de las plantas, ya sea por las características de la planta como por cualquier otra circunstancia nacida de la naturaleza.</p>
+                    <p>•	Una vez que el anticipo sea efectuado, Agromillora enviará, vía mail, la cotización-contrato timbrada al cliente, con el objetivo de validar la reserva.</p>
+                    <p>•	El retiro de las plantas y la entrega de la documentación legal correspondiente, se efectuara solo cuando estas estén íntegramente canceladas.</p>
+                    <p>•	Agromillora tendrá la facultad de cobrar $12,5 por planta adicionales al precio neto, por concepto de no retiro de plantas debidamente coordinadas, cálculo que corresponde al reembalaje de plantas, utilización de nuevos materiales y mano de obra.</p>
+                    <p>•	 Agromillora tendrá la facultad de cobrar intereses en el caso de las plantas no sean retiradas en el momento en que hayan sido debidamente programadas, o en el caso de que se produzca un retraso en el pago de las mismas. Este recargo corresponderá al 1% del valor total de las plantas contratadas, por cada 15 días de retraso.</p>
+
+                </div>
+            </div>
+        </div>
     `)
 
     $('#modal_footer').html(`
-        <button class="btn btn-dark" data-dismiss="modal">
+        <button class="btn btn-secondary" data-dismiss="modal">
             <i style="color:#e74c3c;" class="fas fa-times"></i> Cerrar
         </button>
         <button class="btn btn-secondary" id="saveDraftBudget">
@@ -431,6 +466,10 @@ $('#newBudget').on('click', function(){
             <i class="fas fa-save"></i> Guardar presupuesto
         </button>
     `)
+
+    setTimeout(() => {
+        $('#reference').focus()
+    }, 500);
 
     $('#addProductToBudget').on('click', function() {
         console.log('addingStatus: ' +addingProductStatus)
