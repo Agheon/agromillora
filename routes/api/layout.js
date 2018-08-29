@@ -11,15 +11,15 @@ const Layout = [
             return new Promise(resolve => {
                 db.find({
                     selector: {
-                        _id: "budgetsLayouts" 
+                        _id: {
+                            $gt: null
+                        },
+                        type: 'layout' 
                     }
                 }).then(result => {
                     if (result.docs[0]) {
-                        let layouts = result.docs[0].layouts.reduce((arr, el, i)=>{
-                            return arr.concat(el)
-                        }, []) 
 
-                        resolve({ok: layouts })
+                        resolve({ok: result.docs })
                     } else {
                         resolve({ err: 'No existen plantillas de presupuesto' })
                     }
@@ -27,7 +27,69 @@ const Layout = [
             })
         }
     }
+},
+{
+    method: 'PUT',
+    path: '/api/template',
+    options: {
+        handler: (request, h) => {
+            let reqData = {}
+            reqData.originalLayoutName = request.payload.originalLayoutName
+            reqData.newLayoutName = request.payload.newLayoutName
+            reqData.textInfoTitle = request.payload.textInfoTitle
+            reqData.checkingAccountTitle = request.payload.checkingAccountTitle
+            reqData.textInfo = request.payload.textInfo
+            reqData.checkingAccount = JSON.parse(request.payload.checkingAccount)
+            reqData.generalInfo = JSON.parse(request.payload.generalInfo)
+
+            return new Promise(resolve => {
+                db.find({
+                    selector: {
+                        _id: {
+                            $gt: null
+                        },
+                        type: 'layout',
+                        layoutName: reqData.originalLayoutName
+                    }
+                }).then(result => {
+                    if (result.docs[0]) {
+                        let originalLayout = result.docs[0]
+
+                        originalLayout.layoutName = reqData.newLayoutName
+                        originalLayout.textInfoTitle = reqData.textInfoTitle
+                        originalLayout.textInfo = reqData.textInfo
+                        originalLayout.generalInfo = reqData.generalInfo
+                        originalLayout.checkingAccount.title = reqData.checkingAccountTitle
+                        originalLayout.checkingAccount.content = reqData.checkingAccount
+
+                        db.insert(originalLayout).then(modRes=>{
+                            if(modRes.ok) {
+                                resolve({ok: originalLayout})
+                            } else {
+                                resolve({err: 'No se ha podido modificar la plantilla.'})
+                            }
+                        })
+
+                        console.log(result.docs[0])
+                    } else {
+                        resolve({ err: 'No existen plantillas de presupuesto' })
+                    }
+                })
+            });
+        },
+        validate: {
+            payload: Joi.object().keys({
+                originalLayoutName: Joi.string().required(),
+                newLayoutName: Joi.string().required(),
+                textInfoTitle: Joi.string().required(),
+                textInfo: Joi.string().required(),
+                checkingAccount: Joi.string().required(),
+                checkingAccountTitle: Joi.string().required(),
+                generalInfo: Joi.string().required()
+            })
+        }
+    }
 }
-];
+]
 
 export default Layout;

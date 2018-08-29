@@ -1,0 +1,246 @@
+{{!< layout/default}}
+
+{{#extend "css"}}
+
+{{/extend}}
+
+<div class="row">
+    <div class="col-md-4">
+        Plantilla seleccionada <select id="selectLayout" name="layoutName"></select>
+    </div>
+</div>
+
+<div id="printLayout"></div>
+
+{{#extend "js"}}
+<script>
+let layouts
+let originalLayoutData
+
+$(document).ready(function() {
+    getLayouts().then(res=>{
+        if(res) {
+            let s2layouts = res.reduce((arr, el, i)=>{
+                return arr.concat({
+                    id: i,
+                    text: el.layoutName
+                })
+            }, [])
+            
+
+            $('#selectLayout').select2({
+                width:'40%',
+                data: s2layouts
+            });
+
+            printLayout()
+        }
+    })  
+})
+
+function getLayouts() {
+    return new Promise(resolve=>{
+        ajax({
+            url: 'api/layout/getAll'
+        }).then(res=> {
+            if(res.ok) {
+                
+                layouts = res.ok
+                console.log(layouts)
+                resolve(res.ok)
+            } else if (res.err) {
+                toastr.warning(res.err)
+                resolve(null)
+            }
+            
+        })
+    })
+}
+
+function printLayout() {
+    let selectedLayout = $('#selectLayout').select2('data')[0].text
+    let selectedLayoutData = layouts.filter(function(el) {
+        return el.layoutName == selectedLayout
+    })[0]
+
+    originalLayoutData = selectedLayoutData
+
+    $('#printLayout').html(`
+    <div class="col-md-6">
+        <div class="card bg-light mb-3">
+            <div class="card-header"><h4 class="card-title">Modificar plantilla</h4></div>
+            <div class="card-body">
+                <div class="form-group row">
+                    <div class="col-md-12">
+                        <div class="card bg-light mb-3">
+                            <div class="card-header"><h4 class="card-title">Nombre de la plantilla</h4></div>
+                            <div class="card-body">
+                                <input style="font-size:30px; text-align:center;" type="text" class="form-control-plaintext" id="layoutName" value="${selectedLayoutData.layoutName}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card bg-light mb-3">
+                            <div class="card-header"><h4 class="card-title">Información general</h4></div>
+                            <div class="card-body">
+                                <table class="table table-hover">
+                                    <tbody id="generalInfo"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card bg-light mb-3">
+                            <div class="card-header"><h4 class="card-title"><input style="font-size:30px; text-align:center;" type="text" class="form-control-plaintext" id="checkingAccountTitle" value="${selectedLayoutData.checkingAccount.title}"></h4></div>
+                            <div class="card-body">
+                                <table class="table table-hover">
+                                    <tbody id="checkingAccount"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row"> 
+                    <div class="col-md-12">
+                        <div class="card bg-light mb-3">
+                            <div class="card-header"><h4 class="card-title"> <input style="font-size:30px; text-align:center;" type="text" class="form-control-plaintext" id="textInfoTitle" value="${selectedLayoutData.textInfoTitle}"></h4></div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <textarea class="form-control" id="textInfoVal" rows="5">${selectedLayoutData.textInfo}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3">
+                    </div>
+                    <div class="col-md-3">
+                    </div>
+                    <div class="col-md-3">
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-primary btn-block" id="saveTemplate">Guardar cambios</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+    </div>
+    
+    `)
+
+    $('#saveTemplate').on('click', function(){
+        let checkingAccountRows = []
+        let saveTemplateData = {
+            layoutName: removeExtraSpaces($('#layoutName').val()),
+            checkingAccountTitle: removeExtraSpaces($('#checkingAccountTitle').val()),
+            textInfoTitle: removeExtraSpaces($('#textInfoTitle').val()),
+            textInfoValue: removeExtraSpaces($('#textInfoVal').val())
+        }
+        
+        getGeneralInfoRows().then(generalInfoRes=>{
+            getCheckingAccountRows().then(checkingAccountRes=>{
+                saveTemplateData.generalInfo = generalInfoRes 
+                saveTemplateData.checkingAccount = checkingAccountRes
+
+                saveTemplate(saveTemplateData)
+            })
+        })
+
+    })
+
+    console.log(selectedLayoutData)
+
+    let generalInfoReduce = selectedLayoutData.generalInfo.reduce((txt, el, i)=>{
+        return txt += `
+            <tr class="generalInfoRow">
+                <td>
+                    <input id="generalInfoKey${i}" type="text" class="form-control" value="${el.key}">
+                </td>
+                <td>
+                    <input id="generalInfoVal${i}" type="text" class="form-control" value="${el.value}">
+                </td>
+            </tr>
+        `
+    }, '')
+
+    let checkingAccountReduce = selectedLayoutData.checkingAccount.content.reduce((txt, el, i)=>{
+        return txt += `
+            <tr class="checkingAccountRow">
+                <td>
+                    <input id="checkingAccountKey${i}" type="text" class="form-control" class="" value="${el.key}">
+                </td>
+                <td>
+                    <input id="checkingAccountVal${i}" type="text" class="form-control" value="${el.value}">
+                </td>
+            </tr>
+        `
+    }, '')
+
+    $('#generalInfo').html(generalInfoReduce)
+    $('#checkingAccount').html(checkingAccountReduce)
+}
+
+
+function saveTemplate(saveTemplateData) {
+    console.log(saveTemplateData)
+    
+    ajax({
+        url: 'api/template',
+        type: 'PUT',
+        data: {
+            originalLayoutName: originalLayoutData.layoutName,
+            newLayoutName: saveTemplateData.layoutName,
+            textInfoTitle: saveTemplateData.textInfoTitle,
+            checkingAccountTitle: saveTemplateData.checkingAccountTitle,
+            textInfo: saveTemplateData.textInfoValue,
+            checkingAccount: JSON.stringify(saveTemplateData.checkingAccount),
+            generalInfo: JSON.stringify(saveTemplateData.generalInfo)
+        }
+    }).then(res=> {
+        console.log(res)
+    })
+    
+}
+
+function getGeneralInfoRows() {
+    let generalInfoRows = []
+    return new Promise(resolve=> {
+        for (let i = 0; i < $('.generalInfoRow').length; i++) {
+            generalInfoRows.push({
+                key: removeExtraSpaces($('#generalInfoKey'+i).val()),
+                value: removeExtraSpaces($('#generalInfoVal'+i).val())
+            })
+
+            if(generalInfoRows.length == $('.generalInfoRow').length) {
+                resolve(generalInfoRows)
+            }
+        }
+    })
+}
+
+function getCheckingAccountRows() {
+    let checkingAccountRows = []
+    return new Promise(resolve=> {
+        for (let i = 0; i < $('.checkingAccountRow').length; i++) {
+            checkingAccountRows.push({
+                key: removeExtraSpaces($('#checkingAccountKey'+i).val()),
+                value: removeExtraSpaces($('#checkingAccountVal'+i).val())
+            })
+
+            if(checkingAccountRows.length == $('.checkingAccountRow').length) {
+                resolve(checkingAccountRows)
+            }
+        }
+    })
+}
+
+</script>  
+{{/extend}}

@@ -12,9 +12,9 @@
     <link rel="stylesheet" href="/public/fontawesome/css/fontawesome-all.min.css">
     <link rel="stylesheet" href="/public/css/select2.min.css">
     <link rel="stylesheet" href="/public/jquery-ui-1.12.1/jquery-ui.min.css">
-    <link rel="stylesheet" href="/public/css/dataTables.searchHighlight.css">
     <link rel="stylesheet" href="/public/css/animate.min.css">
     <link rel="stylesheet" href="/public/css/datatables.min.css"/>
+    <link rel="stylesheet" href="/public/css/dataTables.searchHighlight.css">
     <link rel="stylesheet" href="/public/css/daterangepicker.css">
     <link rel="stylesheet" href="/public/css/toastr.min.css">
     <link rel="stylesheet" href="/public/css/sweetalert2.css">
@@ -82,8 +82,31 @@
                     <a id="logs-link" class="nav-link" href="/logs"><i class="fas fa-align-left"></i>&nbsp; Logs</a>
                 </li>
             </ul>
+            
             <div class="form-inline my-2 my-lg-0 white-text">
-                <h5 style="text-transform: capitalize;"><i class="fas fa-user"></i>&nbsp;{{{ credentials.name }}} {{{ credentials.lastname }}}&nbsp;<a style="color:#F44336;" href="/logout"><i class="fas fa-times"></i></a></h5>
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="configurationsDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-cog"></i> &nbsp; Configuraciones
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="configurationsDropdow">
+                            <a class="dropdown-item" href="/templates"><i class="fas fa-edit"></i>&nbsp; Plantillas</a>
+                        </div>
+                    </li>
+                </ul>
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item dropdown">
+                        <a style="text-transform: capitalize; font-size:18px; color:white;" class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-user"></i> &nbsp;{{{ credentials.name }}} {{{ credentials.lastname }}}&nbsp;
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <!--<a class="dropdown-item" href="#">Action</a>-->
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="/logout"><i style="color:#F44336;" class="fas fa-times">&nbsp;</i>Cerrar sesión </i></a>
+                        </div>
+                    </li> 
+                </ul>
+
             </div>
         </div>
     </nav>

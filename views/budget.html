@@ -178,17 +178,15 @@
 </table> 
 
 <!-- Modal -->
-<div class="modal fade" id="budgetModal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="modal_title">
+<div class="modal fade" id="budgetModal" data-keyboard="false" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="modal_title">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header" id="modal_header">
                 <h4 class="modal-title" id="modal_title"></h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                
             </div>
             <div class="modal-body" id="modal_body"></div>
-            <div class="modal-footer" id="modal_footer"></div>
+            <div id="modal_footer"></div>
         </div>
     </div>
 </div>
@@ -235,7 +233,14 @@ $(document).ready(function() {
 const chargeModal = () => {
     console.log(rowDataSelected)
     $('#budgetModal').modal('show');
+    $('#closeModalButton').remove()
+    $('#modal_header').append(`
+        <button id="closeModalButton" type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    `)
     $('#modal_title').html(`Presupuesto ${rowDataSelected[1]} <span class="badge badge-primary">APROBADO</span>`)
+    
     $('#modal_body').html(`
         <div class="row">
             <div class="col-md-6">
@@ -361,6 +366,13 @@ const chargeModal = () => {
 }
 
 $('#newBudget').on('click', function(){
+    $('#closeModalButton').remove()
+    $('#modal_header').append(`
+        <button id="closeModalButton" type="button" class="close closeBudgetModal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    `)
+
     addingProductStatus = 0
     productsAddedToBudget = 0
     s2ValueToAdd = ''
@@ -435,34 +447,13 @@ $('#newBudget').on('click', function(){
             <div class="card">
                 <div class="card-header" id="headingText">
                 <h5 class="mb-0">
-                    <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-                        Información importante del presupuesto
-                    </button>
+                    <button id="importantInfoButton" class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne"></button>
                 </h5>
                 </div>
             </div>
 
             <div id="collapseOne" class="collapse" aria-labelledby="headingText" data-parent="#accordionText">
-                <div class="card-body">
-                    <p><b>•	Los portainjertos podrían ser entregados antes de la fecha que aparece en la cotización, se avisará en forma oportuna.</b></p>
-                    <br>
-                    <h4><b>La fecha de reserva, será el orden de entrega de los mismos.
-                    Si por razones de fuerza mayor, fuese imposible responder con la planta en este periodo, puede quedar la reserva como anticipo para la próxima fecha o se hará la devolución íntegra del saldo proporcional del anticipo pagado, a lo que corresponda con lo no entregado.</b></h4>
-                    <br>
-                    <p>•	El precio de la planta es puesta bajo camión, que proveerá el cliente en las instalaciones de AGROMILLORA SUR S.A. San Gerardo, Río Claro, Talca, en la fecha que oportunamente se informara vía correo electrónico.</p>
-                    <p>•	Responderemos por el estado de entrega de la planta solo dentro del plazo que se fije para su retiro y se recomienda hacerla en un camión con baranda, con carpa o cerrado</p>
-                    <p>•	La aceptación, vía correo electrónico, de la presente cotización implicara una aceptación irrevocable de las condiciones expresadas en la misma.</p>
-                    <p>•	En consideración a la naturaleza vegetal del material contratado, se entiende que la época fijada para la entrega del mismo es meramente referencial. Así, entendiendo que una entrega fuera de plazo podrá redundar como condición máxima en la indemnización que tendrá como tope la devolución del saldo a lo que no se haya despachado. </p>
-                    <p>•	La entrega posterior o en una época ciertamente inconveniente para el proceso requerido por el cliente y reconocido por Agromillora, sólo dará derecho a ser reembolsado por el valor de las plantas pagadas y no entregadas; sin derecho a recargo ni indemnización adicional de ninguna especie.</p>
-
-                    <p>•	El cliente declara que en su calidad de viverista o productor tiene la debida experiencia para la manipulación del material contratado, razón por la cual, desde el retiro del mismo se hace desde ya responsable del estado de dicho material, sin que pueda desde aquel instante, atribuirse unilateralmente responsabilidad alguna a Agromillora acerca del estado y calidad de la planta.</p>
-                    <p>•	Como consecuencia de lo anterior y encontrándose en cabal entendimiento de sus efectos el cliente exime expresamente a Agromillora de toda responsabilidad que acontezca de un hecho posterior al retiro de las plantas, ya sea por las características de la planta como por cualquier otra circunstancia nacida de la naturaleza.</p>
-                    <p>•	Una vez que el anticipo sea efectuado, Agromillora enviará, vía mail, la cotización-contrato timbrada al cliente, con el objetivo de validar la reserva.</p>
-                    <p>•	El retiro de las plantas y la entrega de la documentación legal correspondiente, se efectuara solo cuando estas estén íntegramente canceladas.</p>
-                    <p>•	Agromillora tendrá la facultad de cobrar $12,5 por planta adicionales al precio neto, por concepto de no retiro de plantas debidamente coordinadas, cálculo que corresponde al reembalaje de plantas, utilización de nuevos materiales y mano de obra.</p>
-                    <p>•	 Agromillora tendrá la facultad de cobrar intereses en el caso de las plantas no sean retiradas en el momento en que hayan sido debidamente programadas, o en el caso de que se produzca un retraso en el pago de las mismas. Este recargo corresponderá al 1% del valor total de las plantas contratadas, por cada 15 días de retraso.</p>
-
-                </div>
+                <div class="card-body" id="importantInfo"></div>
             </div>
 
         </div>
@@ -472,28 +463,44 @@ $('#newBudget').on('click', function(){
             </div>  
             <div class="col-md-6 table-responsive" id="finalCalculations"></div>
         </div>
+
+        <div id="firm"></div>
     `)
 
     finalCalculation()
 
     $('#modal_footer').html(`
-        <button class="btn btn-secondary" data-dismiss="modal">
-            <i style="color:#e74c3c;" class="fas fa-times"></i> Cerrar
-        </button>
+        <hr>
+        
+        <div class="row" style="margin-left:10px; margin-right:10px;">
+            <div class="col-md-3">
+                <button class="btn btn-secondary btn-block closeBudgetModal" >
+                    <i style="color:#e74c3c;" class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
 
-        <button class="btn btn-secondary" id="saveDraftBudget">
-            <i class="fas fa-save"></i> Guardar como borrador
-        </button>
-    
-        <button class="btn btn-primary" id="saveBudget">
-            <i class="fas fa-save"></i> Guardar presupuesto
-        </button>
+            <div class="col-md-5">
+                <button class="btn btn-secondary btn-block" id="saveDraftBudget">
+                    <i class="fas fa-save"></i> Guardar como borrador
+                </button>
+            </div>
+
+            <div class="col-md-4">
+                <button class="btn btn-primary btn-block" id="saveBudget">
+                    <i class="fas fa-save"></i> Guardar presupuesto
+                </button>
+            </div>
+        </div>
+        <br>
     `)
 
+    
 
     setTimeout(() => {
         $('#reference').focus()
     }, 500);
+
+    chargeFirm() // cargar la firma del usuario conectado
 
     $('#addProductToBudget').on('click', function() {
         console.log('addingStatus: ' +addingProductStatus)
@@ -757,6 +764,27 @@ $('#newBudget').on('click', function(){
 })
 
 
+$('#budgetModal').on('click', '.closeBudgetModal', function(){
+    swal({
+        title: '¿Estás seguro de cerrar el presupuesto?',
+        text: 'Recuerda que puedes guardar este presupuesto como borrador.',
+        type: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonClass: 'btn btn-danger',
+        cancelButtonClass: 'btn btn-primary',
+        buttonsStyling: false,
+        confirmButtonText: 'Si, cerrar',
+        cancelButtonText: 'No, cancelar',
+    }).then((result) => {
+        if (result.value) {
+            console.log('close')
+            $('#budgetModal').modal('hide')
+        }
+    })
+})
+
 function printLayout() {
     let selectedLayout = $('#selectLayout').select2('data')[0].text
     
@@ -772,7 +800,10 @@ function printLayout() {
     
 
     $('#generalInfo').html(`${generalInfoHTML}`)
-    
+
+    $('#importantInfoButton').html(selectedLayoutData.textInfoTitle)
+    $('#importantInfo').html(selectedLayoutData.textInfo)
+
     let checkingAccountHTML = selectedLayoutData.checkingAccount.content.reduce((txt, el, i)=>{
         return txt += `
             <tr>
@@ -807,7 +838,9 @@ function getLayouts() {
             url:"api/layout/getAll"
         }).then(res=> {
             if(res.ok) {
+                
                 layouts = res.ok
+                console.log(layouts)
                 resolve(res.ok)
             } else if (res.err) {
                 toastr.warning(res.err)
@@ -897,6 +930,27 @@ function finalCalculation() {
                 </tr>
             </tbody>
         </table>
+    `)
+}
+
+function chargeFirm() {
+    let firmObj = {}
+    firmObj.name = '{{credentials.name}}'
+    firmObj.lastname = '{{credentials.lastname}}'
+    firmObj.position = '{{credentials.position}}'
+    firmObj.phone = '{{credentials.phone}}'
+    firmObj.email = '{{credentials.email}}'
+
+    console.log(firmObj)
+
+    $('#firm').html(`
+        <center>
+            <p style="font-family:Lucida Calligraphy; font-size:20px; color:#2ecc71; margin:1px">${capitalizeAll(firmObj.name)} ${capitalizeAll(firmObj.lastname)}.</p>
+            <p style="font-family:Arial; margin:1px; font-size:18px;">AGROMILLORA SUR S.A.</p>
+            <p style="margin:1px; font-size:18px;">${capitalizeAll(firmObj.position)}</p>
+            <p style="margin:1px; font-size:18px;">${firmObj.email}</p>
+            <p style="margin:1px; font-size:18px;">${firmObj.phone}</p>
+        </center>
     `)
 }
 </script>
