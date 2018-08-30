@@ -4,20 +4,31 @@
 
 {{/extend}}
 
-<div class="row">
-    <div class="col-md-4">
-        Plantilla seleccionada <select id="selectLayout" name="layoutName"></select>
+<div>
+    <div class="col-md-6">
+        <div class="card bg-light mb-3">
+            <div class="card-header"><h4 class="card-title">Modificar plantilla  <span id="selectLayoutsContainer"></span></h4></div>
+            <div class="card-body" id="printLayout">
+
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
     </div>
 </div>
 
-<div id="printLayout"></div>
-
 {{#extend "js"}}
+
+
 <script>
 let layouts
 let originalLayoutData
 
 $(document).ready(function() {
+    loadLayouts()
+})
+
+function loadLayouts() {
     getLayouts().then(res=>{
         if(res) {
             let s2layouts = res.reduce((arr, el, i)=>{
@@ -27,16 +38,17 @@ $(document).ready(function() {
                 })
             }, [])
             
-
+            $('#selectLayoutsContainer').html(`<select id="selectLayout" name="layoutName"></select>`)
+            
             $('#selectLayout').select2({
                 width:'40%',
                 data: s2layouts
-            });
+            })
 
             printLayout()
         }
     })  
-})
+}
 
 function getLayouts() {
     return new Promise(resolve=>{
@@ -57,6 +69,23 @@ function getLayouts() {
     })
 }
 
+function percentHTML() {
+    let percentOptionsHTML = ''
+
+
+    for (let i = 0; i <= 100; i++) {
+        percentOptionsHTML += `<option value="${i}">${i}%</option>`
+        console.log(percentOptionsHTML)
+        if(i == 100) {
+            console.log(i)
+            $('#percentAdvanceContainer').html(`<select style="text-align-last:center; font-size:30px; padding:0px;" class="form-control" id="layoutAdvancePercent">${percentOptionsHTML}</select>`)
+
+            $('#layoutAdvancePercent').val(originalLayoutData.advancePercent)
+        }
+    }
+   
+}
+
 function printLayout() {
     let selectedLayout = $('#selectLayout').select2('data')[0].text
     let selectedLayoutData = layouts.filter(function(el) {
@@ -66,75 +95,75 @@ function printLayout() {
     originalLayoutData = selectedLayoutData
 
     $('#printLayout').html(`
-    <div class="col-md-6">
-        <div class="card bg-light mb-3">
-            <div class="card-header"><h4 class="card-title">Modificar plantilla</h4></div>
-            <div class="card-body">
-                <div class="form-group row">
-                    <div class="col-md-12">
-                        <div class="card bg-light mb-3">
-                            <div class="card-header"><h4 class="card-title">Nombre de la plantilla</h4></div>
-                            <div class="card-body">
-                                <input style="font-size:30px; text-align:center;" type="text" class="form-control-plaintext" id="layoutName" value="${selectedLayoutData.layoutName}">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-6">
-                        <div class="card bg-light mb-3">
-                            <div class="card-header"><h4 class="card-title">Información general</h4></div>
-                            <div class="card-body">
-                                <table class="table table-hover">
-                                    <tbody id="generalInfo"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-6">
-                        <div class="card bg-light mb-3">
-                            <div class="card-header"><h4 class="card-title"><input style="font-size:30px; text-align:center;" type="text" class="form-control-plaintext" id="checkingAccountTitle" value="${selectedLayoutData.checkingAccount.title}"></h4></div>
-                            <div class="card-body">
-                                <table class="table table-hover">
-                                    <tbody id="checkingAccount"></tbody>
-                                </table>
-                            </div>
-                        </div>
+    <div class="col-md-12">
+        
+        <div class="form-group row">
+            <div class="col-md-8">
+                <div class="card bg-light mb-3">
+                    <div class="card-header"><h4 class="card-title">Nombre de la plantilla</h4></div>
+                    <div class="card-body">
+                        <input style="font-size:30px; text-align:center;" type="text" class="form-control-plaintext" id="layoutName" value="${selectedLayoutData.layoutName}">
                     </div>
                 </div>
-
-                <div class="row"> 
-                    <div class="col-md-12">
-                        <div class="card bg-light mb-3">
-                            <div class="card-header"><h4 class="card-title"> <input style="font-size:30px; text-align:center;" type="text" class="form-control-plaintext" id="textInfoTitle" value="${selectedLayoutData.textInfoTitle}"></h4></div>
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <textarea class="form-control" id="textInfoVal" rows="5">${selectedLayoutData.textInfo}</textarea>
-                                </div>
-                            </div>
-                        </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-light mb-3">
+                    <div class="card-header"><h4 class="card-title">Porcentaje de anticipo</h4></div>
+                    <div class="card-body" id="percentAdvanceContainer"></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-light mb-3">
+                    <div class="card-header"><h4 class="card-title">Información general</h4></div>
+                    <div class="card-body">
+                        <table class="table table-hover">
+                            <tbody id="generalInfo"></tbody>
+                        </table>
                     </div>
                 </div>
+            </div>
 
-                <div class="row">
-                    <div class="col-md-3">
-                    </div>
-                    <div class="col-md-3">
-                    </div>
-                    <div class="col-md-3">
-                    </div>
-                    <div class="col-md-3">
-                        <button class="btn btn-primary btn-block" id="saveTemplate">Guardar cambios</button>
+            <div class="col-md-6">
+                <div class="card bg-light mb-3">
+                    <div class="card-header"><h4 class="card-title"><input style="font-size:30px; text-align:center;" type="text" class="form-control-plaintext" id="checkingAccountTitle" value="${selectedLayoutData.checkingAccount.title}"></h4></div>
+                    <div class="card-body">
+                        <table class="table table-hover">
+                            <tbody id="checkingAccount"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="col-md-6">
+        <div class="row"> 
+            <div class="col-md-12">
+                <div class="card bg-light mb-3">
+                    <div class="card-header"><h4 class="card-title"> <input style="font-size:30px; text-align:center;" type="text" class="form-control-plaintext" id="textInfoTitle" value="${selectedLayoutData.textInfoTitle}"></h4></div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <textarea class="form-control" id="textInfoVal" rows="5">${selectedLayoutData.textInfo}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-3">
+            </div>
+            <div class="col-md-3">
+            </div>
+            <div class="col-md-3">
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-primary btn-block" id="saveTemplate">Guardar cambios</button>
+            </div>
+        </div>
     </div>
-    
     `)
+
+    percentHTML()
+ 
 
     $('#saveTemplate').on('click', function(){
         let checkingAccountRows = []
@@ -142,7 +171,8 @@ function printLayout() {
             layoutName: removeExtraSpaces($('#layoutName').val()),
             checkingAccountTitle: removeExtraSpaces($('#checkingAccountTitle').val()),
             textInfoTitle: removeExtraSpaces($('#textInfoTitle').val()),
-            textInfoValue: removeExtraSpaces($('#textInfoVal').val())
+            textInfoValue: removeExtraSpaces($('#textInfoVal').val()),
+            advancePercent: $('#layoutAdvancePercent').val()
         }
         
         getGeneralInfoRows().then(generalInfoRes=>{
@@ -201,11 +231,25 @@ function saveTemplate(saveTemplateData) {
             textInfoTitle: saveTemplateData.textInfoTitle,
             checkingAccountTitle: saveTemplateData.checkingAccountTitle,
             textInfo: saveTemplateData.textInfoValue,
+            advancePercent: saveTemplateData.advancePercent,
             checkingAccount: JSON.stringify(saveTemplateData.checkingAccount),
             generalInfo: JSON.stringify(saveTemplateData.generalInfo)
         }
     }).then(res=> {
         console.log(res)
+        if(res.ok) {
+            swal({
+                type: 'success',
+                title: 'Plantilla modificada correctamente',
+                showConfirmButton: false,
+                timer: 1500
+            })
+
+            loadLayouts()
+        } else if(res.err) {
+            toastr.warning(res.err)
+        }
+        
     })
     
 }

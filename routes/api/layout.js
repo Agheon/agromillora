@@ -39,6 +39,7 @@ const Layout = [
             reqData.textInfoTitle = request.payload.textInfoTitle
             reqData.checkingAccountTitle = request.payload.checkingAccountTitle
             reqData.textInfo = request.payload.textInfo
+            reqData.advancePercent = request.payload.advancePercent
             reqData.checkingAccount = JSON.parse(request.payload.checkingAccount)
             reqData.generalInfo = JSON.parse(request.payload.generalInfo)
 
@@ -59,8 +60,10 @@ const Layout = [
                         originalLayout.textInfoTitle = reqData.textInfoTitle
                         originalLayout.textInfo = reqData.textInfo
                         originalLayout.generalInfo = reqData.generalInfo
+                        originalLayout.advancePercent = reqData.advancePercent
                         originalLayout.checkingAccount.title = reqData.checkingAccountTitle
                         originalLayout.checkingAccount.content = reqData.checkingAccount
+                        
 
                         db.insert(originalLayout).then(modRes=>{
                             if(modRes.ok) {
@@ -84,6 +87,7 @@ const Layout = [
                 textInfoTitle: Joi.string().required(),
                 textInfo: Joi.string().required(),
                 checkingAccount: Joi.string().required(),
+                advancePercent: Joi.string().required(),
                 checkingAccountTitle: Joi.string().required(),
                 generalInfo: Joi.string().required()
             })

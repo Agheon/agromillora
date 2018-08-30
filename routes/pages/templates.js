@@ -1,4 +1,4 @@
-const Templates = {
+export default {
     method: ['GET'],
     path: '/templates',
     options: {
@@ -8,6 +8,4 @@ const Templates = {
             return h.view('templates', { credentials: credentials })
         }
     }
-};
-
-export default Templates
+}

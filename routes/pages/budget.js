@@ -1,4 +1,4 @@
-const Budget = {
+export default {
     method: ['GET'],
     path: '/budget',
     options: {
@@ -8,6 +8,4 @@ const Budget = {
             return h.view('budget', { credentials: credentials })
         }
     }
-};
-
-export default Budget
+}

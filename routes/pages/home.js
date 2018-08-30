@@ -1,4 +1,4 @@
-const Home = {
+export default {
     method: ['GET'],
     path: '/',
     options: {
@@ -8,6 +8,4 @@ const Home = {
             return h.view('home', { credentials: credentials })
         }
     }
-};
-
-export default Home
+}

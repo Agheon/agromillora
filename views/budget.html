@@ -205,8 +205,11 @@ let productsAddedToBudget = 0
 let addingProductStatus = 0
 let productSelectedObj = {}
 let s2ValueToAdd = ''
-let s2EnabledProducts = [] // productos habilitados de productos (values)
+let clientsArr = [] //Arreglo con todos los clientes
+let s2EnabledProducts = [] // select2 de productos habilitados (values)
 let addingProductsArr = [] // arreglo de productos a añadir al presupuesto
+let advancePercent = 0 // porcentaje de avance
+let selectedClientData
 
 $(document).ready(function() {
     $('#budget-filter').select2({
@@ -407,7 +410,9 @@ $('#newBudget').on('click', function(){
             <div class="col-md-6">
                 <p>Cliente:</p>
                 <center><select id="selectClient" name="clientName"></select></center>
+                <div id="selectedClientInfo"></div>
             </div>
+            
             <div class="col-md-6">
                 <table class="table table-hover">
                     <tbody>
@@ -466,8 +471,6 @@ $('#newBudget').on('click', function(){
 
         <div id="firm"></div>
     `)
-
-    finalCalculation()
 
     $('#modal_footer').html(`
         <hr>
@@ -601,13 +604,29 @@ $('#newBudget').on('click', function(){
             $('#selectLayout').select2({
                 width:'40%',
                 data: s2layouts
-            });
+            })
 
-            $('#selectClient').select2({
-                width:'80%',
-                data: s2layouts
-            });
-            
+            getClients().then(clients=>{
+                let s2clients = clients.reduce((arr, el, i)=>{
+                    return arr.concat({
+                        id: el.rut,
+                        text: el.name
+                    })
+                }, [])
+
+                $('#selectClient').select2({
+                    width:'80%',
+                    data: s2clients
+                })
+
+                $('#selectClient').on('select2:select', function (e) {
+                    updateClientsHTML()
+                });
+
+
+                updateClientsHTML()
+            })
+
             getProducts().then(products=>{
                 let s2products = products.reduce((arr, el, i)=>{
                     s2EnabledProducts.push(`${i}-${el.type.toLowerCase()}`)
@@ -785,6 +804,40 @@ $('#budgetModal').on('click', '.closeBudgetModal', function(){
     })
 })
 
+
+function updateClientsHTML() {
+    
+    let selectedClient = $('#selectClient').select2('data')[0].id
+    selectedClientData = clientsArr.filter(el=> {
+        return el.rut == selectedClient
+    })[0]
+    
+    $('#selectedClientInfo').html(`
+    <br>
+        <table class="table">
+            <tbody>
+                <tr>
+                    <td><center>Rut</center></td>
+                    <td><center><b>${rutFunc(selectedClientData.rut)}</b></center></td>
+                </tr>
+                <tr>
+                    <td><center>Nombre</center></td>
+                    <td><center><b>${selectedClientData.name}</b></center></td>
+                </tr>
+                <tr>
+                    <td><center>Teléfono</center></td>
+                    <td><center><b>${selectedClientData.phone}</b></center></td>
+                </tr>
+                <tr>
+                    <td><center>Email</center></td>
+                    <td><center><b>${selectedClientData.email}</b></center></td>
+                </tr>
+            </tbody>
+        </table>
+    `)
+    
+}
+
 function printLayout() {
     let selectedLayout = $('#selectLayout').select2('data')[0].text
     
@@ -792,10 +845,18 @@ function printLayout() {
         return el.layoutName == selectedLayout
     })[0]
 
+    advancePercent = selectedLayoutData.advancePercent
+    finalCalculation()
+    console.log(advancePercent)
     let generalInfoHTML = selectedLayoutData.generalInfo.reduce((txt, el, i)=>{
-        return txt += `
-            <p>${el.key}: ${el.value}</p>
-        `
+        let elReturn = ''
+        if(el.key.length > 0 || el.value.length > 0) {
+            elReturn = `
+                <p>${el.key}: ${el.value}</p>
+            `
+        }
+
+        return txt += elReturn
     }, '')
     
 
@@ -805,12 +866,20 @@ function printLayout() {
     $('#importantInfo').html(selectedLayoutData.textInfo)
 
     let checkingAccountHTML = selectedLayoutData.checkingAccount.content.reduce((txt, el, i)=>{
-        return txt += `
+        let elReturn = ''
+
+        if(el.key.length > 0 || el.value.length > 0) {
+            elReturn = `
             <tr>
                 <td><center>${el.key}</center></td>
                 <td><center><b>${el.value}</b></center></td>
             </tr>
-        `
+            `
+        }
+
+        return txt += elReturn
+            
+        
     }, '')
 
 
@@ -868,6 +937,23 @@ function getProducts() {
     })
 }
 
+
+function getClients() {
+    return new Promise(resolve=> {
+        ajax({
+            url:'api/clientsEnabled'
+        }).then(res=> {
+            if(res.ok) {
+                clientsArr = res.ok
+                resolve(res.ok)
+            } else if (res.err) {
+                toastr.warning(res.err)
+                resolve(null)
+            }     
+        })
+    })
+}
+
 function removeBudgetProduct(productToRemove) {
    // $('#tableBudgetProductsTbody')
     $(`[id='row${productToRemove}']`).empty()
@@ -895,8 +981,8 @@ function finalCalculation() {
         return total += el.price * el.stock
     },0)
 
-    let finalAdvance = (finalAmount * 40) / 100
-    let finalInDelivery = (finalAmount * 60) / 100
+    let finalAdvance = (finalAmount * advancePercent) / 100
+    let finalInDelivery = (finalAmount * (100-advancePercent) ) / 100
 
     let amountNew = (finalAmount / ((19 / 100) + 1))
     let amountTax = parseFloat(finalAmount) - parseFloat(amountNew)
@@ -909,11 +995,11 @@ function finalCalculation() {
         <table class="table table-hover">
             <tbody>
                 <tr>
-                    <td><center>40% de anticipo de reserva:</center></td>
+                    <td><center>${advancePercent}% de anticipo de reserva:</center></td>
                     <td><center><b>$${comma_format(finalAdvance)}</b></center></td>
                 </tr>
                 <tr>
-                    <td><center>Saldo, al momento del despacho de las plantas:</center></td>
+                    <td><center>${100-advancePercent}% Saldo, al momento del despacho de las plantas:</center></td>
                     <td><center><b>$${comma_format(finalInDelivery)}</b></center></td>
                 </tr>
                 <tr>

@@ -76,11 +76,18 @@
                     <a id="products-link" class="nav-link" href="/products"><i class="fab fa-pagelines"></i>&nbsp; Productos</a>
                 </li>
                 <li class="nav-item">
+                    <a id="clients-link" class="nav-link" href="/clients"><i class="fas fa-user-tie"></i>&nbsp; Clientes</a>
+                </li>
+                <!--
+                <li class="nav-item">
                     <a class="nav-link" href="#"><i class="fas fa-money-check-alt"></i>&nbsp; Pagos recibidos</a>
                 </li>
+                -->
+                <!--
                 <li class="nav-item">
                     <a id="logs-link" class="nav-link" href="/logs"><i class="fas fa-align-left"></i>&nbsp; Logs</a>
                 </li>
+                -->
             </ul>
             
             <div class="form-inline my-2 my-lg-0 white-text">
@@ -164,6 +171,11 @@
 
         const rutFunc = (rut) => {
             return $.formatRut(rut)
+        }
+
+        const ktoK = (rut) => {
+            let replace1 = rut.replace('k', 'K')
+            return replace1
         }
 
         const checkSession = () => {
