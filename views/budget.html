@@ -75,6 +75,11 @@
 <div class="topmenu">
     <div class="row">
         <div class="col-md-2 col-sm-4 col-xs-12">
+            <button class="btn btn-primary" type="button" id="newBudget">
+                <i class="fas fa-plus"></i>&nbsp;Nuevo presupuesto
+            </button>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-12">
             <select id="budget-filter" name="state">
                 <option></option>
                 <option value="sended">TODOS LOS PRESUPUESTOS</option>
@@ -85,15 +90,8 @@
                 <option value="rejected">RECHAZADOS</option>
             </select>
         </div>
-        <div class="col-md-2 col-sm-4 col-xs-12">
-            <button class="btn btn-primary" type="button" id="newBudget">
-                <i class="fas fa-plus"></i>&nbsp;Nuevo presupuesto
-            </button>
-        </div>
+        
     </div>
-    
-
-    
 </div>
 
 <table id="budget-table" class="table table-hover">
@@ -487,7 +485,13 @@ $('#newBudget').on('click', function(){
         <br>
     `)
 
-    
+    $('#saveBudget').on('click', function(){
+        saveBudget('new')
+    })
+
+    $('#saveDraftBudget').on('click', function(){
+        saveBudget('draft')
+    })
 
     setTimeout(() => {
         $('#reference').focus()
@@ -826,6 +830,14 @@ function updateClientsHTML() {
         </table>
     `)
     
+}
+
+function saveBudget(type) {
+    if(type == 'draft') {
+        console.log('borrador')
+    } else if(type == 'new') {
+        console.log('nuevo')
+    }
 }
 
 function printLayout() {
