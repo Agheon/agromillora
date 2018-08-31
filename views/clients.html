@@ -7,6 +7,7 @@
     }
 </style>
 {{/extend}}
+
 <div class="row">
     <div class="col-md-12">
         <ul class="nav nav-pills mb-3 nav-justified" id="pills-tab" role="tablist">
@@ -39,6 +40,10 @@
                         </button>
                         <button class="btn btn-dark btn-block btnSecond2" id="optionDisableClient" disabled>
                             <i style="color:#e74c3c;" class="fas fa-ban"></i> Deshabilitar cliente
+                        </button>
+                        <hr>
+                        <button class="btn btn-dark btn-block" id="importFromExcel">
+                            <img style="max-width:30px;" src="public/img/excel.png" alt=""> Importar datos
                         </button>
                     </div>
                 
@@ -98,19 +103,194 @@
 </div>
 
 {{#extend "js"}}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.7.7/xlsx.core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xls/0.7.4-a/xls.core.min.js"></script>
+
 <script>
 let datatableClients
 let datatableDisabledClients
 let clientRowSelected
 let clientRowSelectedData
+let importClientsArray = []
 
 $(document).ready(function(){
     chargeClientsTable()
 })
 
+function ExportToTable() {  
+    var regex = /^([a-zA-Z0-9\s_\\.\-:])+(.xlsx|.xls)$/;  
+     /*Checks whether the file is a valid excel file*/  
+    if (regex.test($("#excelfile").val().toLowerCase())) {  
+        var xlsxflag = false; /*Flag for checking whether excel is .xls format or .xlsx format*/  
+        if ($("#excelfile").val().toLowerCase().indexOf(".xlsx") > 0) {  
+            xlsxflag = true;
+            $('#excelFileName').text($("#excelfile").val().replace(/C:\\fakepath\\/i, ''))
+        }  
+         /*Checks whether the browser supports HTML5*/  
+        if (typeof (FileReader) != "undefined") {  
+            var reader = new FileReader();  
+            reader.onload = function (e) {  
+                var data = e.target.result;  
+                /*Converts the excel data in to object*/  
+                if (xlsxflag) {  
+                    var workbook = XLSX.read(data, { type: 'binary' });  
+                }  
+                else {  
+                    var workbook = XLS.read(data, { type: 'binary' });  
+                }  
+                /*Gets all the sheetnames of excel in to a variable*/  
+                var sheet_name_list = workbook.SheetNames;  
+
+                var cnt = 0; /*This is used for restricting the script to consider only first sheet of excel*/  
+                sheet_name_list.forEach(function (y) { /*Iterate through all sheets*/  
+                     /*Convert the cell value to Json*/  
+                    if (xlsxflag) {  
+                        var exceljson = XLSX.utils.sheet_to_json(workbook.Sheets[y]);  
+                    }  
+                    else {  
+                        var exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets[y]);  
+                    }  
+                    if (exceljson.length > 0 && cnt == 0) {
+                        $('#exceltable').empty() 
+                        BindTable(validateExcelClients(exceljson), '#exceltable');
+                        cnt++;
+                    }  
+                });  
+                $('#exceltable').show();  
+            }  
+            if (xlsxflag) {/*If excel file is .xlsx extension than creates a Array Buffer from excel*/  
+                reader.readAsArrayBuffer($("#excelfile")[0].files[0]);  
+            }  
+            else {  
+                reader.readAsBinaryString($("#excelfile")[0].files[0]);  
+            }  
+        }  else {  
+            swal({
+                type: 'error',
+                title: 'Sin soporte HTML5',
+                text: 'Tu navegador no soporta HTML5'
+            }) 
+        }  
+    }  else {  
+        swal({
+            type: 'error',
+            title: 'Archivo incorrecto',
+            text: 'Debe cargar un archivo Excel correcto'
+        }) 
+     }  
+}
+
+function BindTable(jsondata, tableid) {/*Function used to convert the JSON array to Html Table*/  
+    var columns = BindTableHeader(jsondata, tableid); /*Gets all the column headings of Excel*/  
+    for (var i = 0; i < jsondata.length; i++) {  
+        var row$ = $('<tr/>');  
+        for (var colIndex = 0; colIndex < columns.length; colIndex++) {  
+             var cellValue = jsondata[i][columns[colIndex]];  
+             if (cellValue == null)  
+                 cellValue = "";  
+             row$.append($('<td/>').html(cellValue));  
+        }  
+        $(tableid).append(row$);  
+    }  
+}  
+
+function BindTableHeader(jsondata, tableid) {/*Function used to get all column names from JSON and bind the html table header*/  
+    var columnSet = [];  
+    var headerTr$ = $('<tr/>');  
+    for (var i = 0; i < jsondata.length; i++) {  
+         var rowHash = jsondata[i];  
+         for (var key in rowHash) {  
+             if (rowHash.hasOwnProperty(key)) {  
+                 if ($.inArray(key, columnSet) == -1) {/*Adding each unique column names to a variable array*/  
+                     columnSet.push(key);  
+                     headerTr$.append($('<th/>').html(key));  
+                 }  
+             }  
+         }  
+    }  
+    $(tableid).append(headerTr$);  
+    return columnSet;  
+}  
+
+function validateExcelClients(exceljson) {
+    let validationClientsImport = exceljson.reduce((arr, el, i)=>{
+        console.log(el.rut)
+        let clientObj = {}
+        
+        if(el.rut && isRut(el.rut)) {
+            clientObj.rut = ktoK(rutFunc(el.rut))
+        } else {
+            clientObj.rut = ''
+        }
+        if(el.name && el.name.length > 0) {
+            clientObj.name = el.name
+        } else {
+            clientObj.name = ''
+        }
+        if(el.phone && el.phone.length > 0) {
+            clientObj.phone = el.phone
+        } else {
+            clientObj.phone = ''
+        }
+        if(el.email && el.email.length > 0) {
+            clientObj.email = el.email
+        } else {
+            clientObj.email = ''
+        }    
+        
+        return arr.concat(clientObj)
+
+    }, [])
+
+    let validationClientsImport2 = validationClientsImport.filter(el=> {
+        return isRut(el.rut) && el.name.length > 0 && el.phone.length > 0 && isEmail(el.email)
+    })
+
+    if(validationClientsImport2.length > 0) {
+        $('#importErrMessage').empty()
+        if(validationClientsImport2.length != exceljson.length) {
+            $('#importErrMessage').html(`
+                <div class="alert alert-dismissible alert-warning">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    <h4 class="alert-heading">Se han eliminado (${exceljson.length-validationClientsImport2.length}) filas de importación</h4>
+                    <p class="mb-0">Recuerde que <b>rut</b>, <b>name</b>, <b>phone</b> y <b>email</b> son <b>obligatorios</b>.</p>
+                    <br>
+                    <p>* <b>rut</b> debe ser un rut válido.</p>
+                    <p>* <b>name</b> no debe estar vacío.</p>
+                    <p>* <b>phone</b> no debe estar vacío.</p>
+                    <p>* <b>email</b> debe ser un correo válido.</p>
+                </div>
+            `)
+        }
+
+        $('#saveImport').prop('disabled', false)
+    } else {
+        $('#saveImport').prop('disabled', true)
+        $('#importErrMessage').html(`
+        <div class="alert alert-dismissible alert-danger">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <h4 class="alert-heading">Se han eliminado todas (${exceljson.length}) las filas de importación</h4>
+            <p class="mb-0">Recuerde que <b>rut</b>, <b>name</b>, <b>phone</b> y <b>email</b> son <b>obligatorios</b>.</p>
+            <br>
+            <p>* <b>rut</b> debe ser un rut válido.</p>
+            <p>* <b>name</b> no debe estar vacío.</p>
+            <p>* <b>phone</b> no debe estar vacío.</p>
+            <p>* <b>email</b> debe ser un correo válido.</p>
+        </div>
+        `)
+    }
+
+    importClientsArray = validationClientsImport2
+    return validationClientsImport2
+} 
+
 function chargeClientsTable() {
     datatableClients = $('#tableClients')
     .DataTable( {
+        dom: 'Bfrtip',
+        buttons: [
+            'copy', 'csv', 'excel', 'pdf', 'print'
+        ],
         ordering: true,
         iDisplayLength: 50,
         oLanguage: {
@@ -124,22 +304,7 @@ function chargeClientsTable() {
             { data: 'email' }                
         ],
         initComplete: function (settings, json) {
-            ajax({
-                url: 'api/clientsEnabled'
-            }).then(res => {
-                if (res.err) {
-                    toastr.warning(res.err)
-                    $('#loadingClients').empty()
-                } else if(res.ok) {
-                    let formatRes = res.ok.map(el=>{
-                        el.rut = `<b>${rutFunc(el.rut)}</b>`    
-                        return el
-                    })
-
-                    datatableClients.rows.add(formatRes).draw()
-                    $('#loadingClients').empty()
-                }      
-            })
+            getClientsEnabled()
         }
     })
 
@@ -160,11 +325,110 @@ function chargeClientsTable() {
     })
 }
 
+function getClientsEnabled() {
+    ajax({
+        url: 'api/clientsEnabled'
+    }).then(res => {
+        if (res.err) {
+            toastr.warning(res.err)
+            $('#loadingClients').empty()
+        } else if(res.ok) {
+            let formatRes = res.ok.map(el=>{
+                el.rut = `<b>${rutFunc(el.rut)}</b>`    
+                return el
+            })
+
+            datatableClients.rows.add(formatRes).draw()
+            $('#loadingClients').empty()
+        }      
+    })
+}
+
 function cleanData(data){
     data.rut = ktoK($(cleanRut(data.rut)).text())
 
     return data
 }
+
+$('#importFromExcel').on('click', function(){
+    $('#clientModal').modal('show');
+    $('#modal_title').html(`Importar datos de excel`)
+
+    $('#modal_body').html(`
+        <div class="form-group">
+            <div class="input-group mb-3">
+                <div class="custom-file">
+                    <input type="file" id="excelfile" class="custom-file-input">
+                    <label class="custom-file-label" for="excelfile">Choose file</label>
+                </div>
+                <div class="input-group-append">
+                    <button class="btn btn-primary" type="button" id="viewfile" onclick="ExportToTable()">Cargar archivo</button>
+                </div>
+            </div>
+        </div>
+        <center><h2 id="excelFileName">Ningún archivo cargado</h2></center>
+        <br>
+        <table class="table" id="exceltable"> </table> 
+
+        <div id="importErrMessage"></div>
+    `)
+
+    $('#modal_footer').html(`
+        <button class="btn btn-dark" data-dismiss="modal">
+            <i style="color:#e74c3c;" class="fas fa-times"></i> Cancelar
+        </button>
+
+        <button class="btn btn-dark" id="saveImport" disabled>
+            <i style="color:#3498db;" class="fas fa-check"></i> Importar
+        </button>
+    `)
+
+    $('#saveImport').on('click', function(){
+        if(importClientsArray.length > 0) {
+            swal({
+                title: '¿Desea continuar?',
+                text: 'Los nuevos clientes se crearán y los existentes se modificarán',
+                type: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Si, continuar',
+                cancelButtonText: 'No, cancelar'
+            }).then((result) => {
+                if (result.value) {
+
+                    let importClientsArrayCleanRut = importClientsArray.map(el=>{
+                        el.rut = ktoK(cleanRut(el.rut))
+                        el.email = el.email.toLowerCase()
+                        return el
+                    })
+
+                    console.log(importClientsArrayCleanRut)
+                    
+                    
+                    ajax({
+                        url: 'api/importClients',
+                        type: 'POST',
+                        data:{
+                            clients: JSON.stringify(importClientsArrayCleanRut)
+                        }
+                    }).then(res=>{
+                        if(res.ok) {
+                            toastr.success('Clientes importados correctamente')
+                            $('#clientModal').modal('hide')
+                            datatableClients
+                            .rows()
+                            .remove()
+                            .draw()
+                            getClientsEnabled() 
+                        }
+                    })
+                    
+                }
+            }) 
+        }
+    })
+})
 
 $('#optionCreateClient').on('click', function() { // CREAR CLIENTE
 

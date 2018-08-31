@@ -4,8 +4,174 @@
 
 {{/extend}}
 
-HOME
+<div id="container"></div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div id="container2"></div>
+    </div>
+    <div class="col-md-6">
+        <div id="container3"></div>
+    </div>
+</div>
 
 {{#extend "js"}}
+<script>
+$(document).ready(function(){
+    
+    
 
+
+
+Highcharts.chart('container', {
+    chart: {
+        type: 'line'
+    },
+    title: {
+        text: 'Presupuestos aceptados 2018'
+    },
+    subtitle: {
+        text: 'AGROMILLORA SUR S.A.'
+    },
+    yAxis: {
+        title: {
+            text: 'Cantidad'
+        }
+    },
+    xAxis: {
+        categories: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+    },
+    plotOptions: {
+        line: {
+            dataLabels: {
+                enabled: true
+            },
+            enableMouseTracking: false
+        }
+    },
+    series: [
+    {
+        name: 'Antonio Fuentes O.',
+        data: [20, 39, 95, 14, 18, 21, 25, 26]
+    }, 
+    {
+        name: 'Mauricio Zuñiga B.',
+        data: [12, 42, 55, 85, 11, 45, 22, 77]
+    },
+    {
+        name: 'Vicky Lagos M.',
+        data: [10, 42, 57, 85, 19, 15, 17, 16]
+    }]
+});
+
+
+Highcharts.chart('container2', {
+    chart: {
+        type: 'bar'
+    },
+    title: {
+        text: 'Productos mas vendidos'
+    },
+    subtitle: {
+        text: 'AGROMILLORA SUR S.A.'
+    },
+    xAxis: {
+        categories: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto'],
+        title: {
+            text: null
+        }
+    },
+    yAxis: {
+        min: 0,
+        title: {
+            text: 'Cantidad',
+            align: 'high'
+        },
+        labels: {
+            overflow: 'justify'
+        }
+    },
+    tooltip: {
+        valueSuffix: ' millions'
+    },
+    plotOptions: {
+        bar: {
+            dataLabels: {
+                enabled: true
+            }
+        }
+    },
+    legend: {
+        layout: 'vertical',
+        align: 'right',
+        verticalAlign: 'top',
+        x: -40,
+        y: 80,
+        floating: true,
+        borderWidth: 1,
+        backgroundColor: ((Highcharts.theme && Highcharts.theme.legendBackgroundColor) || '#FFFFFF'),
+        shadow: true
+    },
+    credits: {
+        enabled: false
+    },
+    series: [{
+        name: 'Producto 1',
+        data: [99999, 95487, 78546, 32443, 23423]
+    }, {
+        name: 'Producto 2',
+        data: [99999, 95487, 78546, 32443, 23423]
+    }, {
+        name: 'Producto 3',
+        data: [99999, 95487, 78546, 32443, 23423]
+    }, {
+        name: 'Producto 4',
+        data: [99999, 95487, 78546, 32443, 23423]
+    }]
+});
+
+
+Highcharts.chart('container3', {
+    chart: {
+        plotBackgroundColor: null,
+        plotBorderWidth: null,
+        plotShadow: false,
+        type: 'pie'
+    },
+    title: {
+        text: 'Porcentaje de presupuestos creados 2018'
+    },
+    tooltip: {
+        pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+    },
+    plotOptions: {
+        pie: {
+            allowPointSelect: true,
+            cursor: 'pointer',
+            dataLabels: {
+                enabled: true,
+                format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                style: {
+                    color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+                }
+            }
+        }
+    },
+    series: [{
+        name: 'Brands',
+        colorByPoint: true,
+        data: [{
+            name: 'Antonio Fuentes O.',
+            y: 33.00,
+        }, {
+            name: 'Mauricio Zuñiga B.',
+            y: 40.00
+        }, {
+            name: 'Vicky Lagos M.',
+            y: 27.00
+        }]
+    }]
+});
+})
+</script>
 {{/extend}}

@@ -113,6 +113,47 @@ export default [
     }
 },
 {
+    method: 'POST',
+    path: '/api/importClients',
+    options: {
+        handler: (request, h) => {
+            let clients = JSON.parse(request.payload.clients)
+            let clientsRut = clients.reduce((arr, el, i)=>{
+                return arr.concat(el.rut)
+            }, [])
+
+            return new Promise(resolve => {
+                db.find({
+                    'selector': {
+                        _id: {
+                            $gt: 0
+                        },
+                        type: 'client',
+                        rut: {
+                            $in: clientsRut
+                        }
+                    }
+                }).then(result => {
+                    console.log(result)
+                    if (result.docs[0]) {
+                        compare({originals: result.docs, news: clients}).then(resBulk=>{
+                            db.bulk({docs:resBulk}, function(err) {
+                                if (err) throw err;
+                                resolve({ok: resBulk})
+                            });
+                        })  
+                    }
+                })
+            });
+        },
+        validate: {
+            payload: Joi.object().keys({
+                clients: Joi.string().required()
+            })
+        }
+    }
+},
+{
     method: 'PUT',
     path: '/api/client',
     options: {
@@ -168,3 +209,56 @@ export default [
     }
 }
 ]
+
+
+async function compare({originals, news}) {
+    let toBulk = []
+    let originalsRut = originals.reduce((arr, el, i)=>{
+        return arr.concat(el.rut)
+    }, [])
+
+    await news.forEach(async (el) => {
+        let equalsClients = await searchEquals({newEl: el, originals: originals})
+        let difClients = await searchDif({newEl: el, originalsRut: originalsRut})
+
+        if(equalsClients) toBulk.push(equalsClients) 
+        if(difClients) toBulk.push(difClients)  
+    })
+    
+    return toBulk
+}
+
+function searchEquals({newEl, originals}) {
+    return new Promise(resolve=>{
+        let intercept = originals.filter(el=> {
+            return el.rut == newEl.rut
+        })
+
+        if(intercept[0]) {
+            intercept[0].name = newEl.name
+            intercept[0].phone = newEl.phone
+            intercept[0].email = newEl.email
+            resolve(intercept[0])
+        } else {
+            resolve(null)
+        }
+    })
+}
+
+function searchDif({newEl, originalsRut}) {
+    return new Promise(resolve=>{
+        if (originalsRut.indexOf(newEl.rut) == -1) {
+            resolve({
+                _id: moment.tz('America/Santiago').format('YYYY-MM-DDTHH:mm:ss.SSSSS'),
+                type: 'client',
+                status: 'enabled',
+                rut: newEl.rut,
+                name: newEl.name,
+                phone: newEl.phone,
+                email: newEl.email
+            })
+        } else {
+            resolve(null)
+        }
+    })
+}
