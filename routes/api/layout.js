@@ -42,6 +42,7 @@ const Layout = [
             reqData.advancePercent = request.payload.advancePercent
             reqData.checkingAccount = JSON.parse(request.payload.checkingAccount)
             reqData.generalInfo = JSON.parse(request.payload.generalInfo)
+            reqData.divisa = request.payload.divisa
 
             return new Promise(resolve => {
                 db.find({
@@ -63,6 +64,7 @@ const Layout = [
                         originalLayout.advancePercent = reqData.advancePercent
                         originalLayout.checkingAccount.title = reqData.checkingAccountTitle
                         originalLayout.checkingAccount.content = reqData.checkingAccount
+                        originalLayout.divisa = reqData.divisa
                         
 
                         db.insert(originalLayout).then(modRes=>{
@@ -89,7 +91,8 @@ const Layout = [
                 checkingAccount: Joi.string().required(),
                 advancePercent: Joi.string().required(),
                 checkingAccountTitle: Joi.string().required(),
-                generalInfo: Joi.string().required()
+                generalInfo: Joi.string().required(),
+                divisa: Joi.string().required(),
             })
         }
     }

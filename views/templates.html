@@ -42,6 +42,10 @@ function loadLayouts() {
                 data: s2layouts
             })
 
+            $('#selectLayout').on('select2:select', function (e) {
+                printLayout()
+            });
+
             printLayout()
         }
     })  
@@ -72,9 +76,7 @@ function percentHTML() {
 
     for (let i = 0; i <= 100; i++) {
         percentOptionsHTML += `<option value="${i}">${i}%</option>`
-        console.log(percentOptionsHTML)
         if(i == 100) {
-            console.log(i)
             $('#percentAdvanceContainer').html(`<select style="text-align-last:center; font-size:30px; padding:0px;" class="form-control" id="layoutAdvancePercent">${percentOptionsHTML}</select>`)
 
             $('#layoutAdvancePercent').val(originalLayoutData.advancePercent)
@@ -95,7 +97,7 @@ function printLayout() {
     <div class="col-md-12">
         
         <div class="form-group row">
-            <div class="col-md-8">
+            <div class="col-md-6">
                 <div class="card bg-light mb-3">
                     <div class="card-header"><h4 class="card-title">Nombre de la plantilla</h4></div>
                     <div class="card-body">
@@ -103,7 +105,19 @@ function printLayout() {
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <div class="card bg-light mb-3">
+                    <div class="card-header"><h4 class="card-title">Divisa</h4></div>
+                    <div class="card-body">
+                        <select style="text-align-last:center; font-size:30px; padding:0px;" class="form-control" id="layoutDivisa">
+                            <option value="clp">$ CLP</option>
+                            <option value="usd">$ USD</option>
+                            <option value="eur">€ EUR</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
                 <div class="card bg-light mb-3">
                     <div class="card-header"><h4 class="card-title">Porcentaje de anticipo</h4></div>
                     <div class="card-body" id="percentAdvanceContainer"></div>
@@ -159,6 +173,8 @@ function printLayout() {
     </div>
     `)
 
+
+    $('#layoutDivisa').val(selectedLayoutData.divisa)
     percentHTML()
  
 
@@ -169,7 +185,8 @@ function printLayout() {
             checkingAccountTitle: removeExtraSpaces($('#checkingAccountTitle').val()),
             textInfoTitle: removeExtraSpaces($('#textInfoTitle').val()),
             textInfoValue: removeExtraSpaces($('#textInfoVal').val()),
-            advancePercent: $('#layoutAdvancePercent').val()
+            advancePercent: $('#layoutAdvancePercent').val(),
+            layoutDivisa: $('#layoutDivisa').val()
         }
         
         getGeneralInfoRows().then(generalInfoRes=>{
@@ -230,7 +247,8 @@ function saveTemplate(saveTemplateData) {
             textInfo: saveTemplateData.textInfoValue,
             advancePercent: saveTemplateData.advancePercent,
             checkingAccount: JSON.stringify(saveTemplateData.checkingAccount),
-            generalInfo: JSON.stringify(saveTemplateData.generalInfo)
+            generalInfo: JSON.stringify(saveTemplateData.generalInfo),
+            divisa: saveTemplateData.layoutDivisa
         }
     }).then(res=> {
         console.log(res)

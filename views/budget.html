@@ -198,6 +198,8 @@ let s2EnabledProducts = [] // select2 de productos habilitados (values)
 let addingProductsArr = [] // arreglo de productos a añadir al presupuesto
 let advancePercent = 0 // porcentaje de avance
 let selectedClientData
+let selectedLayoutData
+let amounts = {}
 
 $(document).ready(function() {
     $('#budget-filter').select2({
@@ -423,7 +425,7 @@ $('#newBudget').on('click', function(){
         
         <hr>
         <div class="row">
-            <div class="col-md-6">     
+            <div class="col-md-6" id="selectProductToAddContainer">     
                 <center><select id="selectProductToAdd"><option value="default">Seleccione un producto</option></select></center>     
             </div>
             <div class="col-md-6">
@@ -458,6 +460,8 @@ $('#newBudget').on('click', function(){
         </div>
 
         <div id="firm"></div>
+        
+        <div id="errorMessage"></div>
     `)
 
     $('#modal_footer').html(`
@@ -833,17 +837,65 @@ function updateClientsHTML() {
 }
 
 function saveBudget(type) {
-    if(type == 'draft') {
-        console.log('borrador')
-    } else if(type == 'new') {
-        console.log('nuevo')
+    let status = ''
+    let budgetObj = {
+        reference: $('#reference').val(),
+        expirationDate: $('#expirationDate').val(),
+        layout: selectedLayoutData
     }
+    let validateCounter = 0
+    let errorMessage = ''
+    if(type == 'draft') {
+        status = 'draft'
+    } else if(type == 'new') {
+        status = 'new'
+    }
+
+    if (budgetObj.reference.length > 0) { // 1
+        validateCounter++
+        $('#reference').css({
+            border: '1px solid #3498db'
+        })
+    } else {
+        errorMessage += `<br> * Debe ingresar nombre de referencia.`
+        $('#reference').css({
+            border: '1px solid #e74c3c'
+        })
+    }
+
+    if(addingProductsArr.length > 0) { // 2
+        validateCounter++
+        budgetObj.products = addingProductsArr
+        $('#selectProductToAddContainer').css({
+            border: '1px solid #3498db'
+        })
+    } else {
+        errorMessage += `<br> * Debe agregar 1 producto como mínimo.`
+        $('#selectProductToAddContainer').css({
+            border: '1px solid #e74c3c'
+        })
+    }
+
+    if(selectedClientData.rut && selectedClientData.name && selectedClientData.phone && selectedClientData.email) { // 3
+        validateCounter++
+        $('#selectedClientInfo').css({
+            border: '1px solid #3498db'
+        })
+    } else {
+        errorMessage += `<br> * Debe seleccionar un cliente.`
+        $('#selectedClientInfo').css({
+            border: '1px solid #e74c3c'
+        })
+    }
+
+
+    console.log(budgetObj)
 }
 
 function printLayout() {
     let selectedLayout = $('#selectLayout').select2('data')[0].text
     
-    let selectedLayoutData = layouts.filter(function(el) {
+    selectedLayoutData = layouts.filter(function(el) {
         return el.layoutName == selectedLayout
     })[0]
 
@@ -988,9 +1040,26 @@ function finalCalculation() {
 
     let amountNew = (finalAmount / ((19 / 100) + 1))
     let amountTax = parseFloat(finalAmount) - parseFloat(amountNew)
-    let iva = parseInt(amountTax)
+    let iva
+    let amountTXT = ''
+
+    if(selectedLayoutData.divisa == 'clp') {
+        iva = parseInt(amountTax)
+        amountTXT = 'CLP $'
+    } else if (selectedLayoutData.divisa == 'usd') {
+        iva = 0
+        amountTXT = 'USD $'
+    } else if(selectedLayoutData.divisa == 'eur') {
+        iva = 0
+        amountTXT = 'EUR €'
+    }
+    
 
     console.log(amountNew, amountTax, iva)
+
+    amounts.avancedPercent = advancePercent
+    amounts.finalAdvance = finalAdvance
+    amounts.iva = iva
 
     $('#finalCalculations').html(`
         <h3><b>Condiciones comerciales, de pago y Facturación:</b></h3>
@@ -998,23 +1067,23 @@ function finalCalculation() {
             <tbody>
                 <tr>
                     <td><center>${advancePercent}% de anticipo de reserva:</center></td>
-                    <td><center><b>$${comma_format(finalAdvance)}</b></center></td>
+                    <td><center><b>${amountTXT}${comma_format(finalAdvance)}</b></center></td>
                 </tr>
                 <tr>
                     <td><center>${100-advancePercent}% Saldo, al momento del despacho de las plantas:</center></td>
-                    <td><center><b>$${comma_format(finalInDelivery)}</b></center></td>
+                    <td><center><b>${amountTXT}${comma_format(finalInDelivery)}</b></center></td>
                 </tr>
                 <tr>
                     <td><center>IVA, se deberá cancelar documentado, al día 10 del mes siguiente de la fecha de despacho:</center></td>
-                    <td><center><b>$${comma_format(iva)}</b></center></td>
+                    <td><center><b>${amountTXT}${comma_format(iva)}</b></center></td>
                 </tr>
                 <tr>
                     <td><center>Sub total:</center></td>
-                    <td><center><b>$${comma_format(finalAmount)}</b></center></td>
+                    <td><center><b>${amountTXT}${comma_format(finalAmount)}</b></center></td>
                 </tr>
                 <tr>
                     <td><center><h3>Total a pagar:</h3></center></td>
-                    <td><center><h3 style="color:#1abc9c;"><b>$${comma_format(finalAmount+iva)}</b></h3></center></td>
+                    <td><center><h3 style="color:#1abc9c;"><b>${amountTXT}${comma_format(finalAmount+iva)}</b></h3></center></td>
                 </tr>
             </tbody>
         </table>
