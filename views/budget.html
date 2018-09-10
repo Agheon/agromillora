@@ -97,6 +97,7 @@
 <table id="budget-table" class="table table-hover">
     <thead>
         <tr>
+            <th scope="col">dateOrder</th>
             <th scope="col">FECHA</th>
             <th scope="col">NÚMERO DE LA COTIZACIÓN</th>
             <th scope="col">NOMBRE DE REFERENCIA</th>
@@ -145,6 +146,7 @@ let selectedClientData
 let selectedLayoutData
 let amounts = {}
 let firmObj = {}
+let orderCount = 0
 
 $(document).ready(function() {
     $('#budget-filter').select2({
@@ -154,13 +156,21 @@ $(document).ready(function() {
 
     datatable = $('#budget-table')
     .DataTable( {
-        ordering: false,
+        ordering: true,
+        order: [[ 0, 'asc' ]],
         iDisplayLength: 100,
         oLanguage: {
             sSearch: 'buscar: '
         },
+        columnDefs: [
+            {
+                targets: [ 0 ],
+                visible: true
+            }
+        ],
         responsive: false,
         columns: [
+            //{ data: 'dateOrder' },
             { data: 'creationDate' },
             { data: 'number' },
             { data: 'reference' },
@@ -173,6 +183,15 @@ $(document).ready(function() {
             getBudgets()
         }
     });
+    
+    datatable.on( 'order.dt search.dt', function () {
+        datatable.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+            cell.innerHTML = i+1
+            orderCount = i+1
+            console.log(orderCount)
+        })
+    } ).draw();
+    
 
     $('#budget-table tbody').on('click', 'tr', function() {
         rowDataSelected = datatable.row($(this)).data();
@@ -192,6 +211,7 @@ const getBudgets = () => {
             console.log(res.ok)
             let formatRes = res.ok.map(el=>{
                 //el.rut = `<b>${rutFunc(el.rut)}</b>`
+                el.dateOrder = dateOrder(el._id) // DD/MM/YYYY to YYYYMMDD
                 el.clientName = el.client.name
                 el.cost = parseFloat(el.amounts.iva)+parseFloat(el.amounts.subtotal)  
                 el.divisa = el.layout.divisa
@@ -202,6 +222,17 @@ const getBudgets = () => {
             $('#loadingBudgets').empty()
         }      
     })
+}
+
+const dateOrder = (creationDate) => {
+    /*
+    let splitDate = creationDate.split('/')
+    splitDate = splitDate[2]+splitDate[1]+splitDate[0]
+    */
+
+    let splitDate = moment(creationDate).format('YYYYMMDDHHmmss')
+    console.log(splitDate)
+    return splitDate
 }
 
 const chargeModal = () => {
@@ -360,7 +391,15 @@ $('#newBudget').on('click', function(){
     `)
 
     $('#modal_body').html(`
-        Plantilla seleccionada <select id="selectLayout" name="layoutName"></select>
+        <div class="row">
+            <div class="col-md-6 col-xs-12">
+                Plantilla seleccionada <select id="selectLayout" name="layoutName"></select>
+            </div>
+            <div class="col-md-6 col-xs-12">
+                <div id="selectedDivisa"></div>
+            </div>
+        </div>
+        
         <hr>
         <div class="row">
             <div class="col-md-6">
@@ -584,6 +623,11 @@ $('#newBudget').on('click', function(){
                 width:'40%',
                 data: s2layouts
             })
+
+            $('#selectLayout').on('select2:select', function (e) {
+                printLayout()
+            });
+
 
             getClients().then(clients=>{
                 let s2clients = clients.reduce((arr, el, i)=>{
@@ -933,6 +977,31 @@ function saveDraftBudget(budgetObj) {
             subtotal: budgetObj.amounts.subtotal.toString() // ok
         }
     }).then(res=>{
+        if(res.ok) {
+            let resText = ''
+            if(res.ok.status == 'draft') {
+                resText = `Se ha creado correctamente el <b>borrador</b> de cotización con referencia: <b>${res.ok.reference}</b> para el cliente <b>${res.ok.client.name}</b>.`
+            }
+            toastr.success(resText)
+            $('#budgetModal').modal('hide')
+
+            let formatRes = res.ok 
+            formatRes.dateOrder = dateOrder(res.ok._id) // DD/MM/YYYY to YYYYMMDD
+            formatRes.clientName = res.ok.client.name
+            formatRes.cost = parseFloat(res.ok.amounts.iva)+parseFloat(res.ok.amounts.subtotal) 
+            formatRes.divisa = res.ok.layout.divisa
+            
+            let newBudgetAdded = datatable
+            .row.add(formatRes)
+            .draw()
+            .node();
+            
+            $(newBudgetAdded).css( 'color', '#1abc9c' )
+            setTimeout(() => {
+                $(newBudgetAdded).css( 'color', '#000000' )
+            }, 5000);
+
+        }
         console.log(res)
     })
     
@@ -1097,13 +1166,52 @@ function finalCalculation() {
     if(selectedLayoutData.divisa == 'clp') {
         iva = parseInt(amountTax)
         amountTXT = 'CLP $'
+        $('#selectedDivisa').html(`
+        <div class="form-group">
+            <select class="form-control" id="inputSelectDivisa">
+                <option value="clp" selected>Divisa Seleccionada: CLP </option>
+                <option value="usd">Divisa Seleccionada: USD</option>
+                <option value="eur">Divisa Seleccionada: EUR </option>
+            </select>
+        </div>
+        `)
     } else if (selectedLayoutData.divisa == 'usd') {
         iva = 0
         amountTXT = 'USD $'
+        $('#selectedDivisa').html(`
+        <div class="form-group">
+            <select class="form-control" id="inputSelectDivisa">
+                <option value="clp">Divisa Seleccionada: CLP </option>
+                <option value="usd" selected>Divisa Seleccionada: USD</option>
+                <option value="eur">Divisa Seleccionada: EUR </option>
+            </select>
+        </div>
+        `)
     } else if(selectedLayoutData.divisa == 'eur') {
         iva = 0
         amountTXT = 'EUR €'
+        $('#selectedDivisa').html(`
+        <div class="form-group">
+            <select class="form-control" id="inputSelectDivisa">
+                <option value="clp">Divisa Seleccionada: CLP </option>
+                <option value="usd">Divisa Seleccionada: USD</option>
+                <option value="eur" selected>Divisa Seleccionada: EUR </option>
+            </select>
+        </div>
+        `)
     }
+
+    $('#inputSelectDivisa').on('change', function() {
+        if($(this).val() == 'clp') {
+            selectedLayoutData.divisa = 'clp'
+        } else if($(this).val() == 'usd') {
+            selectedLayoutData.divisa = 'usd'
+        } else if($(this).val() == 'eur') {
+            selectedLayoutData.divisa = 'eur'
+        }
+
+        finalCalculation()
+    })
     
 
     console.log(amountNew, amountTax, iva)
