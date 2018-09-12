@@ -49,6 +49,10 @@
             animation: pulse1 2s infinite;
         }
 
+        #inContinuation {
+            animation: pulse3 2s infinite;
+        }
+
         .inputColorsPulse {
             animation: pulse2 2s infinite;
         }
@@ -70,19 +74,28 @@
                 color: #7f8c8d;
             }
         }
+
+        @keyframes pulse3 {
+            0% {
+                background-color: #3498db;
+            }
+            100% {
+                background-color: #9E9E9E;
+            }
+        }
     </style>
 {{/extend}}
 <div class="topmenu">
     <div class="row">
         <div class="col-md-2 col-sm-4 col-xs-12">
             <button class="btn btn-primary" type="button" id="newBudget">
-                <i class="fas fa-plus"></i>&nbsp;Nuevo presupuesto
+                <i class="fas fa-plus"></i>&nbsp;Nueva cotización
             </button>
         </div>
         <div class="col-md-2 col-sm-4 col-xs-12">
             <select id="budget-filter" name="state">
                 <option></option>
-                <option value="sended">TODOS LOS PRESUPUESTOS</option>
+                <option value="sended">TODAS LAS COTIZACIONES</option>
                 <option value="sended">EN BORRADOR</option>
                 <option value="sended">ENVIADOS</option>
                 <option value="beaten">VENCIDOS</option>
@@ -140,7 +153,7 @@ let productSelectedObj = {}
 let s2ValueToAdd = ''
 let clientsArr = [] //Arreglo con todos los clientes
 let s2EnabledProducts = [] // select2 de productos habilitados (values)
-let addingProductsArr = [] // arreglo de productos a añadir al presupuesto
+let addingProductsArr = [] // arreglo de productos a añadir a la cotización
 let advancePercent = 0 // porcentaje de avance
 let selectedClientData
 let selectedLayoutData
@@ -212,9 +225,11 @@ const getBudgets = () => {
             let formatRes = res.ok.map(el=>{
                 //el.rut = `<b>${rutFunc(el.rut)}</b>`
                 //el.dateOrder = dateOrder(el._id) // DD/MM/YYYY to YYYYMMDD
-                el.clientName = el.client.name
-                el.cost = parseFloat(el.amounts.iva)+parseFloat(el.amounts.subtotal)  
-                el.divisa = el.layout.divisa
+                el.reference = el.reference.toUpperCase()
+                el.clientName = el.client.name.toUpperCase()
+                el.cost = comma_format(parseFloat(el.amounts.iva)+parseFloat(el.amounts.subtotal))
+                el.status = formatStatusText(el.status)
+                el.divisa = el.layout.divisa.toUpperCase()
                 return el
             })
 
@@ -222,6 +237,12 @@ const getBudgets = () => {
             $('#loadingBudgets').empty()
         }      
     })
+}
+
+const formatStatusText = (status) => {
+    if(status == 'draft') {
+        return 'BORRADOR'
+    }
 }
 
 const dateOrder = (creationDate) => {
@@ -235,142 +256,54 @@ const dateOrder = (creationDate) => {
     return splitDate
 }
 
+const getBudget = (id) => {
+    return new Promise(resolve=> {
+        ajax({
+            url: 'api/getBudget',
+            type: 'POST',
+            data: {
+                budgetId:id
+            }
+        }).then(res=>{
+            if(res.ok) {
+                resolve({ok:res.ok})
+            } else {
+                resolve(null)
+            }
+        })
+    })
+}
+
 const chargeModal = () => {
-    console.log(rowDataSelected)
+    //console.log(rowDataSelected)
     $('#budgetModal').modal('show');
-    $('#closeModalButton').remove()
-    $('#modal_header').append(`
-        <button id="closeModalButton" type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-        </button>
-    `)
-    $('#modal_title').html(`Presupuesto ${rowDataSelected[1]} <span class="badge badge-primary">APROBADO</span>`)
     
-    $('#modal_body').html(`
-        <div class="row">
-            <div class="col-md-6">
-               <center> <img style="margin-top:50px;" src="/public/img/agromillora.png" alt=""> </center>
-            </div>
-            <div class="col-md-6" style="text-align:right">
-                <p><b>Razón social: AGROMILLORA SUR S.A.</b></p>
-                <p>Rut: 96827470-8 </p>
-                <p>Dirección: Parcela 17 Loteo B,C Y D. San Gerardo, Rio Claro. Molina Chile</p>
-                <p>Teléfono: (56-75) 249 2924</p>
-            </div>
-        </div>
+    getBudget(rowDataSelected._id).then(res=> {
+        if(res.ok) {
+            console.log(res.ok)
 
-        <div class="row">
-            <div class="col-md-4"><hr></div>
-            <div class="col-md-4" style="text-align:center;"><h3 style="color:#2196F3;">COTIZACIÓN</h3></div>
-            <div class="col-md-4"><hr></div>
-        </div>
-        
-        <div class="row">
-            <div class="col-md-6">
-                <p>Cliente:</p>
-                <h5 style="color:#2196F3;">${rowDataSelected[3]}</h5>
-            </div>
-            <div class="col-md-6">
-                <table class="table table-hover">
-                    <tbody>
-                        <tr>
-                            <td style="background:#ecf0f1">Fecha de cotización</td>
-                            <td>${rowDataSelected[0]}</td>
-                        </tr>
-                        <tr>
-                            <td style="background:#ecf0f1">Fecha de vencimiento</td>
-                            <td>15/06/2018 0:00</td>
-                        </tr>
-                        <tr">
-                            <td style="background:#ecf0f1">Referencia</td>
-                            <td>${rowDataSelected[2]}</td>
-                        </tr>
-                    </tbody>
-                </table> 
-            </div>
-        </div>
+            if(res.ok.status == 'draft') {
+                draftBudget(res.ok)
+            }
 
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">Descripción</th>
-                    <th scope="col">Cant.</th>
-                    <th scope="col">Precio unitario</th>
-                    <th scope="col">Impuesto: %</th>
-                    <th scope="col">Precio</th>
-                </tr>
-            </thead>
-            <tbody style="color:#7f8c8d;">
-                <tr>
-                    <td>1</td>
-                    <td>PLANTAS 10 CM</td>
-                    <td>1,000</td>
-                    <td>10,000</td>
-                    <td>19,00</td>
-                    <td>11,900,000</td>
-                </tr>
-                <tr>
-                    <td>2</td>
-                    <td>PLANTAS 15 CM</td>
-                    <td>2,000</td>
-                    <td>12,000</td>
-                    <td>19,00</td>
-                    <td>28,560,000</td>
-                </tr>
-                <tr>
-                    <td>3</td>
-                    <td>PLANTAS 20 CM</td>
-                    <td>3,000</td>
-                    <td>13,000</td>
-                    <td>19,00</td>
-                    <td>46,410,000</td>
-                </tr>
-            </tbody>
-        </table> 
+            
+        }else {
+            toastr.danger('No se ha encontrado la cotización seleccionada.')
+        }
+    })
 
-        <br>
-        
-        <div class="row">
-            <div class="col-md-8">
-                <p>DATOS CUENTA CORRIENTE</p>
-                <p>Razón social : 96.827.470-8</p>
-                <p>N° Cuenta : 0123456789</p>
-                <p>Banco: BANCO DE AGROMILLORA</p>
-                <p>Email: contacto@agromillora.com</p>
-            </div>
-            <div class="col-md-4">
-                <table class="table table-hover">
-                    <tbody>
-                        <tr>
-                            <td>SUB TOTAL</td>
-                            <td style="text-align:right;">73,000,000</td>
-                        </tr>
-                        <tr>
-                            <td>IVA(19%)</td>
-                            <td style="text-align:right;">13,870,000</td>
-                        </tr>
-                        <tr style="color:#4CAF50;">
-                            <td>TOTAL</td>
-                            <td style="text-align:right;">CLP 86,870,000</td>
-                        </tr>
-                    </tbody>
-                </table> 
-            </div>
-        </div>
 
-        <br>
-        <hr>
-        <br>
-    `)
-
-    $('#modal_footer').html(`
-        <button type="button" class="btn btn-danger"><i class="fas fa-file-pdf"></i> EXPORTAR A PDF</button>
-        <button type="button" class="btn btn-primary"><i class="fas fa-at"></i> ENVIAR POR CORREO</button>   
-    `)
 }
 
 $('#newBudget').on('click', function(){
+    newBudget()
+})
+
+const draftBudget = (draftBudgetData) => {
+    $('.modal-content').css({
+        'border-color': '#3498db'
+    })
+
     $('#closeModalButton').remove()
     $('#modal_header').append(`
         <button id="closeModalButton" type="button" class="close closeBudgetModal" aria-label="Close">
@@ -378,18 +311,19 @@ $('#newBudget').on('click', function(){
         </button>
     `)
 
+    $('#modal_title').html(`
+        Cotización <span id="inContinuation" class="badge badge-secondary">En continuación </span>
+    `)
+    /*
+        MODIFICAR ESTOS PARÁMETROS DEPENDIENDO DE LOS DATOS RECIBIDOS EN draftBudgetData 
+    */
     addingProductStatus = 0
-    productsAddedToBudget = 0
+    productsAddedToBudget = draftBudgetData.products.length // cantidad de productos añadidos a la cotización
+     // 
     s2ValueToAdd = ''
     productSelectedObj = {}
     s2EnabledProducts = []
-    addingProductsArr = []
-    $('#budgetModal').modal('show');
-
-    $('#modal_title').html(`
-        Presupuesto <span id="inCreation" class="badge badge-secondary">En creación </span>
-    `)
-
+    addingProductsArr = draftBudgetData.products // productos añadidos a la cotización
     $('#modal_body').html(`
         <div class="row">
             <div class="col-md-6 col-xs-12">
@@ -412,7 +346,7 @@ $('#newBudget').on('click', function(){
 
         <div class="row">
             <div class="col-md-4"><hr></div>
-            <div class="col-md-4" style="text-align:center;"><h3 style="color:#2196F3;">PRESUPUESTO</h3></div>
+            <div class="col-md-4" style="text-align:center;"><h3 style="color:#2196F3;">COTIZACIÓN</h3></div>
             <div class="col-md-4"><hr></div>
         </div>
 
@@ -427,12 +361,12 @@ $('#newBudget').on('click', function(){
                 <table class="table table-hover">
                     <tbody>
                         <tr>
-                            <td style="background:#ecf0f1">Fecha de presupuesto</td>
+                            <td style="background:#ecf0f1">Fecha de cotización</td>
                             <td><span id="serverDate"></span></td>
                         </tr>
                         <tr>
                             <td style="background:#ecf0f1">Fecha de vencimiento</td>
-                            <td><input id="expirationDate" type="text" value="" placeholder="Fecha de vencimiento del presupuesto" class="form-control border-input"></td>
+                            <td><input id="expirationDate" type="text" value="" placeholder="Fecha de vencimiento de la cotización" class="form-control border-input"></td>
                         </tr>
                         <tr>
                             <td style="background:#ecf0f1">Referencia</td>
@@ -502,7 +436,496 @@ $('#newBudget').on('click', function(){
 
             <div class="col-md-4">
                 <button class="btn btn-primary btn-block" id="saveBudget">
-                    <i class="fas fa-save"></i> Guardar presupuesto
+                    <i class="fas fa-save"></i> Guardar cotización
+                </button>
+            </div>
+        </div>
+        <br>
+    `)
+
+    $('#saveBudget').on('click', function(){
+        saveBudget('new')
+    })
+
+    $('#saveDraftBudget').on('click', function(){
+        saveBudget('draft')
+    })
+
+    $('#reference').val(draftBudgetData.reference)
+    chargeFirm(draftBudgetData.user) // cargar la firma del usuario creador original de la cotización
+
+    if(draftBudgetData.products[0]) {
+        let productsInDraft = draftBudgetData.products.reduce((htmlTXT,el,i)=>{
+            return htmlTXT += `
+            <tr id="row${el.type}">
+                <td><center>${el.type} ${el.name}</center></td>
+                <td><center>$${el.price}</center></td>
+                <td>${el.stock}</td>
+                <td>$${comma_format(parseInt(el.price * el.stock))}</td>
+                <td>${el.deliveryDate}</td>
+                <td><button onclick="removeBudgetProduct('${el.type}')" id="${el.type}" type="button" class="btn btn-danger btn-xs">x</button></td>
+            </tr>
+            `
+        }, '')
+        
+        console.log(productsInDraft)
+        $('#budgetProductsTable').html(`
+            <div class="card bg-light">
+                <div class="card-header">Productos de cotización</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12 table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <td>Producto</td>
+                                        <td>Precio c/u</td>
+                                        <td>Unidades</td>
+                                        <td>Monto</td>
+                                        <td>Fecha estimada de entrega</td>
+                                        <td></td>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBudgetProductsTbody">
+                                    ${productsInDraft}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `)
+            
+    }
+
+    $('#addProductToBudget').on('click', function() {
+        console.log('addingStatus: ' +addingProductStatus)
+        console.log('counter: ' +productsAddedToBudget)
+        if(addingProductStatus == 1 && $('#selectProductToAdd').val() != 'default') {
+            if(productsAddedToBudget == 0) {
+                productsAddedToBudget = 1 // contador de productos añadidos
+                $('#budgetProductsTable').html(`
+                <div class="card bg-light">
+                    <div class="card-header">Productos de cotización</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-12 table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <td>Producto</td>
+                                            <td>Precio c/u</td>
+                                            <td>Unidades</td>
+                                            <td>Monto</td>
+                                            <td>Fecha estimada de entrega</td>
+                                            <td></td>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tableBudgetProductsTbody">
+                                        <tr id="row${s2ValueToAdd}">
+                                            <td><center>${productSelectedObj.type} ${$(productSelectedObj.name).text()}</center></td>
+                                            <td><center>$${productSelectedObj.price}</center></td>
+                                            <td>${$('#budgetProductStock').val()}</td>
+                                            <td>$${comma_format(parseInt(productSelectedObj.price * $('#budgetProductStock').val()))}</td>
+                                            <td>${$('#budgetProductDateOfDelivery').val()}</td>
+                                            <td><button onclick="removeBudgetProduct('${s2ValueToAdd}')" id="${s2ValueToAdd}" type="button" class="btn btn-danger btn-xs">x</button></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `)
+            } else {
+                productsAddedToBudget++
+                $('#tableBudgetProductsTbody').append(`
+                    <tr id="row${s2ValueToAdd}">
+                        <td><center>${productSelectedObj.type} ${$(productSelectedObj.name).text()}</center></td>
+                        <td><center>$${productSelectedObj.price}</center></td>
+                        <td>${$('#budgetProductStock').val()}</td>
+                        <td>$${comma_format(parseInt(productSelectedObj.price * $('#budgetProductStock').val()))}</td>
+                        <td>${$('#budgetProductDateOfDelivery').val()}</td>
+                        <td><button onclick="removeBudgetProduct('${s2ValueToAdd}')" id="${s2ValueToAdd}" type="button" class="btn btn-danger btn-xs">x</button></td>
+                    </tr>
+                `)
+            }
+            
+            console.log(s2ValueToAdd)
+            $(`#selectProductToAdd>option[value="${s2ValueToAdd}"]`).attr('disabled',true).change();
+            $('#selectProductToAdd').select2({width:'80%'});
+
+            s2EnabledProducts = s2EnabledProducts.filter(function(item) {
+                return item !== s2ValueToAdd
+            })
+            
+            addingProductsArr.push({
+                name: $(productSelectedObj.name).text().toLowerCase(),
+                type: productSelectedObj.type.toLowerCase(),
+                price: parseInt(productSelectedObj.price),
+                stock: parseInt($('#budgetProductStock').val()),
+                deliveryDate: $('#budgetProductDateOfDelivery').val(),
+                identifier: s2ValueToAdd
+            })
+            finalCalculation()
+            console.log(addingProductsArr)
+
+            if(s2EnabledProducts[0]) {
+                $('#selectProductToAdd').val('default').trigger('change')
+                $('#budgetProductSelected').empty()
+            } else {
+                $('#selectProductToAdd').val('default').trigger('change')
+                $('#addProductToBudget').attr('disabled', true)
+                $('#budgetProductSelected').empty()
+            }
+            
+            addingProductStatus = 0
+        } else {
+            toastr.warning('Debe seleccionar un producto')
+        }
+    })
+
+    getLayouts(draftBudgetData.layout).then(res=>{ // draft
+        if(res) {
+            let s2layouts = res.reduce((arr, el, i)=>{
+                return arr.concat({
+                    id: i,
+                    text: el.layoutName
+                })
+            }, [])
+
+            console.log(s2layouts)
+            $('#selectLayout').select2({
+                width:'40%',
+                data: s2layouts
+            })
+
+            $('#selectLayout').on('select2:select', function (e) {
+                printLayout() // draft
+            });
+
+
+            getClients().then(clients=>{
+                let s2clients = [] 
+                s2clients[0] = { // plantilla original de la cotización en borrador
+                    id: draftBudgetData.client.rut,
+                    text: draftBudgetData.client.name +' (original)'
+                }
+                s2clients = clients.reduce((arr, el, i)=>{
+                    /*
+                    let test = arr.filter(el=> {
+                        return 
+                    })
+                    */
+
+                    return arr.concat({
+                        id: el.rut,
+                        text: el.name
+                    })
+                }, s2clients)
+
+                $('#selectClient').select2({
+                    width:'80%',
+                    data: s2clients
+                })
+
+                $('#selectClient').on('select2:select', function (e) {
+                    updateClientsHTML()
+                });
+
+
+                updateClientsHTML()
+            })
+
+            getProducts().then(products=>{
+                let s2products = products.reduce((arr, el, i)=>{
+                    s2EnabledProducts.push(`${i}-${el.type.toLowerCase()}`)
+                    return arr.concat({
+                        id: `${i}-${el.type.toLowerCase()}`,
+                        text: $(el.name).text()
+                    })
+                }, [])
+
+                $('#selectProductToAdd').select2({
+                    width:'80%',
+                    placeholder: 'Seleccione un producto',
+                    data: s2products
+                })
+                
+                $('#selectProductToAdd').on('select2:select', function (e) {
+                    let selectProductVal = $('#selectProductToAdd').val()
+                    if(selectProductVal != 'default') {
+                        addingProductStatus = 1
+                        
+                        let formatProductType = selectProductVal.substring(selectProductVal.indexOf('-') + 1);
+                        let productNameSelected = $('#selectProductToAdd').select2('data')[0].text.toLowerCase()
+                        s2ValueToAdd = selectProductVal
+                        productSelectedObj = products.filter(function(el) {
+                            return $(el.name).text().toLowerCase() == productNameSelected && el.type.toLowerCase() == formatProductType
+                        })[0]
+
+                        $('#budgetProductSelected').html(`
+                            <div class="row">  
+                                <div class="col-md-12 table-responsive">
+                                    <div style="background:#ecf0f1;">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <td>Producto</td>
+                                                    <td>Precio c/u</td>
+                                                    <td>Unidades</td>
+                                                    <td>Fecha estimada de entrega</td>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><br><center>${productSelectedObj.type} <b>${$(productSelectedObj.name).text()}</b></center></td>
+                                                    <td><br><center>$${productSelectedObj.price}</center></td>
+                                                    <td><input id="budgetProductStock" type="number" value="1" placeholder="Unidades" class="inputColorsPulse form-control border-input justNumbers"></td>
+                                                    <td><input id="budgetProductDateOfDelivery" type="text" value="" placeholder="Fecha de entrega" class="inputColorsPulse form-control border-input"></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        `)
+
+                        $('.justNumbers').keyup(function (){
+                            this.value = (this.value + '').replace(/[^0-9]/g, ''); 
+                        });
+                        
+                        
+                        getTime().then(time=>{
+                            let currentServerTime = time
+                            let formatCurrentServerTime = moment(time).format('DD/MM/YYYY')
+
+                            $('#budgetProductDateOfDelivery').val(formatCurrentServerTime)
+                            $('#budgetProductDateOfDelivery').daterangepicker({
+                                "locale": {
+                                    "format": "DD/MM/YYYY",
+                                    "daysOfWeek": [
+                                    "Dom",
+                                    "Lun",
+                                    "Mar",
+                                    "Mie",
+                                    "Jue",
+                                    "Vie",
+                                    "Sab"
+                                    ],
+                                    "monthNames": [
+                                    "Enero",
+                                    "Febrero",
+                                    "Marzo",
+                                    "Abril",
+                                    "Mayo",
+                                    "Junio",
+                                    "Julio",
+                                    "Agosto",
+                                    "Septiembre",
+                                    "Octubre",
+                                    "Noviembre",
+                                    "Diciembre"
+                                    ],
+                                    "firstDay": 1
+                                },
+                                drops: "up",
+                                singleDatePicker: true,
+                                showDropdowns: true,
+                                minDate: formatCurrentServerTime
+                            });
+                        })
+                        
+                    } else {
+                        $('#budgetProductSelected').empty()
+                    }
+                    
+                });
+            })
+            
+            /*
+                FECHA DE COTIZACION EN BORRADOR 
+            */
+
+            $('#serverDate').text(draftBudgetData.creationDate)
+            $('#expirationDate').val(draftBudgetData.expirationDate)
+            $('#expirationDate').daterangepicker({
+                "locale": {
+                    "format": "DD/MM/YYYY",
+                    "daysOfWeek": [
+                    "Dom",
+                    "Lun",
+                    "Mar",
+                    "Mie",
+                    "Jue",
+                    "Vie",
+                    "Sab"
+                    ],
+                    "monthNames": [
+                    "Enero",
+                    "Febrero",
+                    "Marzo",
+                    "Abril",
+                    "Mayo",
+                    "Junio",
+                    "Julio",
+                    "Agosto",
+                    "Septiembre",
+                    "Octubre",
+                    "Noviembre",
+                    "Diciembre"
+                    ],
+                    "firstDay": 1
+                },
+                drops: "up",
+                singleDatePicker: true,
+                showDropdowns: true,
+                minDate: draftBudgetData.creationDate
+            })
+              
+            printLayout()
+        }
+   })
+}
+
+const newBudget = () => {
+    $('#budgetModal').modal('show')
+
+    $('.modal-content').css({
+        'border-color': '#1abc9c'
+    })
+
+    $('#closeModalButton').remove()
+    $('#modal_header').append(`
+        <button id="closeModalButton" type="button" class="close closeBudgetModal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    `)
+
+    addingProductStatus = 0
+    productsAddedToBudget = 0
+    s2ValueToAdd = ''
+    productSelectedObj = {}
+    s2EnabledProducts = []
+    addingProductsArr = []
+    
+    $('#modal_title').html(`
+        Cotización <span id="inCreation" class="badge badge-secondary">En creación </span>
+    `)
+
+    $('#modal_body').html(`
+        <div class="row">
+            <div class="col-md-6 col-xs-12">
+                Plantilla seleccionada <select id="selectLayout" name="layoutName"></select>
+            </div>
+            <div class="col-md-6 col-xs-12">
+                <div id="selectedDivisa"></div>
+            </div>
+        </div>
+        
+        <hr>
+        <div class="row">
+            <div class="col-md-6">
+                <center> <img style="margin-top:50px;" src="/public/img/agromillora.png" alt=""> </center>
+            </div>
+            <div class="col-md-6" style="text-align:right" id="generalInfo">
+                
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4"><hr></div>
+            <div class="col-md-4" style="text-align:center;"><h3 style="color:#2196F3;">COTIZACIÓN</h3></div>
+            <div class="col-md-4"><hr></div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <p>Cliente:</p>
+                <center><select id="selectClient" name="clientName"></select></center>
+                <div id="selectedClientInfo"></div>
+            </div>
+            
+            <div class="col-md-6">
+                <table class="table table-hover">
+                    <tbody>
+                        <tr>
+                            <td style="background:#ecf0f1">Fecha de cotización</td>
+                            <td><span id="serverDate"></span></td>
+                        </tr>
+                        <tr>
+                            <td style="background:#ecf0f1">Fecha de vencimiento</td>
+                            <td><input id="expirationDate" type="text" value="" placeholder="Fecha de vencimiento de la cotización" class="form-control border-input"></td>
+                        </tr>
+                        <tr>
+                            <td style="background:#ecf0f1">Referencia</td>
+                            <td><input id="reference" type="text" value="" placeholder="Nombre de referencia" class="form-control border-input"></td>
+                        </tr>
+                    </tbody>
+                </table> 
+            </div>
+        </div>
+        
+        <hr>
+        <div class="row">
+            <div class="col-md-6" id="selectProductToAddContainer">     
+                <center><select id="selectProductToAdd"><option value="default">Seleccione un producto</option></select></center>     
+            </div>
+            <div class="col-md-6">
+                <button class="btn btn-dark btn-block" id="addProductToBudget">
+                    <i style="color:#3498db;" class="fas fa-plus"></i> Añadir producto
+                </button>
+            </div>
+        </div>
+        <br>
+        <div id="budgetProductSelected"></div>
+        <div id="budgetProductsTable"></div>
+
+        <div class="accordion" id="accordionText">
+            <div class="card">
+                <div class="card-header" id="headingText">
+                <h5 class="mb-0">
+                    <button id="importantInfoButton" class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne"></button>
+                </h5>
+                </div>
+            </div>
+
+            <div id="collapseOne" class="collapse" aria-labelledby="headingText" data-parent="#accordionText">
+                <div class="card-body" id="importantInfo"></div>
+            </div>
+
+        </div>
+        <br>
+        <div class="row">   
+            <div class="col-md-6" id="checkingAccount">
+            </div>  
+            <div class="col-md-6 table-responsive" id="finalCalculations"></div>
+        </div>
+
+        <div id="firm"></div>
+        
+        <div id="errorMessage"></div>
+    `)
+
+    $('#modal_footer').html(`
+        <hr>
+        
+        <div class="row" style="margin-left:10px; margin-right:10px;">
+            <div class="col-md-3">
+                <button class="btn btn-secondary btn-block closeBudgetModal" >
+                    <i style="color:#e74c3c;" class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+
+            <div class="col-md-5">
+                <button class="btn btn-secondary btn-block" id="saveDraftBudget">
+                    <i class="fas fa-save"></i> Guardar como borrador
+                </button>
+            </div>
+
+            <div class="col-md-4">
+                <button class="btn btn-primary btn-block" id="saveBudget">
+                    <i class="fas fa-save"></i> Guardar cotización
                 </button>
             </div>
         </div>
@@ -526,12 +949,12 @@ $('#newBudget').on('click', function(){
     $('#addProductToBudget').on('click', function() {
         console.log('addingStatus: ' +addingProductStatus)
         console.log('counter: ' +productsAddedToBudget)
-        if(addingProductStatus == 1) {
+        if(addingProductStatus == 1 && $('#selectProductToAdd').val() != 'default') {
             if(productsAddedToBudget == 0) {
                 productsAddedToBudget = 1 // contador de productos añadidos
                 $('#budgetProductsTable').html(`
                 <div class="card bg-light">
-                    <div class="card-header">Productos de presupuesto</div>
+                    <div class="card-header">Productos de cotización</div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-12 table-responsive">
@@ -667,6 +1090,7 @@ $('#newBudget').on('click', function(){
                 
                 $('#selectProductToAdd').on('select2:select', function (e) {
                     let selectProductVal = $('#selectProductToAdd').val()
+
                     if(selectProductVal != 'default') {
                         addingProductStatus = 1
                     
@@ -801,13 +1225,12 @@ $('#newBudget').on('click', function(){
             printLayout()
         }
    })
-})
-
+}
 
 $('#budgetModal').on('click', '.closeBudgetModal', function(){
     swal({
-        title: '¿Estás seguro de cerrar el presupuesto?',
-        text: 'Recuerda que puedes guardar este presupuesto como borrador.',
+        title: '¿Estás seguro de cerrar la cotización?',
+        text: 'Recuerda que puedes guardar esta cotización como borrador.',
         type: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
@@ -987,9 +1410,11 @@ function saveDraftBudget(budgetObj) {
 
             let formatRes = res.ok 
             //formatRes.dateOrder = dateOrder(res.ok._id) // DD/MM/YYYY to YYYYMMDD
-            formatRes.clientName = res.ok.client.name
-            formatRes.cost = parseFloat(res.ok.amounts.iva)+parseFloat(res.ok.amounts.subtotal) 
-            formatRes.divisa = res.ok.layout.divisa
+            formatRes.reference = res.ok.reference.toUpperCase()
+            formatRes.clientName = res.ok.client.name.toUpperCase()
+            formatRes.cost = comma_format(parseFloat(res.ok.amounts.iva)+parseFloat(res.ok.amounts.subtotal))
+            formatRes.divisa = res.ok.layout.divisa.toUpperCase()
+            formatRes.status = formatStatusText(res.ok.status)
             
             let newBudgetAdded = datatable
             .row.add(formatRes)
@@ -1068,7 +1493,8 @@ function printLayout() {
    console.log(selectedLayoutData)
 }
 
-function getLayouts() {
+function getLayouts(draftLayout) { // perfecto!
+    
     return new Promise(resolve=>{
         ajax({
             url:"api/layout/getAll"
@@ -1081,10 +1507,22 @@ function getLayouts() {
 
                     return el 
                 })
-
-                layouts = resLayouts
-                console.log(layouts)
-                resolve(resLayouts)
+                
+                if(draftLayout) {
+                    layouts = []
+                    draftLayout.layoutName = draftLayout.layoutName + ' (original)'
+                    layouts[0] = draftLayout
+                    console.log(layouts)
+                    layouts = resLayouts.reduce((arr, el, i) =>{
+                        return arr.concat(el)
+                    }, layouts)
+                    
+                    console.log(layouts)
+                    resolve(layouts)
+                } else {
+                    layouts = resLayouts
+                    resolve(resLayouts)
+                }
             } else if (res.err) {
                 toastr.warning(res.err)
                 resolve(null)
@@ -1250,25 +1688,48 @@ function finalCalculation() {
     `)
 }
 
-function chargeFirm() {
-    firmObj = {
-        name: '{{credentials.name}}',
-        lastname: '{{credentials.lastname}}',
-        position: '{{credentials.position}}',
-        phone: '{{credentials.phone}}',
-        email: '{{credentials.email}}'
-    }
-    console.log(firmObj)
+function chargeFirm(draftFirm) {
+    if(draftFirm) {
+        firmObj = {
+            name: draftFirm.name,
+            lastname: draftFirm.lastname,
+            position: draftFirm.position,
+            phone: draftFirm.phone,
+            email: draftFirm.email
+        }
+        console.log(firmObj)
 
-    $('#firm').html(`
-        <center>
-            <p style="font-family:Lucida Calligraphy; font-size:20px; color:#2ecc71; margin:1px">${capitalizeAll(firmObj.name)} ${capitalizeAll(firmObj.lastname)}.</p>
-            <p style="font-family:Arial; margin:1px; font-size:18px;">AGROMILLORA SUR S.A.</p>
-            <p style="margin:1px; font-size:18px;">${capitalizeAll(firmObj.position)}</p>
-            <p style="margin:1px; font-size:18px;">${firmObj.email}</p>
-            <p style="margin:1px; font-size:18px;">${firmObj.phone}</p>
-        </center>
-    `)
+        $('#firm').html(`
+            <center>
+                <p style="font-family:Lucida Calligraphy; font-size:20px; color:#2ecc71; margin:1px">${capitalizeAll(firmObj.name)} ${capitalizeAll(firmObj.lastname)}.</p>
+                <p style="font-family:Arial; margin:1px; font-size:18px;">AGROMILLORA SUR S.A.</p>
+                <p style="margin:1px; font-size:18px;">${capitalizeAll(firmObj.position)}</p>
+                <p style="margin:1px; font-size:18px;">${firmObj.email}</p>
+                <p style="margin:1px; font-size:18px;">${firmObj.phone}</p>
+            </center>
+        `)
+    } else {
+        firmObj = {
+            name: '{{credentials.name}}',
+            lastname: '{{credentials.lastname}}',
+            position: '{{credentials.position}}',
+            phone: '{{credentials.phone}}',
+            email: '{{credentials.email}}'
+        }
+        console.log(firmObj)
+
+        $('#firm').html(`
+            <center>
+                <p style="font-family:Lucida Calligraphy; font-size:20px; color:#2ecc71; margin:1px">${capitalizeAll(firmObj.name)} ${capitalizeAll(firmObj.lastname)}.</p>
+                <p style="font-family:Arial; margin:1px; font-size:18px;">AGROMILLORA SUR S.A.</p>
+                <p style="margin:1px; font-size:18px;">${capitalizeAll(firmObj.position)}</p>
+                <p style="margin:1px; font-size:18px;">${firmObj.email}</p>
+                <p style="margin:1px; font-size:18px;">${firmObj.phone}</p>
+            </center>
+        `)
+    }
+
+    
 }
 </script>
 {{/extend}}

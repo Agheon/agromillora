@@ -32,6 +32,35 @@ const Budget = [
 },
 {
     method: 'POST',
+    path: '/api/getBudget',
+    options: {
+        handler: (request, h) => {
+            let budgetId = request.payload.budgetId
+
+            return new Promise(resolve => {
+                db.find({
+                    selector: {
+                        _id: budgetId
+                    }
+                }).then(result => {
+                    console.log(result)
+                    if (result.docs[0]) {
+                        resolve({ ok: result.docs[0] })
+                    } else {
+                        resolve({ err: 'No existe la cotización' })
+                    }
+                })
+            })
+        },
+        validate: {
+            payload: Joi.object().keys({
+                budgetId: Joi.string().required()
+            })
+        }
+    }
+},
+{
+    method: 'POST',
     path: '/api/draftBudget',
     options: {
         handler: (request, h) => {
