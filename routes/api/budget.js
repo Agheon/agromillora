@@ -61,6 +61,111 @@ const Budget = [
 },
 {
     method: 'POST',
+    path: '/api/newBudget',
+    options: {
+        handler: (request, h) => {
+            let reqData = {}
+            
+            reqData.reference = request.payload.reference
+
+            reqData.clientRut = request.payload.clientRut
+            reqData.clientName = request.payload.clientName
+            reqData.clientPhone = request.payload.clientPhone
+            reqData.clientEmail = request.payload.clientEmail
+
+            reqData.userFirmName = request.payload.userFirmName
+            reqData.userFirmLastname = request.payload.userFirmLastname
+            reqData.userFirmPosition = request.payload.userFirmPosition
+            reqData.userFirmPhone = request.payload.userFirmPhone
+            reqData.userFirmEmail = request.payload.userFirmEmail
+
+            reqData.products = JSON.parse(request.payload.products)
+            reqData.layout = JSON.parse(request.payload.layout)
+            reqData.creationDate = request.payload.creationDate
+            reqData.expirationDate = request.payload.expirationDate
+            reqData.advancePercent = request.payload.advancePercent
+            reqData.iva = request.payload.iva
+            reqData.subtotal = request.payload.subtotal
+            
+            return new Promise(resolve => {
+                
+                getBudgetCounter().then(resCounter=>{
+                    if(resCounter.ok) {
+                        resCounter.ok.count = resCounter.ok.count+1
+                        let budgetObj = {
+                            _id: moment.tz('America/Santiago').format('YYYY-MM-DDTHH:mm:ss.SSSSS'),
+                            type: 'budget',
+                            status: 'sended',
+                            reference: reqData.reference,
+                            number: resCounter.ok.count,
+                            creationDate: reqData.creationDate,
+                            expirationDate: reqData.expirationDate,
+                            products: reqData.products,
+                            amounts: {
+                                advancePercent: reqData.advancePercent,
+                                iva: reqData.iva,
+                                subtotal: reqData.subtotal
+                            },
+                            client: {
+                                rut: reqData.clientRut,
+                                name: reqData.clientName,
+                                phone: reqData.clientPhone,
+                                email: reqData.clientEmail
+                            },
+                            user: {
+                                name: reqData.userFirmName,
+                                lastname: reqData.userFirmLastname,
+                                position: reqData.userFirmPosition,
+                                phone: reqData.userFirmPhone,
+                                email: reqData.userFirmEmail
+                            },
+                            layout: reqData.layout
+                        }
+                        
+                        db.insert(budgetObj).then(draftRes=>{
+                            if(draftRes.ok) {
+                                setBudgetCounter(resCounter.ok).then(setCounterRes=>{
+                                    resolve({ok: budgetObj})
+                                })
+                            } else {
+                                resolve({err: 'No se ha podido crear la cotización'})
+                            }
+                        })
+                    } else {
+                        resolve({err: resCounter.err})
+                    }
+                    
+                })
+                
+                
+            })    
+            
+        },
+        validate: {
+            payload: Joi.object().keys({
+                reference: Joi.string().required(),
+                clientRut: Joi.string().allow(''),
+                clientName: Joi.string().allow(''),
+                clientPhone: Joi.string().allow(''),
+                clientEmail: Joi.string().allow(''),
+                userFirmName: Joi.string().allow(''),
+                userFirmLastname: Joi.string().allow(''),
+                userFirmPosition: Joi.string().allow(''),
+                userFirmPhone: Joi.string().allow(''),
+                userFirmEmail: Joi.string().allow(''),
+                products: Joi.string().allow(''),
+                layout: Joi.string().allow(''),
+                creationDate: Joi.string().allow(''),
+                expirationDate: Joi.string().allow(''),
+                advancePercent: Joi.string().required(),
+                iva: Joi.string().required(),
+                subtotal: Joi.string().required()
+            })
+        }
+    }
+},
+{
+    method: 'POST',
     path: '/api/draftBudget',
     options: {
         handler: (request, h) => {
@@ -210,7 +315,7 @@ function getBudgetCounter() {
         }).then(result => {
             if (result.docs[0]) {
     
-                resolve({ok: result.docs[0].count })
+                resolve({ok: result.docs[0] })
             } else {
                 resolve({ err: 'No se ha podido crear la cotización.' })
             }
@@ -218,4 +323,16 @@ function getBudgetCounter() {
     })
 }
 
-export default Budget;
+function setBudgetCounter(budgetCounter) {
+    return new Promise(resolve=>{
+        db.insert(budgetCounter).then(res=>{
+            if(res.ok) {
+                resolve({ok: budgetCounter})
+            } else {
+                resolve({err: 'No se ha podido modificar el contador'})
+            }
+        })
+    })
+}
+
+export default Budget

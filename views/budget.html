@@ -53,6 +53,10 @@
             animation: pulse3 2s infinite;
         }
 
+        #sended {
+            animation: pulse1 2s infinite;
+        }
+
         .inputColorsPulse {
             animation: pulse2 2s infinite;
         }
@@ -199,6 +203,8 @@ $(document).ready(function() {
         rowCallback: function(row, data, index){
             if(data.status == 'BORRADOR') {
                 $(row).find('td:eq(4)').css('color', '#2980b9')
+            } else if(data.status == 'ENVIADO') {
+                $(row).find('td:eq(4)').css('color', '#1abc9c')
             }
         }
     });
@@ -249,6 +255,8 @@ const getBudgets = () => {
 const formatStatusText = (status) => {
     if(status == 'draft') {
         return 'BORRADOR'
+    } else if(status == 'sended') {
+        return 'ENVIADO'
     }
 }
 
@@ -288,23 +296,296 @@ const chargeModal = () => {
     getBudget(rowDataSelected._id).then(res=> {
         if(res.ok) {
             console.log(res.ok)
-
             if(res.ok.status == 'draft') {
                 draftBudget(res.ok)
+            } else if(res.ok.status == 'sended') {
+                sendedBudget(res.ok)
             }
-
-            
         }else {
             toastr.danger('No se ha encontrado la cotización seleccionada.')
         }
     })
-
-
 }
 
 $('#newBudget').on('click', function(){
     newBudget()
 })
+const sendedBudget = (sendedBudgetData) => {
+    $('.modal-content').css({
+        'border-color': '#1abc9c'
+    })
+
+    $('#closeModalButton').remove()
+    $('#modal_header').append(`
+        <button id="closeModalButton" type="button" class="close closeModal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    `)
+
+    $('#modal_title').html(`
+        Cotización <b>N° ${sendedBudgetData.number} </b><span class="badge badge-secondary" style="background:#2ecc71;"> Enviada </span>
+    `)
+
+    $('#modal_body').html(`
+        <div class="row">
+            <div class="col-md-6">
+                <center> <img style="margin-top:50px;" src="/public/img/agromillora.png" alt=""> </center>
+            </div>
+            <div class="col-md-6" style="text-align:right" id="generalInfo"></div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4"><hr></div>
+            <div class="col-md-4" style="text-align:center;"><h3 style="color:#2196F3;">COTIZACIÓN</h3></div>
+            <div class="col-md-4"><hr></div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <p>Cliente:</p>
+                <div id="selectedClientInfo"></div>
+            </div>
+            
+            <div class="col-md-6">
+                <table class="table table-hover">
+                    <tbody>
+                        <tr>
+                            <td style="background:#ecf0f1">Fecha de cotización</td>
+                            <td><h4>${sendedBudgetData.creationDate}</h4></td>
+                        </tr>
+                        <tr>
+                            <td style="background:#ecf0f1">Fecha de vencimiento</td>
+                            <td><h4>${sendedBudgetData.expirationDate}</h4></td>
+                        </tr>
+                        <tr>
+                            <td style="background:#ecf0f1">Referencia</td>
+                            <td><h4>${sendedBudgetData.reference}</h4></td>
+                        </tr>
+                    </tbody>
+                </table> 
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12 table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <td>Producto</td>
+                            <td>Precio c/u</td>
+                            <td>Unidades</td>
+                            <td>Monto</td>
+                            <td>Fecha estimada de entrega</td>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBudgetProductsTbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                ${sendedBudgetData.layout.textInfo}
+            </div>
+        </div>
+
+        <div class="row">   
+            <div class="col-md-6" id="checkingAccount"></div>  
+            <div class="col-md-6 table-responsive" id="finalCalculations"></div>
+        </div>
+
+        <div id="firm"></div>
+    `)
+
+    $('#modal_footer').html(`
+        <hr>
+        
+        <div class="row" style="margin-left:10px; margin-right:10px;">
+            <div class="col-md-3">
+                <button class="btn btn-secondary btn-block closeModal" >
+                    <i style="color:#e74c3c;" class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+
+            <div class="col-md-5"></div>
+
+            <div class="col-md-4">
+                <button class="btn btn-danger btn-block">
+                    <i class="fas fa-file-pdf"></i> Exportar a pdf
+                </button>
+            </div>
+
+        </div>
+        <br>
+    `)
+
+    /*
+        GENERAL INFO INIT
+    */
+    let generalInfoHTML = sendedBudgetData.layout.generalInfo.reduce((txt, el, i)=>{
+        let elReturn = ''
+        if(el.key.length > 0 || el.value.length > 0) {
+            elReturn = `
+                <p>${el.key}: ${el.value}</p>
+            `
+        }
+
+        return txt += elReturn
+    }, '')
+
+    $('#generalInfo').html(generalInfoHTML)
+    /*
+        GENERAL INFO END
+    */
+    
+    /*
+        CLIENT INFO INIT
+    */
+    $('#selectedClientInfo').html(`
+    <br>
+        <table class="table">
+            <tbody>
+                <tr>
+                    <td><center>Rut</center></td>
+                    <td><center><b>${rutFunc(sendedBudgetData.client.rut)}</b></center></td>
+                </tr>
+                <tr>
+                    <td><center>Nombre</center></td>
+                    <td><center><b>${sendedBudgetData.client.name}</b></center></td>
+                </tr>
+                <tr>
+                    <td><center>Teléfono</center></td>
+                    <td><center><b>${sendedBudgetData.client.phone}</b></center></td>
+                </tr>
+                <tr>
+                    <td><center>Email</center></td>
+                    <td><center><b>${sendedBudgetData.client.email}</b></center></td>
+                </tr>
+            </tbody>
+        </table>
+    `)
+    /*
+        CLIENT INFO END
+    */
+   
+    /*
+        BUDGET PRODUCTS INIT
+    */
+    let productsInBudget = sendedBudgetData.products.reduce((htmlTXT,el,i)=>{
+        return htmlTXT += `
+        <tr>
+            <td><center>${el.type} ${el.name}</center></td>
+            <td><center>$${el.price}</center></td>
+            <td>${el.stock}</td>
+            <td>$${comma_format(parseInt(el.price * el.stock))}</td>
+            <td>${el.deliveryDate}</td>
+        </tr>
+        `
+    }, '')
+
+    $('#tableBudgetProductsTbody').html(productsInBudget)
+    /*
+        BUDGET PRODUCTS END
+    */
+
+    /*
+        CHECKING ACCOUNT INIT
+    */
+    let checkingAccountHTML = sendedBudgetData.layout.checkingAccount.content.reduce((txt, el, i)=>{
+        let elReturn = ''
+
+        if(el.key.length > 0 || el.value.length > 0) {
+            elReturn = `
+            <tr>
+                <td><center>${el.key}</center></td>
+                <td><center><b>${el.value}</b></center></td>
+            </tr>
+            `
+        }
+
+        return txt += elReturn
+    }, '')
+
+    $('#checkingAccount').html(`
+    <div class="card bg-light">
+        <div class="card-header"><center>${sendedBudgetData.layout.checkingAccount.title}</center></div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <tbody>
+                        ${checkingAccountHTML}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    `)
+    /*
+        CHECKING ACCOUNT END
+    */
+    
+    /*
+        FINAL CANCULATIONS INIT sendedBudgetData
+    */
+   
+    let iva
+    let amountTXT = ''
+    let sendedBudgetAdvancePercent = sendedBudgetData.amounts.advancePercent
+    let finalAdvance = (parseInt(sendedBudgetData.amounts.subtotal) * sendedBudgetAdvancePercent) / 100
+    let finalInDelivery = (parseInt(sendedBudgetData.amounts.subtotal) * (100-sendedBudgetAdvancePercent) ) / 100
+    let amountNew = (parseInt(sendedBudgetData.amounts.subtotal) / ((19 / 100) + 1))
+    let amountTax = parseFloat(sendedBudgetData.amounts.subtotal) - parseFloat(amountNew)
+
+    if(sendedBudgetData.layout.divisa == 'clp') {
+        iva = parseInt(amountTax)
+        amountTXT = 'CLP $'
+    } else if (sendedBudgetData.layout.divisa == 'usd') {
+        iva = 0
+        amountTXT = 'USD $'
+    } else if(sendedBudgetData.layout.divisa == 'eur') {
+        iva = 0
+        amountTXT = 'EUR €'
+    }
+    $('#finalCalculations').html(`
+        <h3><b>Condiciones comerciales, de pago y Facturación:</b></h3>
+        <table class="table table-hover">
+            <tbody>
+                <tr>
+                    <td><center>${sendedBudgetAdvancePercent}% de anticipo de reserva:</center></td>
+                    <td><center><b>${amountTXT}${comma_format(finalAdvance)}</b></center></td>
+                </tr>
+                <tr>
+                    <td><center>${100-sendedBudgetAdvancePercent}% Saldo, al momento del despacho de las plantas:</center></td>
+                    <td><center><b>${amountTXT}${comma_format(finalInDelivery)}</b></center></td>
+                </tr>
+                <tr>
+                    <td><center>IVA, se deberá cancelar documentado, al día 10 del mes siguiente de la fecha de despacho:</center></td>
+                    <td><center><b>${amountTXT}${comma_format(iva)}</b></center></td>
+                </tr>
+                <tr>
+                    <td><center>Sub total:</center></td>
+                    <td><center><b>${amountTXT}${comma_format(sendedBudgetData.amounts.subtotal)}</b></center></td>
+                </tr>
+                <tr>
+                    <td><center><h3>Total a pagar:</h3></center></td>
+                    <td><center><h3 style="color:#1abc9c;"><b>${amountTXT}${comma_format(parseInt(sendedBudgetData.amounts.subtotal)+iva)}</b></h3></center></td>
+                </tr>
+            </tbody>
+        </table>
+    `)
+    /*
+        FINAL CALCULATIONS END
+    */
+
+    /*
+        FIRM INIT
+    */
+    chargeFirm(sendedBudgetData.user)
+    /*
+        FIRM END
+    */
+    
+}
 
 const draftBudget = (draftBudgetData) => {
     $('.modal-content').css({
@@ -1255,6 +1536,10 @@ $('#budgetModal').on('click', '.closeBudgetModal', function(){
     })
 })
 
+$('#budgetModal').on('click', '.closeModal', function(){
+    $('#budgetModal').modal('hide')       
+})
+
 
 function updateClientsHTML() {
     
@@ -1369,11 +1654,72 @@ function saveBudget(type, continueDraftId) {
                 border: '1px solid #e74c3c'
             })
         }
+
+
+        if(validateCounter == 3) {
+            saveNewBudget(budgetObj)
+        } else {
+            $('#errorMessage').html(`
+            <div class="alert alert-dismissible alert-warning">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4 class="alert-heading">Debe solucionar los siguientes errores:</h4>
+                <p class="mb-0">${errorMessage}</p>
+            </div> 
+            `)
+        }
     }
 }
 
-function saveNewBudget() {
+function saveNewBudget(budgetObj) {
+    console.log(budgetObj)
 
+    ajax({
+        url: 'api/newBudget',
+        type: 'POST',
+        data: {
+            reference: budgetObj.reference, // ok
+            clientRut: budgetObj.client.rut, // ok
+            clientName: budgetObj.client.name, // ok
+            clientPhone: budgetObj.client.phone, // ok
+            clientEmail: budgetObj.client.email, // ok
+            userFirmName: firmObj.name, // ok
+            userFirmLastname: firmObj.lastname, // ok
+            userFirmPosition: firmObj.position, // ok
+            userFirmPhone: firmObj.phone, // ok
+            userFirmEmail: firmObj.email, // ok
+            products: JSON.stringify(budgetObj.products), // ok
+            layout: JSON.stringify(budgetObj.layout), // ok
+            creationDate: budgetObj.creationDate, // ok
+            expirationDate: budgetObj.expirationDate, // ok
+            advancePercent: budgetObj.amounts.advancedPercent.toString(), // ok
+            iva: budgetObj.amounts.iva.toString(), // ok
+            subtotal: budgetObj.amounts.subtotal.toString() // ok
+        }
+    }).then(res=>{
+        console.log(res)
+        if(res.ok) {
+            $('#budgetModal').modal('hide')
+            toastr.success(`Se ha crado <b>creado y enviado</b> correctamente la cotización con referencia <b>${res.ok.reference}</b> para el cliente <b>${res.ok.client.name}</b>.`)
+            
+            let formatRes = res.ok 
+            formatRes.dateOrder = dateOrder(res.ok._id) // DD/MM/YYYY to YYYYMMDD
+            formatRes.reference = res.ok.reference.toUpperCase()
+            formatRes.clientName = res.ok.client.name.toUpperCase()
+            formatRes.cost = comma_format(parseFloat(res.ok.amounts.iva)+parseFloat(res.ok.amounts.subtotal))
+            formatRes.divisa = res.ok.layout.divisa.toUpperCase()
+            formatRes.status = formatStatusText(res.ok.status)
+            
+            let newBudgetAdded = datatable
+            .row.add(formatRes)
+            .draw()
+            .node()
+            
+            $(newBudgetAdded).css( 'color', '#1abc9c' )
+            setTimeout(() => {
+                $(newBudgetAdded).css( 'color', '#000000' )
+            }, 5000)
+        }
+    })
 }
 
 function saveDraftBudget(budgetObj) {
@@ -1436,13 +1782,12 @@ function saveDraftBudget(budgetObj) {
             .draw()
             .node();
             
-            $(newBudgetAdded).css( 'color', '#1abc9c' )
+            $(newBudgetAdded).css( 'color', '#2980b9' )
             setTimeout(() => {
                 $(newBudgetAdded).css( 'color', '#000000' )
             }, 5000);
 
         }
-        console.log(res)
     })
     
 }
@@ -1512,7 +1857,7 @@ function getLayouts(draftLayout) { // perfecto!
     
     return new Promise(resolve=>{
         ajax({
-            url:"api/layout/getAll"
+            url: 'api/layout/getAll'
         }).then(res=> {
             if(res.ok) {
                 let resLayouts = res.ok.map(el=>{
