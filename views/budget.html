@@ -410,7 +410,7 @@ const sendedBudget = (sendedBudgetData) => {
             <div class="col-md-5"></div>
 
             <div class="col-md-4">
-                <button class="btn btn-danger btn-block">
+                <button class="btn btn-danger btn-block" id="exportToPdf">
                     <i class="fas fa-file-pdf"></i> Exportar a pdf
                 </button>
             </div>
@@ -418,6 +418,10 @@ const sendedBudget = (sendedBudgetData) => {
         </div>
         <br>
     `)
+
+    $('#exportToPdf').on('click', function() {
+        exportToPdf(sendedBudgetData)
+    })
 
     /*
         GENERAL INFO INIT
@@ -2091,5 +2095,16 @@ function chargeFirm(draftFirm) {
 
     
 }
+
+function exportToPdf(budgetData) {
+    let doc = new jsPDF()
+
+    doc.setFontSize(40)
+    doc.text(35, 25, 'Paranyan loves jsPDF')
+    
+
+    doc.save('two-by-four.pdf')
+}
+
 </script>
 {{/extend}}
