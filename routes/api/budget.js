@@ -65,6 +65,9 @@ const Budget = [
     options: {
         handler: (request, h) => {
             let reqData = {}
+            if(request.payload.id != '') {
+                reqData.id = request.payload.id
+            }
             reqData.reference = request.payload.reference
 
             reqData.clientRut = request.payload.clientRut
@@ -94,50 +97,87 @@ const Budget = [
             reqData.subtotal = request.payload.subtotal
             
             return new Promise(resolve => {
-                let budgetObj = {
-                    _id: moment.tz('America/Santiago').format('YYYY-MM-DDTHH:mm:ss.SSSSS'),
-                    type: 'budget',
-                    status: 'draft',
-                    reference: reqData.reference,
-                    number: 'BORRADOR',
-                    creationDate: reqData.creationDate,
-                    expirationDate: reqData.expirationDate,
-                    products: reqData.products,
-                    amounts: {
-                        advancePercent: reqData.advancePercent,
-                        iva: reqData.iva,
-                        subtotal: reqData.subtotal
-                    },
-                    client: {
-                        rut: reqData.clientRut,
-                        name: reqData.clientName,
-                        phone: reqData.clientPhone,
-                        email: reqData.clientEmail
-                    },
-                    user: {
-                        name: reqData.userFirmName,
-                        lastname: reqData.userFirmLastname,
-                        position: reqData.userFirmPosition,
-                        phone: reqData.userFirmPhone,
-                        email: reqData.userFirmEmail
-                    },
-                    layout: reqData.layout
-                }
-                
-                db.insert(budgetObj).then(draftRes=>{
-                    if(draftRes.ok) {
-                        resolve({ok: budgetObj})
-                    } else {
-                        resolve({err: 'No se ha podido crear el borrador'})
+                if(reqData.id) {
+                    db.find({
+                        selector: {
+                            _id: reqData.id
+                        }
+                    }).then(result => {
+                        if (result.docs[0]) {
+                            let originalDraft = result.docs[0]
+
+                            originalDraft.reference = reqData.reference
+                            originalDraft.expirationDate = reqData.expirationDate
+                            originalDraft.products = reqData.products
+                            originalDraft.amounts = {
+                                advancePercent: reqData.advancePercent,
+                                iva: reqData.iva,
+                                subtotal: reqData.subtotal
+                            }
+                            originalDraft.client = {
+                                rut: reqData.clientRut,
+                                name: reqData.clientName,
+                                phone: reqData.clientPhone,
+                                email: reqData.clientEmail
+                            }
+                            originalDraft.layout = reqData.layout
+
+                            db.insert(originalDraft).then(draftRes=>{
+                                if(draftRes.ok) {
+                                    resolve({ok: originalDraft})
+                                } else {
+                                    resolve({err: 'No se ha podido crear el borrador'})
+                                }
+                            })
+                        } else {
+                            resolve({ err: 'No se ha podido modificar el borrador de cotización.' })
+                        }
+                    })
+                } else {
+                    let budgetObj = {
+                        _id: moment.tz('America/Santiago').format('YYYY-MM-DDTHH:mm:ss.SSSSS'),
+                        type: 'budget',
+                        status: 'draft',
+                        reference: reqData.reference,
+                        number: 'BORRADOR',
+                        creationDate: reqData.creationDate,
+                        expirationDate: reqData.expirationDate,
+                        products: reqData.products,
+                        amounts: {
+                            advancePercent: reqData.advancePercent,
+                            iva: reqData.iva,
+                            subtotal: reqData.subtotal
+                        },
+                        client: {
+                            rut: reqData.clientRut,
+                            name: reqData.clientName,
+                            phone: reqData.clientPhone,
+                            email: reqData.clientEmail
+                        },
+                        user: {
+                            name: reqData.userFirmName,
+                            lastname: reqData.userFirmLastname,
+                            position: reqData.userFirmPosition,
+                            phone: reqData.userFirmPhone,
+                            email: reqData.userFirmEmail
+                        },
+                        layout: reqData.layout
                     }
-                })
-                
                     
+                    db.insert(budgetObj).then(draftRes=>{
+                        if(draftRes.ok) {
+                            resolve({ok: budgetObj})
+                        } else {
+                            resolve({err: 'No se ha podido crear el borrador'})
+                        }
+                    })
+                }    
             })    
             
         },
         validate: {
             payload: Joi.object().keys({
+                id: Joi.string().allow(''),
                 reference: Joi.string().required(),
                 clientRut: Joi.string().allow(''),
                 clientName: Joi.string().allow(''),

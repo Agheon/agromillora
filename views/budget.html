@@ -110,7 +110,7 @@
 <table id="budget-table" class="table table-hover">
     <thead>
         <tr>
-            <!--<th scope="col">dateOrder</th>-->
+            <th style="display : none;" scope="col">dateOrder</th>
             <th scope="col">FECHA</th>
             <th scope="col">NÚMERO DE LA COTIZACIÓN</th>
             <th scope="col">NOMBRE DE REFERENCIA</th>
@@ -170,20 +170,21 @@ $(document).ready(function() {
     datatable = $('#budget-table')
     .DataTable( {
         ordering: true,
-        order: [[ 0, 'asc' ]],
+        order: [[ 0, 'desc' ]],
         iDisplayLength: 100,
         oLanguage: {
             sSearch: 'buscar: '
         },
-        columnDefs: [
-            {
-                targets: [ 0 ],
-                visible: true
-            }
-        ],
+        columnDefs: [{
+            targets: [0],
+            visible: false
+        }, {
+            targets: [ 1,2,3,4,5,6,7 ],
+            orderable: false
+        }],
         responsive: false,
         columns: [
-            //{ data: 'dateOrder' },
+            { data: 'dateOrder' },
             { data: 'creationDate' },
             { data: 'number' },
             { data: 'reference' },
@@ -194,6 +195,11 @@ $(document).ready(function() {
         ],
         initComplete: function (settings, json) {
             getBudgets()
+        },
+        rowCallback: function(row, data, index){
+            if(data.status == 'BORRADOR') {
+                $(row).find('td:eq(4)').css('color', '#2980b9')
+            }
         }
     });
     /*
@@ -207,8 +213,9 @@ $(document).ready(function() {
     */
 
     $('#budget-table tbody').on('click', 'tr', function() {
-        rowDataSelected = datatable.row($(this)).data();
-        chargeModal();
+        rowSelected = datatable.row($(this))
+        rowDataSelected = datatable.row($(this)).data()
+        chargeModal()
     });
 });
 
@@ -224,7 +231,7 @@ const getBudgets = () => {
             console.log(res.ok)
             let formatRes = res.ok.map(el=>{
                 //el.rut = `<b>${rutFunc(el.rut)}</b>`
-                //el.dateOrder = dateOrder(el._id) // DD/MM/YYYY to YYYYMMDD
+                el.dateOrder = dateOrder(el._id) // DD/MM/YYYY to YYYYMMDD
                 el.reference = el.reference.toUpperCase()
                 el.clientName = el.client.name.toUpperCase()
                 el.cost = comma_format(parseFloat(el.amounts.iva)+parseFloat(el.amounts.subtotal))
@@ -448,7 +455,7 @@ const draftBudget = (draftBudgetData) => {
     })
 
     $('#saveDraftBudget').on('click', function(){
-        saveBudget('draft')
+        saveBudget('continueDraft', draftBudgetData._id)
     })
 
     $('#reference').val(draftBudgetData.reference)
@@ -1282,7 +1289,7 @@ function updateClientsHTML() {
     
 }
 
-function saveBudget(type) {
+function saveBudget(type, continueDraftId) {
     let status = ''
     let budgetObj = {
         reference: $('#reference').val(),
@@ -1303,6 +1310,9 @@ function saveBudget(type) {
     let errorMessage = ''
     if(type == 'draft') {
         status = 'draft'
+    } else if(type == 'continueDraft') { // en caso de continuar una cotizacion en borrador
+        status = 'draft'
+        budgetObj.id = continueDraftId
     } else if(type == 'new') {
         status = 'new'
     }
@@ -1368,19 +1378,17 @@ function saveNewBudget() {
 
 function saveDraftBudget(budgetObj) {
     console.log(budgetObj)
-    /*
-    let sendProducts
-    if(budgetObj.products[0]) {
-        sendProducts = JSON.stringify(budgetObj.products)
-    } else {
-        sendProducts = ''
+   
+    let continueDraftId = ''
+    if(budgetObj.id) {
+        continueDraftId = budgetObj.id
     }
-    */
-    
+
     ajax({
         url: 'api/draftBudget',
         type: 'POST',
         data: {
+            id: continueDraftId,
             reference: budgetObj.reference, // ok
             clientRut: budgetObj.client.rut, // ok
             clientName: budgetObj.client.name, // ok
@@ -1402,14 +1410,21 @@ function saveDraftBudget(budgetObj) {
     }).then(res=>{
         if(res.ok) {
             let resText = ''
-            if(res.ok.status == 'draft') {
-                resText = `Se ha creado correctamente el <b>borrador</b> de cotización con referencia: <b>${res.ok.reference}</b> para el cliente <b>${res.ok.client.name}</b>.`
+            if(res.ok.status == 'draft' && continueDraftId == '') {
+                resText = `Se ha <b>creado</b> correctamente el <b>borrador</b> de cotización con referencia: <b>${res.ok.reference}</b> para el cliente <b>${res.ok.client.name}</b>.`
+            } else if(res.ok.status == 'draft' && continueDraftId != '') {
+                resText = `Se ha <b>modificado</b> correctamente el <b>borrador</b> de cotización con referencia: <b>${res.ok.reference}</b> para el cliente <b>${res.ok.client.name}</b>.`
+                datatable
+                .row( rowSelected )
+                .remove()
+                .draw()
             }
+
             toastr.success(resText)
             $('#budgetModal').modal('hide')
 
             let formatRes = res.ok 
-            //formatRes.dateOrder = dateOrder(res.ok._id) // DD/MM/YYYY to YYYYMMDD
+            formatRes.dateOrder = dateOrder(res.ok._id) // DD/MM/YYYY to YYYYMMDD
             formatRes.reference = res.ok.reference.toUpperCase()
             formatRes.clientName = res.ok.client.name.toUpperCase()
             formatRes.cost = comma_format(parseFloat(res.ok.amounts.iva)+parseFloat(res.ok.amounts.subtotal))
