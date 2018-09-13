@@ -4,7 +4,10 @@
   "description": "Sistema agromillora",
   "main": "app.js",
   "scripts": {
-    "test": "babel-watch app.js"
+    "test": "babel-watch app.js",
+    "start": "pm2 start app.js --interpreter babel-node --name agromillora",
+    "stop": "pm2 stop agromillora",
+    "restart": "npm stop && npm start"
   },
   "author": "Michcom Ltda.",
   "license": "ISC",
