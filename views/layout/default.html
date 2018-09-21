@@ -144,7 +144,12 @@
     <script src="/public/js/daterangepicker.js"></script>
     <script src="/public/js/toastr.min.js"></script>
     <script src="/public/js/sweetalert2.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="/public/js/jspdf.min.js"></script>
+    <script src="/public/js/pdfmake.min.js"></script>
+    <script src="/public/js/vfs_fonts.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/2.3.5/jspdf.plugin.autotable.js"></script>
+    
     <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://code.highcharts.com/modules/series-label.js"></script>
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
@@ -232,6 +237,9 @@
             })
         };
 
+        function replaceAll(target, search, replacement) {
+            return target.split(search).join(replacement);
+        }
 
         function capitalizeAll(val) {
             return (val ? val.toLowerCase() : val).replace(/(?:^|\s)\S/g, function(a) { return a.toUpperCase(); });
@@ -292,6 +300,18 @@
                 amount_parts[0] = amount_parts[0].replace(regexp, '$1' + ',' + '$2');
 
             return amount_parts.join(',');
+        }
+
+        const getDataUri = (img) => {   
+            var canvas, ctx, dataURL, base64;
+            canvas = document.createElement("canvas");
+            ctx = canvas.getContext("2d");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            dataURL = canvas.toDataURL("image/png");
+            base64 = dataURL.replace(/^data:image\/png;base64,/, "");
+            return base64;
         }
     </script>
     {{#block "js"}}

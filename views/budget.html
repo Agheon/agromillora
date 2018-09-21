@@ -89,6 +89,7 @@
         }
     </style>
 {{/extend}}
+<div style="background-color:#fff; max-width:520px; font-size:11px;" id="hiddenHTML"></div>
 <div class="topmenu">
     <div class="row">
         <div class="col-md-2 col-sm-4 col-xs-12">
@@ -111,21 +112,23 @@
     </div>
 </div>
 
-<table id="budget-table" class="table table-hover">
-    <thead>
-        <tr>
-            <th style="display : none;" scope="col">dateOrder</th>
-            <th scope="col">FECHA</th>
-            <th scope="col">NÚMERO DE LA COTIZACIÓN</th>
-            <th scope="col">NOMBRE DE REFERENCIA</th>
-            <th scope="col">NOMBRE DEL CLIENTE</th>
-            <th scope="col">ESTADO</th>
-            <th scope="col">DIVISA</th>
-            <th scope="col">COSTO</th>
-        </tr>
-    </thead>
-    <tbody></tbody>
-</table> 
+<div class="table-responsive">
+    <table id="budget-table" class="table table-hover">
+        <thead>
+            <tr>
+                <th style="display : none;" scope="col">dateOrder</th>
+                <th scope="col">FECHA</th>
+                <th scope="col">NÚMERO DE LA COTIZACIÓN</th>
+                <th scope="col">NOMBRE DE REFERENCIA</th>
+                <th scope="col">NOMBRE DEL CLIENTE</th>
+                <th scope="col">ESTADO</th>
+                <th scope="col">DIVISA</th>
+                <th scope="col">COSTO</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table> 
+</div>
 
 <!-- Modal -->
 <div class="modal fade" id="budgetModal" data-keyboard="false" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="modal_title">
@@ -144,6 +147,7 @@
    
 
 {{#extend "js"}}
+<script src="/public/base64js/agromilloralogo.js"></script>
 <script>
 let rowSelected
 let rowDataSelected
@@ -186,7 +190,7 @@ $(document).ready(function() {
             targets: [ 1,2,3,4,5,6,7 ],
             orderable: false
         }],
-        responsive: false,
+        responsive: true,
         columns: [
             { data: 'dateOrder' },
             { data: 'creationDate' },
@@ -2096,14 +2100,315 @@ function chargeFirm(draftFirm) {
     
 }
 
-function exportToPdf(budgetData) {
-    let doc = new jsPDF()
 
-    doc.setFontSize(40)
-    doc.text(35, 25, 'Paranyan loves jsPDF')
+function exportToPdf2(budgetData) {
+    /*
+    var docDefinition = {
+   content: [
+       {
+        image: agromilloraLogoBase64
+       },
+     // if you don't need styles, you can use a simple string to define a paragraph
+     'This is a standard paragraph, using default style',
+
+     // using a { text: '...' } object lets you set styling properties
+     { text: 'This paragraph will have a bigger font', fontSize: 15 },
+
+     // if you set pass an array instead of a string, you'll be able
+     // to style any fragment individually
+     {
+       text: [
+         'This paragraph is defined as an array of elements to make it possible to ',
+         { text: 'restyle part of it and make it bigger ', fontSize: 15 },
+         'than the rest.'
+       ]
+     }
+   ]
+ };
+    
+    pdfMake.createPdf(docDefinition).download('optionalName.pdf');
+    */
+    //pdfMake.createPdf(html2pdfmake(budgetData.layout.textInfo)).download('optionalName.pdf');
+    $('#hiddenHTML').html(budgetData.layout.textInfo)
+
+    html2canvas($('#hiddenHTML') , {
+        onrendered: function (canvas) {
+            var data = canvas.toDataURL();
+            var docDefinition = {
+                content: [{
+                    image: data,
+                    width: 400,
+                }]
+            };
+            pdfMake.createPdf(docDefinition).download("Score_Details.pdf");
+        }
+    });
+}
+
+function exportToPdf(budgetData) {
+    console.log(budgetData)
+    var doc = new jsPDF('p', 'pt', 'a4');
+    /*
+        x y w h
+    */
+    let ypos = 0 // altura en pixeles
+    let rightYPos = 0
+    let testdispose = 0
+
+    doc.addImage(agromilloraLogoBase64, 'JPEG', 30, ypos+50, 200, 50)
+    doc.setFontSize(10)
+    //doc.setFontType('bold')
+    //let generalBudgetInfo = 
+    ypos+=30
+    budgetData.layout.generalInfo.forEach(el => {
+        ypos += 25
+        doc.text(300, ypos, `${replaceAll(el.key, '<br>', '\n')}: ${replaceAll(el.value, '<br>', '\n')}`);
+    })
+    ypos += 50
+
+    doc.setDrawColor(189, 195, 199)
+    doc.setLineWidth(0.3)
+    doc.line(30, ypos, 170, ypos)
+    doc.setTextColor(52, 152, 219)
+    doc.setFontSize(20)
+    doc.text(220, ypos+5, 'COTIZACIÓN')
+    doc.setDrawColor(189, 195, 199)
+    doc.line(400, ypos, 570, ypos)
+
+    rightYPos = ypos
+
+    ypos += 30
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(10)
+    doc.text(30, ypos, 'Cliente:')
+    
+    ypos += 25
+    doc.setFontType('normal')
+    doc.text(30, ypos, 'Rut')
+    doc.setFontType('bold')
+    doc.text(100, ypos, `${replaceAll(rutFunc(budgetData.client.rut), '<br>', '\n')}`)
+
+    ypos += 25
+    doc.setFontType('normal')
+    doc.text(30, ypos, 'Nombre')
+    doc.setFontType('bold')
+    doc.text(100, ypos, `${replaceAll(budgetData.client.name, '<br>', '\n')}`)
+
+    ypos += 25
+    doc.setFontType('normal')
+    doc.text(30, ypos, 'Teléfono')
+    doc.setFontType('bold')
+    doc.text(100, ypos, `${replaceAll(budgetData.client.phone, '<br>', '\n')}`)
+
+    ypos += 25
+    doc.setFontType('normal')
+    doc.text(30, ypos, 'Email')
+    doc.setFontType('bold')
+    doc.text(100, ypos, `${replaceAll(budgetData.client.email, '<br>', '\n')}`)
+
+    rightYPos += 30
+    doc.setFontType('normal')
+    doc.setFontSize(10)
+    doc.text(300, rightYPos, 'Fecha de cotización')
+    doc.setFontType('bold')
+    doc.setFontSize(11)
+    doc.text(400, rightYPos, budgetData.creationDate)
+
+    rightYPos += 25
+    doc.setFontType('normal')
+    doc.setFontSize(10)
+    doc.text(300, rightYPos, 'Fecha de vencimiento')
+    doc.setFontType('bold')
+    doc.setFontSize(11)
+    doc.text(400, rightYPos, budgetData.expirationDate)
+
+    rightYPos += 25
+    doc.setFontType('normal')
+    doc.setFontSize(10)
+    doc.text(300, rightYPos, 'Referencia')
+    doc.setFontType('bold')
+    doc.setFontSize(11)
+    doc.text(400, rightYPos, replaceAll(budgetData.reference, '<br>', '\n'))
+
+    let tableColumns = ['Producto', 'Precio c/u', 'Unidades', 'Monto', 'Fecha estimada de entrega'];
+    var tableRows = budgetData.products.reduce((arr,el,i) => {
+        return arr.concat([[
+            `${el.type} ${el.name}`,
+            `$${comma_format(el.price)}`,
+            el.stock,
+            `$${comma_format(el.price*el.stock)}`,
+            el.deliveryDate
+        ]])
+    }, []) 
+    
+    ypos += 30
+    doc.autoTable(tableColumns, tableRows, {
+        margin: {
+            top: ypos
+        }
+    })
+
+    ypos = doc.autoTable.previous.finalY + 50
+    rightYPos = ypos
+
+    doc.setFontSize(10)
+    budgetData.layout.checkingAccount.content.forEach(el => {
+        doc.setFontType('normal')
+        doc.text(30, ypos, `${replaceAll(el.key, '<br>', '\n')}`);
+        doc.setFontType('bold')
+        doc.text(100, ypos, `${replaceAll(el.value, '<br>', '\n')}`);
+        ypos += 25
+    })
+    doc.setFontType('bold')
+    doc.setFontSize(13)
+
+    doc.text(300, rightYPos, 'Condiciones comerciales, de pago y \nFacturación:');
     
 
-    doc.save('two-by-four.pdf')
+    let finalAdvance = (budgetData.amounts.subtotal * budgetData.amounts.advancePercent) / 100
+    let finalAdvance2 = (budgetData.amounts.subtotal * ((100-budgetData.amounts.advancePercent)) / 100)
+    let amountNew = (parseFloat(budgetData.amounts.subtotal) / ((19 / 100) + 1))
+    let amountTax = parseFloat(budgetData.amounts.subtotal) - parseFloat(amountNew)
+
+    let amountTXT = ''
+    iva = 0
+    if(budgetData.layout.divisa == 'clp') {
+        iva = parseInt(amountTax)
+        amountTXT = 'CLP $'
+    } else if (budgetData.layout.divisa == 'usd') {
+        iva = 0
+        amountTXT = 'USD $'
+    } else if(budgetData.layout.divisa == 'eur') {
+        iva = 0
+        amountTXT = 'EUR €'
+    }
+
+    rightYPos += 40
+    doc.setFontType('normal')
+    doc.setFontSize(10)
+    doc.text(300, rightYPos, `${budgetData.amounts.advancePercent}% de anticipo de reserva:`)
+    doc.setFontType('bold')
+    doc.setFontSize(11)
+    doc.text(450, rightYPos, `${amountTXT} ${comma_format(finalAdvance)}`)
+
+    rightYPos += 25
+    doc.setFontType('normal')
+    doc.setFontSize(10)
+    doc.text(300, rightYPos, `${100-budgetData.amounts.advancePercent}% Saldo, al momento del\ndespacho de las plantas:`)
+    doc.setFontType('bold')
+    doc.setFontSize(11)
+    doc.text(450, rightYPos, `${amountTXT} ${comma_format(finalAdvance2)}`)
+
+    rightYPos += 35
+    doc.setFontType('normal')
+    doc.setFontSize(10)
+    doc.text(300, rightYPos, `IVA, se deberá cancelar\ndocumentado, al día 10\ndel mes siguiente de la fecha\nde despacho:`)
+    doc.setFontType('bold')
+    doc.setFontSize(11)
+    doc.text(450, rightYPos, `${amountTXT} ${comma_format(iva)}`)
+
+    rightYPos += 60
+    doc.setFontType('normal')
+    doc.setFontSize(10)
+    doc.text(300, rightYPos, `Subtotal:`)
+    doc.setFontType('bold')
+    doc.setFontSize(11)
+    doc.text(450, rightYPos, `${amountTXT} ${comma_format(budgetData.amounts.subtotal)}`)
+
+    rightYPos += 30
+    doc.setFontType('bold')
+    doc.setFontSize(12)
+    doc.text(300, rightYPos, `Total a pagar:`)
+    doc.setFontType('bold')
+    doc.setTextColor(42,200,138)
+    doc.text(450, rightYPos, `${amountTXT} ${comma_format(parseFloat(budgetData.amounts.subtotal)+iva)}`)
+    
+    let reformatHTML = budgetData.layout.textInfo
+
+    ypos = 30
+    /*
+    doc.fromHTML(replaceAll(reformatHTML, '•', '*'), 30, ypos, {
+        'width': 520,
+        'elementHandlers': {}
+    })
+    */
+    
+    let margins = {
+        top: ypos,
+        bottom: 40,
+        left: 30,
+        width: 550
+    }
+
+    let margins2 = {
+        top: 10,
+        bottom: 40,
+        left: 30,
+        width: 550
+    }
+
+    doc.addPage()
+    doc.fromHTML(
+        replaceAll(reformatHTML, '•', '*'), 
+		margins.left, // x coord
+		margins.top,
+		{
+			// y coord
+			width: margins.width// max width of content on PDF
+		},function(dispose) {
+            //ypos = dispose.y
+            //console.log(dispose)
+            doc.setTextColor(0, 0, 0)
+            footerFormatting(doc, doc.internal.getNumberOfPages(), budgetData.user);
+            doc.save('Test.pdf');
+		}, 
+        margins2
+    );
+
+    
+    function footerFormatting(doc, totalPages, user)
+    {
+        for(var i = totalPages; i >= 1; i--)
+        {
+            doc.setPage(i);                            
+            //header
+            //header(doc);
+            
+            footer(doc, i, totalPages, user);
+            doc.page++;
+        }
+    };
+
+    function footer(doc, pageNumber, totalPages, user){
+
+        var str = "Página " + pageNumber + " de " + totalPages
+
+        doc.setTextColor(0,0,0)
+        doc.setFontType('normal')
+        doc.setFontSize(10);
+        doc.text(str, margins.left, doc.internal.pageSize.height - 20);
+        
+        if(pageNumber == totalPages) {
+            console.log(user)
+            doc.setFontSize(16);
+            doc.setTextColor(42,200,138)
+            doc.setFontType('italic')
+            doc.text(`${capitalizeAll(user.name)} ${capitalizeAll(user.lastname)}`, 300, doc.internal.pageSize.height - 140, null, null, 'center');
+           
+            doc.setTextColor(0,0,0)
+            doc.setFontType('normal')
+            doc.setFontSize(14);
+
+            doc.text(`AGROMILLORA SUR S.A.`, 300, doc.internal.pageSize.height - 120, null, null, 'center');
+            doc.text(`${user.position}`, 300, doc.internal.pageSize.height - 100, null, null, 'center');
+            doc.text(`${user.email}`, 300, doc.internal.pageSize.height - 80, null, null, 'center');
+            doc.text(`${user.phone}`, 300, doc.internal.pageSize.height - 60, null, null, 'center');
+            
+            doc.setTextColor(0,0,0)
+            doc.setFontType('normal')
+            doc.setFontSize(10);
+        }
+    }   
 }
 
 </script>
