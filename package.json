@@ -14,6 +14,7 @@
   "dependencies": {
     "@cloudant/cloudant": "^2.3.0",
     "dotenv": "^6.0.0",
+    "encoding": "^0.1.12",
     "handlebars": "^4.0.11",
     "handlebars-extend-block": "^1.0.0",
     "hapi": "^17.5.2",
@@ -21,9 +22,13 @@
     "hapi-router": "^4.0.0",
     "inert": "^5.1.0",
     "joi": "^13.4.0",
+    "jspdf": "^1.4.1",
     "md5": "^2.2.1",
     "moment": "^2.22.2",
     "moment-timezone": "^0.5.21",
+    "mysql2": "^1.6.1",
+    "node-cron": "^2.0.1",
+    "nodemailer": "^4.6.8",
     "vision": "^5.3.3"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
-import Joi from 'joi';
+import Joi from 'joi'
 import moment from 'moment-timezone'
 import { db } from '../../config/db'
 
@@ -95,7 +95,7 @@ const Budget = [
                         let budgetObj = {
                             _id: moment.tz('America/Santiago').format('YYYY-MM-DDTHH:mm:ss.SSSSS'),
                             type: 'budget',
-                            status: 'sended',
+                            status: 'created',
                             reference: reqData.reference,
                             number: resCounter.ok.count,
                             creationDate: reqData.creationDate,
@@ -122,8 +122,10 @@ const Budget = [
                             layout: reqData.layout
                         }
                         
-                        db.insert(budgetObj).then(draftRes=>{
-                            if(draftRes.ok) {
+                        db.insert(budgetObj).then(budgetRes=>{
+                            console.log(budgetRes)
+                            if(budgetRes.ok) {
+                                budgetObj._rev = budgetRes.rev
                                 setBudgetCounter(resCounter.ok).then(setCounterRes=>{
                                     resolve({ok: budgetObj})
                                 })
@@ -207,8 +209,8 @@ const Budget = [
                         selector: {
                             _id: reqData.id
                         }
-                    }).then(result => {
-                        if (result.docs[0]) {
+                    }).then(result => { 
+                        if (result.docs[0]) { // si ya existe el borrador
                             let originalDraft = result.docs[0]
 
                             originalDraft.reference = reqData.reference
@@ -238,42 +240,51 @@ const Budget = [
                             resolve({ err: 'No se ha podido modificar el borrador de cotización.' })
                         }
                     })
-                } else {
-                    let budgetObj = {
-                        _id: moment.tz('America/Santiago').format('YYYY-MM-DDTHH:mm:ss.SSSSS'),
-                        type: 'budget',
-                        status: 'draft',
-                        reference: reqData.reference,
-                        number: 'BORRADOR',
-                        creationDate: reqData.creationDate,
-                        expirationDate: reqData.expirationDate,
-                        products: reqData.products,
-                        amounts: {
-                            advancePercent: reqData.advancePercent,
-                            iva: reqData.iva,
-                            subtotal: reqData.subtotal
-                        },
-                        client: {
-                            rut: reqData.clientRut,
-                            name: reqData.clientName,
-                            phone: reqData.clientPhone,
-                            email: reqData.clientEmail
-                        },
-                        user: {
-                            name: reqData.userFirmName,
-                            lastname: reqData.userFirmLastname,
-                            position: reqData.userFirmPosition,
-                            phone: reqData.userFirmPhone,
-                            email: reqData.userFirmEmail
-                        },
-                        layout: reqData.layout
-                    }
-                    
-                    db.insert(budgetObj).then(draftRes=>{
-                        if(draftRes.ok) {
-                            resolve({ok: budgetObj})
+                } else { // si no existe el borrador
+                    getBudgetCounter().then(resCounter=>{
+                        if(resCounter.ok) {
+                            resCounter.ok.draftCount = resCounter.ok.draftCount+1
+                            let budgetObj = {
+                                _id: moment.tz('America/Santiago').format('YYYY-MM-DDTHH:mm:ss.SSSSS'),
+                                type: 'budget',
+                                status: 'draft',
+                                reference: reqData.reference,
+                                number: resCounter.ok.draftCount,
+                                creationDate: reqData.creationDate,
+                                expirationDate: reqData.expirationDate,
+                                products: reqData.products,
+                                amounts: {
+                                    advancePercent: reqData.advancePercent,
+                                    iva: reqData.iva,
+                                    subtotal: reqData.subtotal
+                                },
+                                client: {
+                                    rut: reqData.clientRut,
+                                    name: reqData.clientName,
+                                    phone: reqData.clientPhone,
+                                    email: reqData.clientEmail
+                                },
+                                user: {
+                                    name: reqData.userFirmName,
+                                    lastname: reqData.userFirmLastname,
+                                    position: reqData.userFirmPosition,
+                                    phone: reqData.userFirmPhone,
+                                    email: reqData.userFirmEmail
+                                },
+                                layout: reqData.layout
+                            }
+                            
+                            db.insert(budgetObj).then(draftRes=>{
+                                if(draftRes.ok) {
+                                    setBudgetCounter(resCounter.ok).then(setCounterRes=>{
+                                        resolve({ok: budgetObj})
+                                    })
+                                } else {
+                                    resolve({err: 'No se ha podido crear el borrador'})
+                                }
+                            })
                         } else {
-                            resolve({err: 'No se ha podido crear el borrador'})
+                            resolve({err: resCounter.err})
                         }
                     })
                 }    

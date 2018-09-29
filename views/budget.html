@@ -87,9 +87,30 @@
                 background-color: #9E9E9E;
             }
         }
+
+        @keyframes send {
+            0% {
+                margin-left: 10%;
+            }
+            100% {
+                margin-left: 90%;
+            }
+        }
+
+        
+        
+        #emailSend {
+            top: 45%;
+            position:relative;
+        }
+        
+        .sendEmailAnimation {
+            animation: send 2s infinite;
+        }
     </style>
 {{/extend}}
-<div style="background-color:#fff; max-width:520px; font-size:11px;" id="hiddenHTML"></div>
+<div id="loadingEmail"></div>
+<!--<div style="background-color:#fff; max-width:520px; font-size:11px;" id="hiddenHTML"></div>-->
 <div class="topmenu">
     <div class="row">
         <div class="col-md-2 col-sm-4 col-xs-12">
@@ -179,7 +200,7 @@ $(document).ready(function() {
     .DataTable( {
         ordering: true,
         order: [[ 0, 'desc' ]],
-        iDisplayLength: 100,
+        iDisplayLength: 25,
         oLanguage: {
             sSearch: 'buscar: '
         },
@@ -209,6 +230,10 @@ $(document).ready(function() {
                 $(row).find('td:eq(4)').css('color', '#2980b9')
             } else if(data.status == 'ENVIADO') {
                 $(row).find('td:eq(4)').css('color', '#1abc9c')
+            } else if(data.status == 'ENVIANDO...') {
+                $(row).find('td:eq(4)').css('color', '#34495e')
+            } else if(data.status == 'CREADO') {
+                $(row).find('td:eq(4)').css('color', '#f39c12')
             }
         }
     });
@@ -240,7 +265,12 @@ const getBudgets = () => {
         } else if(res.ok) {
             console.log(res.ok)
             let formatRes = res.ok.map(el=>{
-                //el.rut = `<b>${rutFunc(el.rut)}</b>`
+                if(el.status == 'sended' || el.status == 'created') {
+                    el.number = `COT${el.number}`
+                } else if(el.status == 'draft') {
+                    el.number = `BOR${el.number}`
+                }
+
                 el.dateOrder = dateOrder(el._id) // DD/MM/YYYY to YYYYMMDD
                 el.reference = el.reference.toUpperCase()
                 el.clientName = el.client.name.toUpperCase()
@@ -261,17 +291,13 @@ const formatStatusText = (status) => {
         return 'BORRADOR'
     } else if(status == 'sended') {
         return 'ENVIADO'
+    }  else if(status == 'created') {
+        return 'CREADO'
     }
 }
 
 const dateOrder = (creationDate) => {
-    /*
-    let splitDate = creationDate.split('/')
-    splitDate = splitDate[2]+splitDate[1]+splitDate[0]
-    */
-
     let splitDate = moment(creationDate).format('YYYYMMDDHHmmss')
-    console.log(splitDate)
     return splitDate
 }
 
@@ -302,7 +328,7 @@ const chargeModal = () => {
             console.log(res.ok)
             if(res.ok.status == 'draft') {
                 draftBudget(res.ok)
-            } else if(res.ok.status == 'sended') {
+            } else if(res.ok.status == 'sended' || res.ok.status == 'created') {
                 sendedBudget(res.ok)
             }
         }else {
@@ -314,6 +340,7 @@ const chargeModal = () => {
 $('#newBudget').on('click', function(){
     newBudget()
 })
+
 const sendedBudget = (sendedBudgetData) => {
     $('.modal-content').css({
         'border-color': '#1abc9c'
@@ -387,15 +414,15 @@ const sendedBudget = (sendedBudgetData) => {
             </div>
         </div>
 
+        <div class="row">   
+            <div class="col-md-6" id="checkingAccount"></div>  
+            <div class="col-md-6 table-responsive" id="finalCalculations"></div>
+        </div>
+
         <div class="row">
             <div class="col-md-12">
                 ${sendedBudgetData.layout.textInfo}
             </div>
-        </div>
-
-        <div class="row">   
-            <div class="col-md-6" id="checkingAccount"></div>  
-            <div class="col-md-6 table-responsive" id="finalCalculations"></div>
         </div>
 
         <div id="firm"></div>
@@ -424,7 +451,7 @@ const sendedBudget = (sendedBudgetData) => {
     `)
 
     $('#exportToPdf').on('click', function() {
-        exportToPdf(sendedBudgetData)
+        exportToPdf(sendedBudgetData, 'view')
     })
 
     /*
@@ -687,6 +714,12 @@ const draftBudget = (draftBudgetData) => {
         <br>
         <div id="budgetProductSelected"></div>
         <div id="budgetProductsTable"></div>
+        <br>
+        <div class="row">   
+            <div class="col-md-6" id="checkingAccount">
+            </div>  
+            <div class="col-md-6 table-responsive" id="finalCalculations"></div>
+        </div>
 
         <div class="accordion" id="accordionText">
             <div class="card">
@@ -701,12 +734,6 @@ const draftBudget = (draftBudgetData) => {
                 <div class="card-body" id="importantInfo"></div>
             </div>
 
-        </div>
-        <br>
-        <div class="row">   
-            <div class="col-md-6" id="checkingAccount">
-            </div>  
-            <div class="col-md-6 table-responsive" id="finalCalculations"></div>
         </div>
 
         <div id="firm"></div>
@@ -1177,6 +1204,13 @@ const newBudget = () => {
         <div id="budgetProductSelected"></div>
         <div id="budgetProductsTable"></div>
 
+        <br>
+        <div class="row">   
+            <div class="col-md-6" id="checkingAccount">
+            </div>  
+            <div class="col-md-6 table-responsive" id="finalCalculations"></div>
+        </div>
+
         <div class="accordion" id="accordionText">
             <div class="card">
                 <div class="card-header" id="headingText">
@@ -1192,12 +1226,6 @@ const newBudget = () => {
 
         </div>
         <br>
-        <div class="row">   
-            <div class="col-md-6" id="checkingAccount">
-            </div>  
-            <div class="col-md-6 table-responsive" id="finalCalculations"></div>
-        </div>
-
         <div id="firm"></div>
         
         <div id="errorMessage"></div>
@@ -1665,6 +1693,7 @@ function saveBudget(type, continueDraftId) {
 
 
         if(validateCounter == 3) {
+            $('#saveBudget').attr('disabled', true)
             saveNewBudget(budgetObj)
         } else {
             $('#errorMessage').html(`
@@ -1680,7 +1709,7 @@ function saveBudget(type, continueDraftId) {
 
 function saveNewBudget(budgetObj) {
     console.log(budgetObj)
-
+    sendEmailLoading(budgetObj, 0)
     ajax({
         url: 'api/newBudget',
         type: 'POST',
@@ -1704,18 +1733,23 @@ function saveNewBudget(budgetObj) {
             subtotal: budgetObj.amounts.subtotal.toString() // ok
         }
     }).then(res=>{
-        console.log(res)
+        //console.log(res)
         if(res.ok) {
-            $('#budgetModal').modal('hide')
-            toastr.success(`Se ha crado <b>creado y enviado</b> correctamente la cotización con referencia <b>${res.ok.reference}</b> para el cliente <b>${res.ok.client.name}</b>.`)
-            
-            let formatRes = res.ok 
+            let formatRes = Object.assign({}, res.ok) 
+            toastr.success(`Se ha <b>creado</b> correctamente la cotización con referencia <b>${formatRes.reference}</b> para el cliente <b>${formatRes.client.name}</b>.`)
+
+            if(formatRes.status == 'sended' || formatRes.status == 'created') {
+                formatRes.number = `COT${formatRes.number}`
+            } else if(formatRes.status == 'draft') {
+                formatRes.number = `BOR${formatRes.number}`
+            }
+
             formatRes.dateOrder = dateOrder(res.ok._id) // DD/MM/YYYY to YYYYMMDD
             formatRes.reference = res.ok.reference.toUpperCase()
             formatRes.clientName = res.ok.client.name.toUpperCase()
             formatRes.cost = comma_format(parseFloat(res.ok.amounts.iva)+parseFloat(res.ok.amounts.subtotal))
             formatRes.divisa = res.ok.layout.divisa.toUpperCase()
-            formatRes.status = formatStatusText(res.ok.status)
+            formatRes.status = 'ENVIANDO...'/*formatStatusText(res.ok.status)*/
             
             let newBudgetAdded = datatable
             .row.add(formatRes)
@@ -1726,6 +1760,35 @@ function saveNewBudget(budgetObj) {
             setTimeout(() => {
                 $(newBudgetAdded).css( 'color', '#000000' )
             }, 5000)
+            $('#budgetModal').modal('hide')
+
+            sendEmailLoading(budgetObj, 1) // enviar correo loading
+            exportToPdf(res.ok, 'send').then(exportRes=> {
+                console.log(exportRes)
+                if(exportRes.ok) { 
+                let updateRow = datatable.row(newBudgetAdded)
+                formatRes.status = 'ENVIADO'
+                datatable
+                .row( updateRow )
+                .data( formatRes )
+                .draw();
+                
+                $('#budgetModal').modal('hide')
+                    toastr.success(`Se ha <b>enviado</b> correctamente la cotización con referencia <b>${formatRes.reference}</b> para el cliente <b>${formatRes.client.name}</b>.`)   
+                    sendEmailLoading(null, 1) // finalizar envío
+                } else if(exportRes.err) {
+
+                    let updateRow = datatable.row(newBudgetAdded)
+                    formatRes.status = 'CREADO'
+                    datatable
+                    .row( updateRow )
+                    .data( formatRes )
+                    .draw();
+                    toastr.error(`No pudimos enviar la cotización con referencia <b>${formatRes.reference}</b> para el cliente <b>${formatRes.client.name}</b>.`)
+                    sendEmailLoading(null, 1) // finalizar envío
+                }
+            })
+
         }
     })
 }
@@ -1917,7 +1980,6 @@ function getProducts() {
     })
 }
 
-
 function getClients() {
     return new Promise(resolve=> {
         ajax({
@@ -1952,8 +2014,7 @@ function removeBudgetProduct(productToRemove) {
     })
     finalCalculation()
 
-    console.log(addingProductsArr)
-            
+    console.log(addingProductsArr)        
 }
 
 function finalCalculation() {
@@ -2019,7 +2080,6 @@ function finalCalculation() {
         finalCalculation()
     })
     
-
     console.log(amountNew, amountTax, iva)
 
     amounts.advancedPercent = advancePercent
@@ -2096,319 +2156,370 @@ function chargeFirm(draftFirm) {
             </center>
         `)
     }
-
-    
 }
 
-
-function exportToPdf2(budgetData) {
-    /*
-    var docDefinition = {
-   content: [
-       {
-        image: agromilloraLogoBase64
-       },
-     // if you don't need styles, you can use a simple string to define a paragraph
-     'This is a standard paragraph, using default style',
-
-     // using a { text: '...' } object lets you set styling properties
-     { text: 'This paragraph will have a bigger font', fontSize: 15 },
-
-     // if you set pass an array instead of a string, you'll be able
-     // to style any fragment individually
-     {
-       text: [
-         'This paragraph is defined as an array of elements to make it possible to ',
-         { text: 'restyle part of it and make it bigger ', fontSize: 15 },
-         'than the rest.'
-       ]
-     }
-   ]
- };
-    
-    pdfMake.createPdf(docDefinition).download('optionalName.pdf');
-    */
-    //pdfMake.createPdf(html2pdfmake(budgetData.layout.textInfo)).download('optionalName.pdf');
-    $('#hiddenHTML').html(budgetData.layout.textInfo)
-
-    html2canvas($('#hiddenHTML') , {
-        onrendered: function (canvas) {
-            var data = canvas.toDataURL();
-            var docDefinition = {
-                content: [{
-                    image: data,
-                    width: 400,
-                }]
-            };
-            pdfMake.createPdf(docDefinition).download("Score_Details.pdf");
-        }
-    });
-}
-
-function exportToPdf(budgetData) {
+function exportToPdf(budgetData, statusPDF) {
     console.log(budgetData)
-    var doc = new jsPDF('p', 'pt', 'a4');
-    /*
-        x y w h
-    */
-    let ypos = 0 // altura en pixeles
-    let rightYPos = 0
-    let testdispose = 0
+    return new Promise(resolve=> {
+        let doc = new jsPDF('p', 'pt', 'a4')
+        /*
+            x y w h
+        */
+        let ypos = 0 // altura en pixeles
+        let rightYPos = 0
+        let testdispose = 0
 
-    doc.addImage(agromilloraLogoBase64, 'JPEG', 30, ypos+50, 200, 50)
-    doc.setFontSize(10)
-    //doc.setFontType('bold')
-    //let generalBudgetInfo = 
-    ypos+=30
-    budgetData.layout.generalInfo.forEach(el => {
-        ypos += 25
-        doc.text(300, ypos, `${replaceAll(el.key, '<br>', '\n')}: ${replaceAll(el.value, '<br>', '\n')}`);
-    })
-    ypos += 50
+        doc.addImage(agromilloraLogoBase64, 'JPEG', 30, ypos+50, 200, 50)
+        doc.setFontSize(9)
+        //doc.setFontType('bold')
+        //let generalBudgetInfo = 
+        ypos+=30
+        budgetData.layout.generalInfo.forEach(el => {
+            ypos += 25
+            doc.text(300, ypos, `${replaceAll(el.key, '<br>', '\n')}: ${replaceAll(el.value, '<br>', '\n')}`);
+        })
+        ypos += 50
 
-    doc.setDrawColor(189, 195, 199)
-    doc.setLineWidth(0.3)
-    doc.line(30, ypos, 170, ypos)
-    doc.setTextColor(52, 152, 219)
-    doc.setFontSize(20)
-    doc.text(220, ypos+5, 'COTIZACIÓN')
-    doc.setDrawColor(189, 195, 199)
-    doc.line(400, ypos, 570, ypos)
+        doc.setDrawColor(189, 195, 199)
+        doc.setLineWidth(0.3)
+        doc.line(30, ypos, 170, ypos)
+        doc.setTextColor(52, 152, 219)
+        doc.setFontSize(20)
+        //doc.text(190, ypos+5, `COTIZACIÓN ${budgetData.number}`)
+        doc.text(`COTIZACIÓN ${budgetData.number}`, 280, ypos+5, null, null, 'center');
+        doc.setDrawColor(189, 195, 199)
+        doc.line(400, ypos, 570, ypos)
 
-    rightYPos = ypos
+        rightYPos = ypos
 
-    ypos += 30
-    doc.setTextColor(0, 0, 0)
-    doc.setFontSize(10)
-    doc.text(30, ypos, 'Cliente:')
-    
-    ypos += 25
-    doc.setFontType('normal')
-    doc.text(30, ypos, 'Rut')
-    doc.setFontType('bold')
-    doc.text(100, ypos, `${replaceAll(rutFunc(budgetData.client.rut), '<br>', '\n')}`)
-
-    ypos += 25
-    doc.setFontType('normal')
-    doc.text(30, ypos, 'Nombre')
-    doc.setFontType('bold')
-    doc.text(100, ypos, `${replaceAll(budgetData.client.name, '<br>', '\n')}`)
-
-    ypos += 25
-    doc.setFontType('normal')
-    doc.text(30, ypos, 'Teléfono')
-    doc.setFontType('bold')
-    doc.text(100, ypos, `${replaceAll(budgetData.client.phone, '<br>', '\n')}`)
-
-    ypos += 25
-    doc.setFontType('normal')
-    doc.text(30, ypos, 'Email')
-    doc.setFontType('bold')
-    doc.text(100, ypos, `${replaceAll(budgetData.client.email, '<br>', '\n')}`)
-
-    rightYPos += 30
-    doc.setFontType('normal')
-    doc.setFontSize(10)
-    doc.text(300, rightYPos, 'Fecha de cotización')
-    doc.setFontType('bold')
-    doc.setFontSize(11)
-    doc.text(400, rightYPos, budgetData.creationDate)
-
-    rightYPos += 25
-    doc.setFontType('normal')
-    doc.setFontSize(10)
-    doc.text(300, rightYPos, 'Fecha de vencimiento')
-    doc.setFontType('bold')
-    doc.setFontSize(11)
-    doc.text(400, rightYPos, budgetData.expirationDate)
-
-    rightYPos += 25
-    doc.setFontType('normal')
-    doc.setFontSize(10)
-    doc.text(300, rightYPos, 'Referencia')
-    doc.setFontType('bold')
-    doc.setFontSize(11)
-    doc.text(400, rightYPos, replaceAll(budgetData.reference, '<br>', '\n'))
-
-    let tableColumns = ['Producto', 'Precio c/u', 'Unidades', 'Monto', 'Fecha estimada de entrega'];
-    var tableRows = budgetData.products.reduce((arr,el,i) => {
-        return arr.concat([[
-            `${el.type} ${el.name}`,
-            `$${comma_format(el.price)}`,
-            el.stock,
-            `$${comma_format(el.price*el.stock)}`,
-            el.deliveryDate
-        ]])
-    }, []) 
-    
-    ypos += 30
-    doc.autoTable(tableColumns, tableRows, {
-        margin: {
-            top: ypos
-        }
-    })
-
-    ypos = doc.autoTable.previous.finalY + 50
-    rightYPos = ypos
-
-    doc.setFontSize(10)
-    budgetData.layout.checkingAccount.content.forEach(el => {
-        doc.setFontType('normal')
-        doc.text(30, ypos, `${replaceAll(el.key, '<br>', '\n')}`);
-        doc.setFontType('bold')
-        doc.text(100, ypos, `${replaceAll(el.value, '<br>', '\n')}`);
-        ypos += 25
-    })
-    doc.setFontType('bold')
-    doc.setFontSize(13)
-
-    doc.text(300, rightYPos, 'Condiciones comerciales, de pago y \nFacturación:');
-    
-
-    let finalAdvance = (budgetData.amounts.subtotal * budgetData.amounts.advancePercent) / 100
-    let finalAdvance2 = (budgetData.amounts.subtotal * ((100-budgetData.amounts.advancePercent)) / 100)
-    let amountNew = (parseFloat(budgetData.amounts.subtotal) / ((19 / 100) + 1))
-    let amountTax = parseFloat(budgetData.amounts.subtotal) - parseFloat(amountNew)
-
-    let amountTXT = ''
-    iva = 0
-    if(budgetData.layout.divisa == 'clp') {
-        iva = parseInt(amountTax)
-        amountTXT = 'CLP $'
-    } else if (budgetData.layout.divisa == 'usd') {
-        iva = 0
-        amountTXT = 'USD $'
-    } else if(budgetData.layout.divisa == 'eur') {
-        iva = 0
-        amountTXT = 'EUR €'
-    }
-
-    rightYPos += 40
-    doc.setFontType('normal')
-    doc.setFontSize(10)
-    doc.text(300, rightYPos, `${budgetData.amounts.advancePercent}% de anticipo de reserva:`)
-    doc.setFontType('bold')
-    doc.setFontSize(11)
-    doc.text(450, rightYPos, `${amountTXT} ${comma_format(finalAdvance)}`)
-
-    rightYPos += 25
-    doc.setFontType('normal')
-    doc.setFontSize(10)
-    doc.text(300, rightYPos, `${100-budgetData.amounts.advancePercent}% Saldo, al momento del\ndespacho de las plantas:`)
-    doc.setFontType('bold')
-    doc.setFontSize(11)
-    doc.text(450, rightYPos, `${amountTXT} ${comma_format(finalAdvance2)}`)
-
-    rightYPos += 35
-    doc.setFontType('normal')
-    doc.setFontSize(10)
-    doc.text(300, rightYPos, `IVA, se deberá cancelar\ndocumentado, al día 10\ndel mes siguiente de la fecha\nde despacho:`)
-    doc.setFontType('bold')
-    doc.setFontSize(11)
-    doc.text(450, rightYPos, `${amountTXT} ${comma_format(iva)}`)
-
-    rightYPos += 60
-    doc.setFontType('normal')
-    doc.setFontSize(10)
-    doc.text(300, rightYPos, `Subtotal:`)
-    doc.setFontType('bold')
-    doc.setFontSize(11)
-    doc.text(450, rightYPos, `${amountTXT} ${comma_format(budgetData.amounts.subtotal)}`)
-
-    rightYPos += 30
-    doc.setFontType('bold')
-    doc.setFontSize(12)
-    doc.text(300, rightYPos, `Total a pagar:`)
-    doc.setFontType('bold')
-    doc.setTextColor(42,200,138)
-    doc.text(450, rightYPos, `${amountTXT} ${comma_format(parseFloat(budgetData.amounts.subtotal)+iva)}`)
-    
-    let reformatHTML = budgetData.layout.textInfo
-
-    ypos = 30
-    /*
-    doc.fromHTML(replaceAll(reformatHTML, '•', '*'), 30, ypos, {
-        'width': 520,
-        'elementHandlers': {}
-    })
-    */
-    
-    let margins = {
-        top: ypos,
-        bottom: 40,
-        left: 30,
-        width: 550
-    }
-
-    let margins2 = {
-        top: 10,
-        bottom: 40,
-        left: 30,
-        width: 550
-    }
-
-    doc.addPage()
-    doc.fromHTML(
-        replaceAll(reformatHTML, '•', '*'), 
-		margins.left, // x coord
-		margins.top,
-		{
-			// y coord
-			width: margins.width// max width of content on PDF
-		},function(dispose) {
-            //ypos = dispose.y
-            //console.log(dispose)
-            doc.setTextColor(0, 0, 0)
-            footerFormatting(doc, doc.internal.getNumberOfPages(), budgetData.user);
-            doc.save('Test.pdf');
-		}, 
-        margins2
-    );
-
-    
-    function footerFormatting(doc, totalPages, user)
-    {
-        for(var i = totalPages; i >= 1; i--)
-        {
-            doc.setPage(i);                            
-            //header
-            //header(doc);
-            
-            footer(doc, i, totalPages, user);
-            doc.page++;
-        }
-    };
-
-    function footer(doc, pageNumber, totalPages, user){
-
-        var str = "Página " + pageNumber + " de " + totalPages
-
-        doc.setTextColor(0,0,0)
-        doc.setFontType('normal')
-        doc.setFontSize(10);
-        doc.text(str, margins.left, doc.internal.pageSize.height - 20);
+        ypos += 30
+        doc.setTextColor(0, 0, 0)
+        doc.setFontSize(9)
+        doc.text(30, ypos, 'Cliente:')
         
-        if(pageNumber == totalPages) {
-            console.log(user)
-            doc.setFontSize(16);
-            doc.setTextColor(42,200,138)
-            doc.setFontType('italic')
-            doc.text(`${capitalizeAll(user.name)} ${capitalizeAll(user.lastname)}`, 300, doc.internal.pageSize.height - 140, null, null, 'center');
-           
-            doc.setTextColor(0,0,0)
-            doc.setFontType('normal')
-            doc.setFontSize(14);
+        ypos += 25
+        doc.setFontType('normal')
+        doc.text(30, ypos, 'Rut')
+        doc.setFontType('bold')
+        doc.text(80, ypos, `${replaceAll(rutFunc(budgetData.client.rut), '<br>', '\n')}`)
 
-            doc.text(`AGROMILLORA SUR S.A.`, 300, doc.internal.pageSize.height - 120, null, null, 'center');
-            doc.text(`${user.position}`, 300, doc.internal.pageSize.height - 100, null, null, 'center');
-            doc.text(`${user.email}`, 300, doc.internal.pageSize.height - 80, null, null, 'center');
-            doc.text(`${user.phone}`, 300, doc.internal.pageSize.height - 60, null, null, 'center');
-            
+        ypos += 25
+        doc.setFontType('normal')
+        doc.text(30, ypos, 'Nombre')
+        doc.setFontType('bold')
+        doc.text(80, ypos, `${replaceAll(budgetData.client.name, '<br>', '\n')}`)
+
+        ypos += 25
+        doc.setFontType('normal')
+        doc.text(30, ypos, 'Teléfono')
+        doc.setFontType('bold')
+        doc.text(80, ypos, `${replaceAll(budgetData.client.phone, '<br>', '\n')}`)
+
+        ypos += 25
+        doc.setFontType('normal')
+        doc.text(30, ypos, 'Email')
+        doc.setFontType('bold')
+        doc.text(80, ypos, `${replaceAll(budgetData.client.email, '<br>', '\n')}`)
+
+        rightYPos += 30
+        doc.setFontType('normal')
+        doc.setFontSize(9)
+        doc.text(300, rightYPos, 'Fecha de cotización')
+        doc.setFontType('bold')
+        doc.setFontSize(9)
+        doc.text(400, rightYPos, budgetData.creationDate)
+
+        rightYPos += 25
+        doc.setFontType('normal')
+        doc.setFontSize(9)
+        doc.text(300, rightYPos, 'Fecha de vencimiento')
+        doc.setFontType('bold')
+        doc.setFontSize(9)
+        doc.text(400, rightYPos, budgetData.expirationDate)
+
+        rightYPos += 25
+        doc.setFontType('normal')
+        doc.setFontSize(9)
+        doc.text(300, rightYPos, 'Referencia')
+        doc.setFontType('bold')
+        doc.setFontSize(9)
+        doc.text(400, rightYPos, replaceAll(budgetData.reference, '<br>', '\n'))
+
+        let tableColumns = ['Producto', 'Precio c/u', 'Unidades', 'Monto', 'Fecha estimada de entrega'];
+        var tableRows = budgetData.products.reduce((arr,el,i) => {
+            return arr.concat([[
+                `${el.type} ${el.name}`,
+                `$${comma_format(el.price)}`,
+                el.stock,
+                `$${comma_format(el.price*el.stock)}`,
+                el.deliveryDate
+            ]])
+        }, []) 
+        
+        ypos += 30
+        doc.autoTable(tableColumns, tableRows, {
+            styles: {
+                fontSize: 9
+            },
+            margin: {
+                top: ypos
+            }
+        })
+
+        ypos = doc.autoTable.previous.finalY + 30
+        rightYPos = ypos
+
+        doc.setFontSize(9)
+        doc.setFontType('normal')
+        doc.text(30, ypos, `${replaceAll(budgetData.layout.checkingAccount.title, '<br>', '\n')}`)
+
+        ypos += 20
+
+        doc.setFontSize(9)
+        budgetData.layout.checkingAccount.content.forEach(el => {
+            doc.setFontType('normal')
+            doc.text(30, ypos, `${replaceAll(el.key, '<br>', '\n')}`);
+            doc.setFontType('bold')
+            doc.text(100, ypos, `${replaceAll(el.value, '<br>', '\n')}`);
+            ypos += 25
+        })
+
+        doc.setFontType('bold')
+        doc.setFontSize(9)
+
+        doc.text(300, rightYPos, 'Condiciones comerciales, de pago y \nFacturación:');
+        
+
+        let finalAdvance = (budgetData.amounts.subtotal * budgetData.amounts.advancePercent) / 100
+        let finalAdvance2 = (budgetData.amounts.subtotal * ((100-budgetData.amounts.advancePercent)) / 100)
+        let amountNew = (parseFloat(budgetData.amounts.subtotal) / ((19 / 100) + 1))
+        let amountTax = parseFloat(budgetData.amounts.subtotal) - parseFloat(amountNew)
+
+        let amountTXT = ''
+        iva = 0
+        if(budgetData.layout.divisa == 'clp') {
+            iva = parseInt(amountTax)
+            amountTXT = 'CLP $'
+        } else if (budgetData.layout.divisa == 'usd') {
+            iva = 0
+            amountTXT = 'USD $'
+        } else if(budgetData.layout.divisa == 'eur') {
+            iva = 0
+            amountTXT = 'EUR €'
+        }
+
+        rightYPos += 40
+        doc.setFontType('normal')
+        doc.setFontSize(9)
+        doc.text(300, rightYPos, `${budgetData.amounts.advancePercent}% de anticipo de reserva:`)
+        doc.setFontType('bold')
+        doc.setFontSize(9)
+        doc.text(450, rightYPos, `${amountTXT} ${comma_format(finalAdvance)}`)
+
+        rightYPos += 25
+        doc.setFontType('normal')
+        doc.setFontSize(9)
+        doc.text(300, rightYPos, `${100-budgetData.amounts.advancePercent}% Saldo, al momento del\ndespacho de las plantas:`)
+        doc.setFontType('bold')
+        doc.setFontSize(9)
+        doc.text(450, rightYPos, `${amountTXT} ${comma_format(finalAdvance2)}`)
+
+        rightYPos += 35
+        doc.setFontType('normal')
+        doc.setFontSize(9)
+        doc.text(300, rightYPos, `IVA, se deberá cancelar\ndocumentado, al día 10\ndel mes siguiente de la fecha\nde despacho:`)
+        doc.setFontType('bold')
+        doc.setFontSize(9)
+        doc.text(450, rightYPos, `${amountTXT} ${comma_format(iva)}`)
+
+        rightYPos += 60
+        doc.setFontType('normal')
+        doc.setFontSize(9)
+        doc.text(300, rightYPos, `Subtotal:`)
+        doc.setFontType('bold')
+        doc.setFontSize(9)
+        doc.text(450, rightYPos, `${amountTXT} ${comma_format(budgetData.amounts.subtotal)}`)
+
+        rightYPos += 30
+        doc.setFontType('bold')
+        doc.setFontSize(9)
+        doc.text(300, rightYPos, `Total a pagar:`)
+        doc.setFontType('bold')
+        doc.setTextColor(42,200,138)
+        doc.text(450, rightYPos, `${amountTXT} ${comma_format(parseFloat(budgetData.amounts.subtotal)+iva)}`)
+        
+        let reformatHTML = budgetData.layout.textInfo
+
+        ypos = 30
+        
+        let margins = {
+            top: ypos,
+            bottom: 40,
+            left: 30,
+            width: 550
+        }
+
+        let margins2 = {
+            top: 10,
+            bottom: 40,
+            left: 30,
+            width: 550
+        }
+
+        doc.addPage()
+        doc.fromHTML(
+            replaceAll(reformatHTML, '•', '*'), 
+            margins.left, // x coord
+            margins.top,
+            {
+                // y coord
+                width: margins.width,// max width of content on PDF
+            },function(dispose) {
+                //ypos = dispose.y
+                //console.log(dispose)
+                doc.setTextColor(0, 0, 0)
+                footerFormatting(doc, doc.internal.getNumberOfPages(), budgetData.user)
+                if(statusPDF == 'send') {
+                    let pdf = btoa(doc.output())
+                    sendPdfToServer(pdf, budgetData).then(res=>{
+                        resolve(res)
+                    })
+                } else if(statusPDF == 'view') {
+                    doc.save(`cot-${budgetData.number}.pdf`);
+                    resolve()
+                }
+            }, 
+            margins2
+        );
+
+        
+        function footerFormatting(doc, totalPages, user)
+        {
+            for(var i = totalPages; i >= 1; i--)
+            {
+                doc.setPage(i);                            
+                //header
+                //header(doc);
+                
+                footer(doc, i, totalPages, user);
+                doc.page++;
+            }
+        };
+
+        function footer(doc, pageNumber, totalPages, user){
+
+            var str = "Página " + pageNumber + " de " + totalPages
+
             doc.setTextColor(0,0,0)
             doc.setFontType('normal')
-            doc.setFontSize(10);
+            doc.setFontSize(9);
+            doc.text(str, margins.left, doc.internal.pageSize.getHeight() - 20)
+            if(pageNumber == totalPages) {
+                doc.setFontSize(16);
+                doc.setTextColor(42,200,138)
+                doc.setFontType('italic')
+
+                doc.text(`${capitalizeAll(user.name)} ${capitalizeAll(user.lastname)}`, 300, doc.internal.pageSize.getHeight() - 120, null, null, 'center');
+            
+                doc.setTextColor(0,0,0)
+                doc.setFontType('normal')
+                doc.setFontSize(14);
+
+                doc.text(`AGROMILLORA SUR S.A.`, 300, doc.internal.pageSize.getHeight() - 100, null, null, 'center');
+                doc.text(`${user.position}`, 300, doc.internal.pageSize.getHeight() - 80, null, null, 'center');
+                doc.text(`${user.email}`, 300, doc.internal.pageSize.getHeight() - 60, null, null, 'center');
+                doc.text(`${user.phone}`, 300, doc.internal.pageSize.getHeight() - 40, null, null, 'center');
+                
+                doc.setTextColor(0,0,0)
+                doc.setFontType('normal')
+                doc.setFontSize(9);
+            }
+        }   
+    })
+}
+
+
+function sendPdfToServer(data, budgetData) {
+    return new Promise(resolve=>{
+        ajax({
+            url: 'api/savePdf',
+            type: 'POST',
+            data: {
+                pdf: data,
+                budgetData: JSON.stringify(budgetData)
+            }
+        }).then(res=>{
+            resolve(res)
+        })
+    })
+}
+
+function sendEmailLoading(budgetData, loadingStatus) {
+    return new Promise(resolve=> {
+        if(loadingStatus == 0) {
+            $('#loadingEmail').html(`
+                <div
+                    style="  
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(236, 240, 241,0.8);
+                    position: fixed;
+                    left: 0;
+                    top: 0;
+                    z-index: 5000;">
+                    
+                    <div id="emailSend">
+
+                        <center><h3>Creando cotización...</h3></center>
+                        <center><i class="fa fa-circle-notch fa-spin fa-4x"></i></center>
+                
+                    </div>
+                </div>
+                `)
+        } else if(loadingStatus == 1) {
+            if(budgetData) {
+                $('#loadingEmail').html(`
+                <div
+                    style="  
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(236, 240, 241,0.8);
+                    position: fixed;
+                    left: 0;
+                    top: 0;
+                    z-index: 5000;">
+                    
+                    <div id="emailSend">
+
+                        <center><h3>Enviando cotización...</h3></center>
+                        <div class="row">
+                            <div class="col">
+                                <center><img style="width:150px;" src="/public/img/agromillora.png" alt=""></center>
+                            </div>
+                            <div class="col">
+
+                            </div>
+                            <div class="col">
+                                <center><h4>${budgetData.client.name}</h4></center>
+                            </div>
+                            
+                        </div>
+                    
+                        <br>
+                        <span class="sendEmailAnimation">
+                            <i class="far fa-envelope fa-4x"></i>
+                            <i style="color:rgba(231, 76, 60,1.0);" class="fas fa-file-pdf fa-1x"></i>
+                        </span>
+                
+                    </div>
+                </div>
+                `)
+            } else {
+                $('#loadingEmail').empty()
+            }
+
         }
-    }   
+    })
 }
 
 </script>
