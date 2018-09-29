@@ -2,21 +2,18 @@ import cron from 'node-cron'
 import mysql from 'mysql2/promise'
 
 
-function main() {
-    return new Promise(resolve=>{
-
-    })
-
+async function main() {
     let connection = null
     connection = await mysql.createConnection({
-      host     : 'localhost',
-      user     : 'root',
-      password : '1234',
-      database : 'bddeepblue'
+        host     : 'localhost',
+        user     : 'root',
+        password : '1234',
+        database : 'bddeepblue'
     }).catch(e=>{
-      console.log('ERROR DE ACCESO A BASE DE DATOS')
+        console.log('ERROR DE ACCESO A BASE DE DATOS')
+        return {err:'ERROR DE ACCESO A BASE DE DATOS'}
     })
-  
+
     if(connection) {
       let [rows, fields] = await connection.execute(`
         SELECT
@@ -35,7 +32,8 @@ function main() {
         GROUP BY variedad, T6.idtipoenvase, T7.idmedidaenvase;
       `).catch(e=>{
         // retornar error
-        console.log('ERROR EN LA CONSULTA A LA BASE DE DATOS') 
+        console.log('ERROR EN LA CONSULTA A LA BASE DE DATOS')
+        return {err:'ERROR EN LA CONSULTA A LA BASE DE DATOS'}
       })
   
       if(rows) {
@@ -45,15 +43,15 @@ function main() {
         // retornar productos
       }
       
-    } else {
-      // retornar error
-      console.log('TAAAAAAAAA')
     }
 }
 
-let dailyCron = cron.schedule('* * * * * *', async function(){ // una vez al día a las 0 AM
-    let test = main()
-    console.log(test)
+let dailyCron = cron.schedule('0 0 0 * * *', async function(){ // una vez al día a las 0 AM
+    main().then(res=>{
+        //aqui guardar en base de datos
+        console.log(res)
+    })
+    
 })
 
 export default dailyCron
