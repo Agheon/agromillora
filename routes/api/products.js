@@ -6,6 +6,28 @@ import { comma_format, capitalizeFirst } from '../../tools'
 const Products = [
 { 
     method: 'GET',
+    path: '/api/products/getAllProducts', 
+    options: {
+        handler: (request, h) => {
+            return new Promise(resolve => {
+                db.find({
+                    selector: {
+                        _id: 'products'
+                    }
+                }).then(result => {
+                    console.log(result)
+                    if (result.docs[0]) {
+                        resolve({ok: result.docs[0] })
+                    } else {
+                        resolve({ err: 'NO EXISTEN PRODUCTOS' })
+                    }
+                })
+            })
+        }
+    }
+},
+{ 
+    method: 'GET',
     path: '/api/product/getAll', 
     options: {
         handler: (request, h) => {

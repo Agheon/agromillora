@@ -6,6 +6,7 @@
  </style>
 {{/extend}}
 
+<!--
 <div class="row">
     <div class="col-md-12">
         <ul class="nav nav-pills mb-3 nav-justified" id="pills-tab" role="tablist">
@@ -97,8 +98,29 @@
         </div>
     </div>
 </div>
+-->
 
-<!-- Modal -->
+<div class="col-md-12 col-xs-12 table-responsive">
+    <h1>Ultima actualización: <span id="lastUpdate"></span></h1>
+    <table id="tableProducts" class="display nowrap table table-condensed" cellspacing="0" width="100%">
+        <thead>
+            <tr>
+                <th>Tipo bodega</th>
+                <th>Almacen</th>
+                <th>Variedad</th>
+                <th>Envase</th>
+                <th>Stock actual</th>
+            </tr>
+        </thead>
+    </table>
+    <div id="loadingProducts">
+        <center>
+            <i style="color:#3498db;" class="fa fa-spinner fa-pulse fa-2x fa-fw"></i>
+            <span class="sr-only">Cargando...</span>
+        </center>
+    </div>
+</div>
+
 <div class="modal fade" id="productModal" tabindex="-1" role="dialog" aria-labelledby="modal_title">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -114,7 +136,7 @@
     </div>
 </div>
 
-<!-- Modal xs -->
+
 <div class="modal fade" id="typesModal" tabindex="-1" role="dialog" aria-labelledby="modal_title">
     <div class="modal-dialog modal-xs" role="document">
         <div class="modal-content">
@@ -132,6 +154,53 @@
 
 {{#extend "js"}}
 <script>
+let datatableProducts
+
+$(document).ready(function(){
+    chargeProductsTable()
+})
+
+function chargeProductsTable() {
+    datatableProducts = $('#tableProducts')
+    .DataTable( {
+        ordering: true,
+        iDisplayLength: 100,
+        oLanguage: {
+            sSearch: 'buscar: '
+        },
+        responsive: false,
+        columns: [
+            { data: 'tipobodega' },
+            { data: 'almacen' },
+            { data: 'variedad' },
+            { data: 'envase' },
+            { data: 'stockactual', type: 'num-fmt' }                
+        ],
+        initComplete: function (settings, json) {
+            ajax({
+                url: '/api/products/getAllProducts'
+            }).then(res => {
+                if (res.err) {
+                    toastr.warning(res.err)
+                    $('#loadingProducts').empty()
+                } else if(res.ok) {
+
+                    let formatList = res.ok.list.map(el=>{
+                        el.stockactual = comma_format(el.stockactual)
+                        return el
+                    })
+
+                    $('#lastUpdate').html(moment(res.ok.lastUpdate).format('YYYY/MM/DD HH:mm'))
+                    datatableProducts.rows.add(formatList).draw()
+                    $('#loadingProducts').empty()
+                }      
+            })
+        }
+    })
+}
+</script>
+<script>
+/*
 let datatableProducts
 let datatableDisabledProducts
 let productRowSelected
@@ -940,6 +1009,7 @@ $('.btnSecond').on('click', function() {
         $('.btnSecond').attr('disabled', false)
     }, 1000);
 })
+/*
 
 </script>
 {{/extend}}

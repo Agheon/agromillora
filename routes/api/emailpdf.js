@@ -16,7 +16,7 @@ let transporter = nodemailer.createTransport({
     secure: false, // use TLS
     auth: {
         user: process.env.EMAIL_USER, // .env para commit
-        pass: process.env.SERVER_PASSWORD // .env para commit
+        pass: process.env.EMAIL_PASSWORD // .env para commit
     },
     tls: {
         // do not fail on invalid certs

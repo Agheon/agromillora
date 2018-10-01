@@ -2192,22 +2192,24 @@ function exportToPdf(budgetData, statusPDF) {
 
         rightYPos = ypos
 
-        ypos += 30
+        ypos += 20
         doc.setTextColor(0, 0, 0)
         doc.setFontSize(9)
         doc.text(30, ypos, 'Cliente:')
         
         ypos += 25
         doc.setFontType('normal')
+        doc.text(30, ypos, 'Nombre')
+        doc.setFontType('bold')
+        doc.text(80, ypos, `${replaceAll(budgetData.client.name, '<br>', '\n')}`)
+
+        ypos += 25
+        doc.setFontType('normal')
         doc.text(30, ypos, 'Rut')
         doc.setFontType('bold')
         doc.text(80, ypos, `${replaceAll(rutFunc(budgetData.client.rut), '<br>', '\n')}`)
 
-        ypos += 25
-        doc.setFontType('normal')
-        doc.text(30, ypos, 'Nombre')
-        doc.setFontType('bold')
-        doc.text(80, ypos, `${replaceAll(budgetData.client.name, '<br>', '\n')}`)
+        
 
         ypos += 25
         doc.setFontType('normal')
@@ -2221,7 +2223,7 @@ function exportToPdf(budgetData, statusPDF) {
         doc.setFontType('bold')
         doc.text(80, ypos, `${replaceAll(budgetData.client.email, '<br>', '\n')}`)
 
-        rightYPos += 30
+        rightYPos += 60
         doc.setFontType('normal')
         doc.setFontSize(9)
         doc.text(300, rightYPos, 'Fecha de cotización')
