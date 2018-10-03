@@ -1,0 +1,471 @@
+{{!< layout/default}}
+
+{{#extend "css"}}
+
+{{/extend}}
+
+<div class="row">
+    <div class="col-xs-12 col-sm-6 col-md-6">
+        <div class="accordion" id="accordionAvailability">
+            <div class="card">
+                <div class="card-header" id="headingFilter">
+                    <h5 class="mb-0">
+                        <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseFilter" aria-expanded="true" aria-controls="collapseFilter">
+                            Filtrar Productos
+                        </button>
+                    </h5>
+                </div>
+            
+                <div id="collapseFilter" class="collapse show" aria-labelledby="headingFilter" data-parent="#accordionAvailability">
+                    <div class="card">
+                        <!--<h3 class="card-header">Filtrar productos</h3>-->
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="form-group">
+                                        <label>Especie</label>
+                                        <select id="especieFilter" class="custom-select">
+                                            <option values="placeholder" readOnly>-- TODAS LAS ESPECIES --</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                    
+                            <div class="row">
+                                <div class="col-9">
+                                    <div class="form-group">
+                                        <label>Producto</label>
+                                        <select style="width:100%;" id="variedadesFilter" name="productos[]" multiple="multiple"></select>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="form-group">
+                                        <br>
+                                        <br>
+                                        <div class="custom-control custom-checkbox">
+                                            <input type="checkbox" class="custom-control-input" id="allVariedades" checked>
+                                            <label class="custom-control-label" for="allVariedades">Todos</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                    
+                            <div class="row">
+                                <div class="col-9">
+                                    <div class="form-group">
+                                        <label>Envase</label>
+                                        <select style="width:100%;" id="envaseFilter" name="envases[]" multiple="multiple"></select>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="form-group">
+                                        <br>
+                                        <br>
+                                        <div class="custom-control custom-checkbox">
+                                            <input type="checkbox" class="custom-control-input" id="allEnvases" checked>
+                                            <label class="custom-control-label" for="allEnvases">Todos</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                    
+                            <div class="row">
+                                <div class="col-10">
+                                    <label>Fecha estimada de DESPACHO</label>
+                                    <input id="productDateDelivery" type="text" value="" placeholder="Fecha de entrega" class="form-control border-input">
+                                </div>
+                                <div class="col-2"></div>
+                            </div>
+                            <br>
+                            <div class="row">
+                                <div class="col-2"></div>
+                                <div class="col-8">
+                                    <button class="btn btn-primary btn-block" id="searchBtn">
+                                        FILTRAR
+                                    </button>
+                                </div>
+                                <div class="col-2" id="loadingSearch"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-header" id="headingResults">
+                    <h5 class="mb-0">
+                        <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseResults" aria-expanded="true" aria-controls="collapseResults">
+                            Resultados de busqueda <span id="searchResultsCount"><span class="badge badge-secondary">0</span></span>
+                        </button>
+                    </h5>
+                </div>
+
+                <div id="collapseResults" class="collapse" aria-labelledby="headingFilter" data-parent="#accordionAvailability"></div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xs-12 col-sm-6 col-md-6">
+            <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">QUITAR</th>
+                            <th scope="col">PRODUCTO</th>
+                            <th scope="col">STOCK ACTUAL</th>
+                            <th scope="col">CANTIDAD A COTIZAR</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                       
+                    </tbody>
+                </table>
+    </div>
+         
+</div>
+
+{{#extend "js"}}
+<script>
+let allProducts = []
+
+$(document).ready(function(){
+
+    //$('#budgetProductDateOfDelivery').val(formatCurrentServerTime)
+    $('#productDateDelivery').daterangepicker({
+        "locale": {
+            "format": "DD/MM/YYYY",
+            "daysOfWeek": [
+            "Dom",
+            "Lun",
+            "Mar",
+            "Mie",
+            "Jue",
+            "Vie",
+            "Sab"
+            ],
+            "monthNames": [
+            "Enero",
+            "Febrero",
+            "Marzo",
+            "Abril",
+            "Mayo",
+            "Junio",
+            "Julio",
+            "Agosto",
+            "Septiembre",
+            "Octubre",
+            "Noviembre",
+            "Diciembre"
+            ],
+            "firstDay": 1
+        },
+        drops: "up",
+        singleDatePicker: true,
+        showDropdowns: true,
+        //minDate: formatCurrentServerTime
+    })
+
+    getAllProducts().then(res=>{
+        let especiesNoRepeat = []
+        let especies = res.ok.reduce((txt, el, i)=>{
+            let actualEspecie
+            if(especiesNoRepeat.indexOf(el.especie) === -1 && el.especie != null) {
+                especiesNoRepeat.push(el.especie)
+                actualEspecie = `
+                <option value="${el.especie}">
+                    ${el.especie}
+                </option>
+                ` 
+            }
+
+            return txt += actualEspecie
+        }, '')
+
+        let variedadNoRepeat = []
+        let variedades = res.ok.reduce((arr, el, i)=>{
+            let actualVariedad
+            if(variedadNoRepeat.indexOf(el.variedad) === -1 && el.variedad != null) {
+                variedadNoRepeat.push(el.variedad)
+                actualVariedad = {
+                    id: el.variedad,
+                    text: el.variedad
+                }
+            }
+
+            return arr.concat(actualVariedad)
+        }, [])
+        
+        let variedadesClean = variedades.filter(el=>{
+            return typeof el !== 'undefined'
+        })
+
+        let envaseNoRepeat = []
+        let envases = res.ok.reduce((arr, el, i)=>{
+            let actualEnvase
+            if(envaseNoRepeat.indexOf(el.soloEnvase) === -1 && el.soloEnvase != null) {
+                envaseNoRepeat.push(el.soloEnvase)
+                actualEnvase = {
+                    id: el.soloEnvase,
+                    text: el.soloEnvase
+                }
+            }
+
+            return arr.concat(actualEnvase)
+        }, [])
+        
+        let envasesClean = envases.filter(el=>{
+            return typeof el !== 'undefined'
+        })
+
+        $('#especieFilter').append(especies)
+        
+        console.log(variedadesClean)
+        $('#variedadesFilter').select2({
+            data: variedadesClean
+        })
+        
+        console.log(envasesClean)
+        $('#envaseFilter').select2({
+            data: envasesClean
+        })
+
+        selectAllEnvases()
+        selectAllVariedades()
+    })
+    
+})
+
+function getAllProducts() {
+    return new Promise(resolve=> {
+        ajax({
+            url:'/api/products/getAllProducts',
+        }).then(res=>{
+            if(res.ok) {
+                allProducts = res.ok.list
+                resolve({ok:res.ok.list})
+            } else if(res.err) {
+                toastr.warning('No se encuentran productos')
+                resolve()
+            }
+        })
+    })
+}
+
+function selectAllEnvases() {
+    if($('#allEnvases').is(':checked') ){
+        $('#envaseFilter').attr('disabled', true)
+        $('#envaseFilter > option').prop('selected','selected');
+        $('#envaseFilter').trigger('change');
+    } else {
+        $('#envaseFilter').attr('disabled', false)
+        $('#envaseFilter > option').removeAttr('selected');
+        $('#envaseFilter').trigger('change');
+    }
+}
+
+function selectAllVariedades() {
+    if($('#allVariedades').is(':checked') ){
+        $('#variedadesFilter').attr('disabled', true)
+        $('#variedadesFilter > option').prop('selected','selected');
+        $('#variedadesFilter').trigger('change');
+    } else {
+        $('#variedadesFilter').attr('disabled', false)
+        $('#variedadesFilter > option').removeAttr('selected');
+        $('#variedadesFilter').trigger('change');
+    }
+}
+
+function searchProducts() {
+    return new Promise(resolve=>{
+        let filterEspecieVal = $('#especieFilter').val()
+        let filterProductVal = $('#variedadesFilter').val()
+        let filterEnvaseVal = $('#envaseFilter').val()
+
+        filterStep1(filterEspecieVal).then(res1=>{
+            if(filterProductVal && filterEnvaseVal) {
+                filterStep2(res1, filterProductVal).then(res2=>{
+                    filterStep3(res2, filterEnvaseVal).then(res3=>{
+                        if(res3.length == 0) {
+                            resolve({err: 'No se han encontrado productos en base a los filtros seleccionados'})
+                        } else {
+                            let sumGroup = []
+                            res3.reduce(function (res, value) {
+                                if (!res[value.variedad]) {
+                                    res[value.variedad] = {
+                                        stock: 0,
+                                        variedad: value.variedad
+                                    }
+                                    sumGroup.push(res[value.variedad])
+                                }
+                                res[value.variedad].stock += parseInt(value.stockactual)
+                                return res
+                            }, {})
+                            
+                            console.log(res3)
+                            resolve({ok: {group:sumGroup, original:res3}})
+                        }
+                    })
+                })
+            } else if(!filterProductVal && !filterEnvaseVal) {
+                resolve({err: 'Debe seleccionar al menos <b>1 Producto y 1 Envase</b>'})
+            } else if(!filterProductVal && filterEnvaseVal) {
+                resolve({err: 'Debe seleccionar al menos <b>1 Producto</b>'})
+            }else if(filterProductVal && !filterEnvaseVal) {
+                resolve({err: 'Debe seleccionar al menos <b>1 Envase</b>'})
+            }
+        })
+    })
+}
+
+function filterStep1(filterEspecieVal) { // especies
+    return new Promise(resolve=>{
+        if(filterEspecieVal !== '-- TODAS LAS ESPECIES --') {
+            let filterStep1 = allProducts.filter(el=>{
+                return el.especie == filterEspecieVal
+            })
+
+            resolve(filterStep1)
+        } else {
+            resolve(allProducts)
+        }
+    })
+}
+
+function filterStep2(products, filterProductVal) { // productos
+    return new Promise(resolve=>{
+        let reduceStep2 = filterProductVal.reduce((arr, elReduce, i) => {
+            let filterStep2 = products.filter(el=>{
+                return el.variedad == elReduce
+            })
+
+            return arr.concat(filterStep2)
+        }, [])
+
+        
+        resolve(reduceStep2)
+    })
+}
+
+function filterStep3(products, filterEnvaseVal) { // envases
+    return new Promise(resolve=>{
+        let reduceStep3 = filterEnvaseVal.reduce((arr, elReduce, i) => {
+            let filterStep3 = products.filter(el=>{
+                return el.soloEnvase == elReduce
+            })
+
+            return arr.concat(filterStep3)
+        }, [])
+
+        
+        resolve(reduceStep3)
+    })
+}
+
+$('#allEnvases').on('change', function(){
+    selectAllEnvases()
+})
+
+$('#allVariedades').on('change', function(){
+    selectAllVariedades()
+})
+
+$('#searchBtn').on('click', function(){
+    $(this).attr('disabled', true)
+    $('#loadingSearch').html(`
+        <center>
+            <i style="color:#3498db;" class="fa fa-spinner fa-pulse fa-3x fa-fw"></i>
+            <span class="sr-only">Cargando...</span>
+        </center>
+    `)
+
+    searchProducts().then(res=>{
+        if(res.ok) {
+            $('#searchBtn').attr('disabled', false)
+            $('#loadingSearch').empty()
+            console.log(res.ok)
+            chargeResults(res.ok.group)
+            //$('#collapseFilter').collapse('hide')
+            $('#collapseResults').collapse('show')
+        } else if(res.err) {
+            $('#searchBtn').attr('disabled', false)
+            $('#loadingSearch').empty()
+            toastr.warning(res.err)
+            cleanResults()
+        }
+    })
+})
+
+function chargeResults(products) {
+    $('#searchResultsCount').html(`<span class="badge badge-primary">${products.length}</span>`)
+
+    let productsHTML = products.reduce((txt,el,i)=>{
+        return txt += `
+            <tr>
+                <td>
+                    ${el.variedad}
+                </td>
+                <td>
+                    ${el.stock}
+                </td>
+                <td>
+                    <button type="button" class="btn btn-primary btn-sm btnSendToInvoice" id="toinvoice-${el.variedad.replace(/\s/g,'')}"><i class="fas fa-arrow-circle-right"></i></button>
+                </td>
+            </tr>
+        `
+    }, '')
+
+    let especieSelected = ''
+
+    if($(especieFilter).val() == '-- TODAS LAS ESPECIES --') {
+        especieSelected = 'TODAS LAS ESPECIES'
+    } else {
+        especieSelected = $(especieFilter).val()
+    }
+
+    let envasesLength = $('#envaseFilter').val().length
+    let envasesSelected = $('#envaseFilter').val().reduce((txt, el, i)=>{
+        let finalCommaOrPoint = ''
+        if(i+1 === envasesLength) {
+            finalCommaOrPoint = ` ${el}.`
+        } else {
+            finalCommaOrPoint = ` ${el},`
+        }
+        return txt += finalCommaOrPoint
+    }, '')
+
+    $('#collapseResults').html(`
+        <div class="alert alert-dismissible alert-primary">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            Los siguientes <b>${products.length}</b> productos corresponden a los filtros de especie <b>${especieSelected}</b> y envase <b>${envasesSelected}</b>
+        </div>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th scope="col">PRODUCTO</th>
+                    <th scope="col">STOCK ACTUAL</th>
+                    <th scope="col">COTIZAR</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${productsHTML}
+            </tbody>
+        </table>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div id="containerBar"></div>
+            </div>
+        </div>
+    `)
+
+    $('.btnSendToInvoice').on('click', function(){
+        let productId = $(this).attr('id')
+        console.log(productId)
+    })
+}
+
+function cleanResults() {
+    $('#searchResultsCount').html('<span class="badge badge-secondary">0</span>')
+    $('#collapseResults').empty()
+}
+
+</script>
+{{/extend}}
