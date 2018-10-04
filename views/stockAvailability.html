@@ -80,8 +80,8 @@
                             <div class="row">
                                 <div class="col-2"></div>
                                 <div class="col-8">
-                                    <button class="btn btn-primary btn-block" id="searchBtn">
-                                        FILTRAR
+                                    <button class="btn btn-primary btn-block" id="searchBtn" disabled>
+                                        BUSCAR PRODUCTOS <i class="fas fa-search"></i>
                                     </button>
                                 </div>
                                 <div class="col-2" id="loadingSearch"></div>
@@ -105,7 +105,9 @@
     </div>
 
     <div class="col-xs-12 col-sm-6 col-md-6">
-            <table class="table table-hover">
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-hover">
                     <thead>
                         <tr>
                             <th scope="col">QUITAR</th>
@@ -114,10 +116,18 @@
                             <th scope="col">CANTIDAD A COTIZAR</th>
                         </tr>
                     </thead>
-                    <tbody>
-                       
-                    </tbody>
+                    <tbody id="toInvoiceBody"></tbody>
                 </table>
+                <br>
+                <div id="emptyMessageOrSaveCart">
+                    <div class="alert alert-dismissible alert-primary">
+                        <h3>Sin productos a cotizar</h3>
+                        <p>Agregue productos para añadir a una cotización</p>
+                    </div>  
+                </div>
+                
+            </div>
+        </div>
     </div>
          
 </div>
@@ -125,6 +135,7 @@
 {{#extend "js"}}
 <script>
 let allProducts = []
+let fromInvoiceArr = []
 
 $(document).ready(function(){
 
@@ -226,7 +237,8 @@ $(document).ready(function(){
         $('#envaseFilter').select2({
             data: envasesClean
         })
-
+        
+        $('#searchBtn').attr('disabled', false)
         selectAllEnvases()
         selectAllVariedades()
     })
@@ -393,10 +405,32 @@ $('#searchBtn').on('click', function(){
     })
 })
 
+function removeSpecials(data) {
+    data = data.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, '');
+    data = data.replace(/\s/g,'')
+    return data
+}
+
 function chargeResults(products) {
     $('#searchResultsCount').html(`<span class="badge badge-primary">${products.length}</span>`)
+    /*
+    toInvoiceArr = products.map(el=>{
+        el.id = el.variedad.replace(/\s/g,'')
+        return el
+    })
+    console.log(toInvoiceArr)
+    */
 
     let productsHTML = products.reduce((txt,el,i)=>{
+        let statusProductInvoice = {class:'', arrow:''} // danger+left o primary+right
+        if(fromInvoiceArr.indexOf(el.variedad) > -1) {
+            statusProductInvoice.class = 'danger'
+            statusProductInvoice.arrow = 'left'
+        } else {
+            statusProductInvoice.class = 'primary'
+            statusProductInvoice.arrow = 'right'
+        }
+
         return txt += `
             <tr>
                 <td>
@@ -406,7 +440,7 @@ function chargeResults(products) {
                     ${el.stock}
                 </td>
                 <td>
-                    <button type="button" class="btn btn-primary btn-sm btnSendToInvoice" id="toinvoice-${el.variedad.replace(/\s/g,'')}"><i class="fas fa-arrow-circle-right"></i></button>
+                    <button type="button" class="btn btn-${statusProductInvoice.class} btn-sm btnSendToInvoice" id="toinvoice-${removeSpecials(el.variedad)}"><i class="fas fa-arrow-circle-${statusProductInvoice.arrow}"></i></button>
                 </td>
             </tr>
         `
@@ -459,7 +493,86 @@ function chargeResults(products) {
     $('.btnSendToInvoice').on('click', function(){
         let productId = $(this).attr('id')
         console.log(productId)
+        let sendProductSelected = products.filter(el => {
+            return `toinvoice-${removeSpecials(el.variedad)}` == productId
+        })[0]
+
+        if($(`#${productId}`).hasClass('btn-primary')) {
+            if(fromInvoiceArr.length < 10) {
+                $(`#${productId}`).removeClass('btn-primary')
+                $(`#${productId}`).addClass('btn-danger')
+                $(`#${productId}`).html('<i class="fas fa-arrow-circle-left"></i>')
+                addToInvoice(sendProductSelected)
+            } else {
+                toastr.warning('10 productos máximo')
+            }
+            
+
+        } else if($(`#${productId}`).hasClass('btn-danger')) {
+            $(`#${productId}`).removeClass('btn-danger')
+            $(`#${productId}`).addClass('btn-primary')
+            $(`#${productId}`).html('<i class="fas fa-arrow-circle-right"></i>')
+            
+            removeFromInvoice(sendProductSelected)
+        }
+
     })
+}
+
+function addToInvoice(product) {
+    fromInvoiceArr.push(product.variedad)
+    if(fromInvoiceArr.length > 0) {
+        $('#emptyMessageOrSaveCart').html(`
+            <button type="button" class="btn btn-primary btn-block">GUARDAR CARRITO CON ${fromInvoiceArr.length} PRODUCTOS <i class="fas fa-shopping-cart"></i></button>
+        `)
+    }
+
+    console.log(fromInvoiceArr)
+    $('#toInvoiceBody').append(`
+        <tr id="frominvoicerow-${removeSpecials(product.variedad)}">
+            <td>
+                <button type="button" class="btn btn-danger btn-sm btnRemoveFromInvoice" id="frominvoice-${removeSpecials(product.variedad)}"><i class="fas fa-arrow-circle-left"></i></button>
+            </td>
+            <td>
+                ${product.variedad}
+            </td>
+            <td>
+                ${product.stock}
+            </td>
+            <td>
+                <div class="form-group">
+                    <input class="form-control justNumbers" type="text" placeholder="Cantidad a cotizar">
+                </div>
+            </td>
+        </tr>
+    `)
+
+    $(`#frominvoice-${removeSpecials(product.variedad)}`).on('click', function() {
+        removeFromInvoice(product)
+        if($(`#toinvoice-${removeSpecials(product.variedad)}`).hasClass('btn-danger')) {
+            $(`#toinvoice-${removeSpecials(product.variedad)}`).removeClass('btn-danger')
+            $(`#toinvoice-${removeSpecials(product.variedad)}`).addClass('btn-primary')
+            $(`#toinvoice-${removeSpecials(product.variedad)}`).html('<i class="fas fa-arrow-circle-right"></i>')
+        }
+    })
+}
+
+function removeFromInvoice(product) {
+    $(`#frominvoicerow-${removeSpecials(product.variedad)}`).remove()
+    fromInvoiceArr = fromInvoiceArr.filter(e => e !== product.variedad)
+    if(fromInvoiceArr.length == 0) {
+        $('#emptyMessageOrSaveCart').html(`
+            <div class="alert alert-dismissible alert-primary">
+                <h3>Sin productos a cotizar</h3>
+                <p>Agregue productos para añadir a una cotización</p>
+            </div>
+        `)
+    } else {
+        $('#emptyMessageOrSaveCart').html(`
+            <button type="button" class="btn btn-primary btn-block">GUARDAR CARRITO CON ${fromInvoiceArr.length} PRODUCTOS <i class="fas fa-shopping-cart"></i></button>
+        `)
+    }
+    console.log(fromInvoiceArr)
 }
 
 function cleanResults() {
