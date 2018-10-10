@@ -208,6 +208,10 @@ $(document).ready(function(){
             return typeof el !== 'undefined'
         })
 
+        variedadesClean = variedadesClean.sort(function(a, b) {
+            return a.text.toLowerCase().localeCompare(b.text.toLowerCase());
+        })
+
         let envaseNoRepeat = []
         let envases = res.ok.reduce((arr, el, i)=>{
             let actualEnvase
@@ -224,6 +228,10 @@ $(document).ready(function(){
         
         let envasesClean = envases.filter(el=>{
             return typeof el !== 'undefined'
+        })
+
+        envasesClean = envasesClean.sort(function(a, b) {
+            return a.text.toLowerCase().localeCompare(b.text.toLowerCase());
         })
 
         $('#especieFilter').append(especies)
@@ -307,7 +315,9 @@ function searchProducts() {
                                     }
                                     sumGroup.push(res[value.variedad])
                                 }
+                                
                                 res[value.variedad].stock += parseInt(value.stockactual)
+                                
                                 return res
                             }, {})
                             

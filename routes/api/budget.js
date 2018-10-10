@@ -5,6 +5,63 @@ import { db } from '../../config/db'
 const Budget = [
 { 
     method: 'GET',
+    path: '/iacceptthequote', 
+    options: {
+        auth: false,
+        handler: (request, h) => {
+            return new Promise(resolve => {
+                let params = request.query
+
+                db.find({
+                    selector: {
+                        _id: {
+                            $gt: null
+                        },
+                        type: 'budget',
+                        acceptToken: params.token
+                    },
+                    sort: [{
+                        _id: 'desc'
+                    }]
+                }).then(result => {
+                    if (result.docs[0]) {
+                        
+                        
+                        if (result.docs[0].status == 'sended') {
+                            result.docs[0].status = 'approved'
+                            result.docs[0].approvedDate = moment.tz('America/Santiago').format('YYYY-MM-DDTHH:mm:ss.SSSSS')
+
+                            db.insert(result.docs[0]).then(budgetRes=>{
+                                console.log(budgetRes)
+                                if(budgetRes.ok) {
+                                    resolve(h.view('budgetlink', { ok: 'cotización aceptada' }, { layout: false }))
+                                } else {
+                                    resolve(h.view('budgetlink', { err: 'error al intentar aprobar cotización, contacte con un administrador.' }, { layout: false })) 
+                                }
+                            })
+                        } else if(result.docs[0].status == 'approved') {
+                            resolve(h.view('budgetlink', { err: 'Esta cotización ya fue aprobada anteriormente' }, { layout: false }))
+                        } else if (result.docs[0].status == 'reserved') {
+                            resolve(h.view('budgetlink', { err: 'Esta cotización ya fue reservada anteriormente' }, { layout: false }))
+                        } else if (result.docs[0].status == 'created') {
+                            resolve(h.view('budgetlink', { err: 'Esta cotización fue creada pero no enviada' }, { layout: false }))
+                        } else if (result.docs[0].status == 'draft') {
+                            resolve(h.view('budgetlink', { err: 'Esta cotización aún no ha sido creada' }, { layout: false }))
+                        } else if(result.docs[0].status == 'expired') {
+                            resolve(h.view('budgetlink', { err: 'Esta cotización ya expiró' }, { layout: false }))
+                        }
+
+                    } else {
+                        resolve(h.view('budgetlink', { err: 'No existe la cotización' }, { layout: false }))
+                    }
+                })
+                
+            })
+        }
+    }
+},
+{ 
+    method: 'GET',
     path: '/api/budgets', 
     options: {
         handler: (request, h) => {

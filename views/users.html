@@ -1,0 +1,378 @@
+{{!< layout/default}}
+
+{{#extend "css"}}
+<style>
+#tableUsers tbody tr {
+    cursor: pointer;
+}
+</style>
+{{/extend}}
+
+<div class="row">
+    <div class="col-md-12">
+        <ul class="nav nav-pills mb-3 nav-justified" id="pills-tab" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="pills-users-tab" data-toggle="pill" href="#pills-users" role="tab" aria-controls="pills-enabled" aria-selected="true">Usuarios habilitados</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="pills-disabledUsers-tab" data-toggle="pill" href="#pills-disabledUsers" role="tab" aria-controls="pills-disabled" aria-selected="false">Usuarios deshabilitados</a>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="tab-content" id="pills">
+            <div class="tab-pane fade show active" id="pills-users" role="tabpanel" aria-labelledby="pills-users-tab">
+                <div class="row">
+                    <div class="col-md-2 col-xs-12">
+                        <br>
+                        <button class="btn btn-dark btn-block" id="optionCreateUser">
+                            <i style="color:#3498db;" class="fas fa-user-plus"></i> Nuevo usuario
+                        </button>
+                        <hr>
+                        <button class="btn btn-dark btn-block" id="optionModUser" disabled>
+                            <i style="color:#f1c40f;" class="fas fa-user-edit"></i> Modificar usuario
+                        </button>
+                        <button class="btn btn-dark btn-block" id="optionDisableUser" disabled>
+                            <i style="color:#e74c3c;" class="fas fa-user-times"></i> Deshabilitar usuario
+                        </button>
+                    </div>
+
+                    <div class="col-md-10 col-xs-12 table-responsive">
+                        <table id="tableUsers" class="display nowrap table table-condensed" cellspacing="0" width="100%">
+                            <thead>
+                                <tr>
+                                    <th>Rut</th>
+                                    <th>Nombre</th>
+                                    <th>Apellido</th>
+                                    <th>Email</th>
+                                    <th>Teléfono</th>
+                                    <th>Rol</th>
+                                    <th>Cargo</th>
+                                </tr>
+                            </thead>
+                        </table>
+                        <div id="loadingUsers">
+                            <center>
+                                <i style="color:#3498db;" class="fa fa-spinner fa-pulse fa-2x fa-fw"></i>
+                                <span class="sr-only">Cargando...</span>
+                            </center>
+                        </div>
+                    </div>
+                   
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="pills-disabledUsers" role="tabpanel" aria-labelledby="pills-disabledUsers-tab">
+                <div class="row">
+                   deshabilitados
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="usersModal" tabindex="-1" role="dialog" aria-labelledby="modal_title">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modal_title"></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modal_body"></div>
+            <div class="modal-footer" id="modal_footer"></div>
+        </div>
+    </div>
+</div>
+  
+
+{{#extend "js"}}
+<script>
+let datatableUsers
+let datatableDisabledUsers
+let userRowSelected
+let userRowSelectedData
+
+$(document).ready(function(){
+    chargeUsersTable()
+})
+
+function chargeUsersTable() {
+    datatableUsers = $('#tableUsers')
+    .DataTable( {
+        dom: 'Bfrtip',
+        buttons: [
+            'copy', 'csv', 'excel', 'pdf', 'print'
+        ],
+        ordering: true,
+        iDisplayLength: 50,
+        oLanguage: {
+            sSearch: 'buscar: '
+        },
+        responsive: false,
+        columns: [
+            { data: 'rut' },
+            { data: 'name' },
+            { data: 'lastname' },
+            { data: 'email' },
+            { data: 'phone' },
+            { data: 'role' },
+            { data: 'position' }       
+        ],
+        initComplete: function (settings, json) {
+            getUsersEnabled()
+        }
+    })
+
+
+    $('#tableUsers tbody').on('click', 'tr', function () {
+        if ($(this).hasClass('selected')) {
+            $(this).removeClass('selected')
+            $('#optionModUser').prop('disabled', true)
+            $('#optionDisableUser').prop('disabled', true)
+        } else {
+            datatableUsers.$('tr.selected').removeClass('selected');
+            $(this).addClass('selected');
+            $('#optionModUser').prop('disabled', false)
+            $('#optionDisableUser').prop('disabled', false)
+            userRowSelectedData = datatableUsers.row($(this)).data()
+            userRowSelected = datatableUsers.row($(this))
+        }
+    })
+}
+
+function getUsersEnabled() {
+    ajax({
+        url: 'api/usersEnabled'
+    }).then(res => {
+        if (res.err) {
+            toastr.warning(res.err)
+            $('#loadingUsers').empty()
+        } else if(res.ok) {
+            let formatRes = res.ok.map(el=>{
+                el.rut = `<b>${rutFunc(el._id)}</b>`    
+                return el
+            })
+
+            datatableUsers.rows.add(formatRes).draw()
+            $('#loadingUsers').empty()
+        }      
+    })
+}
+
+$('#optionCreateUser').on('click', function() { // CREAR CLIENTE
+
+    $('#usersModal').modal('show');
+    $('#modal_title').html(`Nuevo usuario`)
+    $('#modal_body').html(`   
+        <div class="row">
+            <div class="col-md-4" style="margin-top:10px;">
+                Rut del usuario
+                <input id="newUserRut" type="text" placeholder="Rut del usuario" class="form-control border-input">
+            </div>
+            
+            <div class="col-md-4" style="margin-top:10px;">
+                Nombre del usuario
+                <input id="newUserName" type="text" placeholder="Nombre del usuario" class="form-control border-input">
+            </div>
+
+            <div class="col-md-4" style="margin-top:10px;">
+                Apellido del usuario
+                <input id="newUserLastname" type="text" placeholder="Apellido del usuario" class="form-control border-input">
+            </div>
+
+            <div class="col-md-4" style="margin-top:10px;">
+                Contraseña del usuario
+                <input id="newUserPassword" type="password" placeholder="Contraseña del usuario" class="form-control border-input">
+            </div>
+            
+            <div class="col-md-4" style="margin-top:10px;">
+                Rol del usuario    
+                <select id="newUserRole" class="custom-select">
+                    <option value="commercial">Comercial </option>
+                    <option value="production">Producción </option>
+                    <option value="admin">Administrador </option>
+                </select>
+            </div>
+
+            <div class="col-md-4" style="margin-top:10px;">
+                Cargo
+                <input id="newUserCharge" type="text" placeholder="Cargo del usuario" class="form-control border-input">
+            </div>
+
+            <div class="col-md-4" style="margin-top:10px;">
+                Teléfono
+                <input id="newUserPhone" type="text" placeholder="Ej: +56 (9) 123123123" class="form-control border-input">
+            </div>
+
+            <div class="col-md-4" style="margin-top:10px;">
+                Email
+                <input id="newUserEmail" type="text" placeholder="Email del usuario" class="form-control border-input">
+            </div>
+
+            <div class="col-md-12" id="newUserErrorMessage"></div>
+        </div>   
+    `)
+
+    $('#modal_footer').html(`
+        <button class="btn btn-dark" data-dismiss="modal">
+            <i style="color:#e74c3c;" class="fas fa-times"></i> Cancelar
+        </button>
+
+        <button class="btn btn-dark" id="saveUser">
+            <i style="color:#3498db;" class="fas fa-check"></i> Guardar
+        </button>
+    `)
+
+    $('#newUserRut').on('keyup', function(){
+        $('#newUserRut').val(rutFunc($('#newUserRut').val()))
+    })
+
+    setTimeout(() => {
+        $('#newUserRut').focus()    
+    }, 500)
+    
+    $('#saveUser').on('click', function(){
+        let userData = {
+            rut: $('#newUserRut').val(),
+            name: $('#newUserName').val(),
+            lastname: $('#newUserLastname').val(),
+            password: $('#newUserPassword').val(),
+            role: $('#newUserRole').val(),
+            charge: $('#newUserCharge').val(),
+            phone: $('#newUserPhone').val(),
+            email: $('#newUserEmail').val()
+        }
+        
+        validateUserData(userData).then(res=>{
+            if(res.ok) {
+                ajax({
+                    url: 'api/user',
+                    type: 'POST',
+                    data: {
+                        rut:userData.rut,
+                        name:userData.name,
+                        lastname:userData.lastname,
+                        password:userData.password,
+                        role:userData.role,
+                        charge:userData.charge,
+                        phone:userData.phone,
+                        email:userData.email
+                    }
+                }).then(res=>{
+                    if(res.err) {
+                        toastr.warning(res.err)
+                    } else if(res.ok) {
+                        toastr.success('Usuario creado correctamente')
+                        
+                        res.ok.rut = `<b>${rutFunc(res.ok._id)}</b>`
+
+                        let newUserAdded = datatableUsers
+                        .row.add(res.ok)
+                        .draw()
+                        .node();
+                        
+                        $(newUserAdded).css( 'color', '#1abc9c' )
+                        setTimeout(() => {
+                            $(newUserAdded).css( 'color', '#484848' )
+                        }, 5000);
+
+                        $('#userModal').modal('hide')
+                    }
+                })
+            }
+            
+        })
+        
+    })
+    
+})
+
+function validateUserData(userData) {
+    console.log(userData)
+    let validationCounter = 0
+    let errorMessage = ''
+
+    return new Promise(resolve=>{
+        // 7 puntos
+
+        if(isRut(userData.rut)) { // 1
+            validationCounter++
+            $('#newUserRut').css('border', '1px solid #3498db')
+        } else {
+            errorMessage += `<br>* Debe ingresar un <b>rut válido</b>`
+            $('#newUserRut').css('border', '1px solid #e74c3c')
+        }
+
+        if(userData.name.length > 1) { // 2
+            validationCounter++
+            $('#newUserName').css('border', '1px solid #3498db')
+        } else {
+            errorMessage += `<br>* Debe ingresar un <b>nombre de usuario</b>`
+            $('#newUserName').css('border', '1px solid #e74c3c')
+        }
+
+        if(userData.lastname.length > 1) { // 3
+            validationCounter++
+            $('#newUserLastname').css('border', '1px solid #3498db')
+        } else {
+            errorMessage += `<br>* Debe ingresar un <b>apellido de usuario</b>`
+            $('#newUserLastname').css('border', '1px solid #e74c3c')
+        }
+
+        if(userData.password.length > 1) { // 4
+            validationCounter++
+            $('#newUserPassword').css('border', '1px solid #3498db')
+        } else {
+            errorMessage += `<br>* Debe ingresar una <b>contraseña de usuario válida</b>`
+            $('#newUserPassword').css('border', '1px solid #e74c3c')
+        }
+
+        if(userData.charge.length > 1) { // 5
+            validationCounter++
+            $('#newUserCharge').css('border', '1px solid #3498db')
+        } else {
+            errorMessage += `<br>* Debe ingresar un <b>cargo de usuario</b>`
+            $('#newUserCharge').css('border', '1px solid #e74c3c')
+        }
+
+        if(userData.phone.length > 1) { // 6
+            validationCounter++
+            $('#newUserPhone').css('border', '1px solid #3498db')
+        } else {
+            errorMessage += `<br>* Debe ingresar un <b>teléfono de usuario</b>`
+            $('#newUserPhone').css('border', '1px solid #e74c3c')
+        }
+
+        if(isEmail(userData.email)) { // 7
+            validationCounter++
+            $('#newUserEmail').css('border', '1px solid #3498db')
+        } else {
+            errorMessage += `<br>* Debe ingresar un <b>Email válido</b>`
+            $('#newUserEmail').css('border', '1px solid #e74c3c')
+        }
+
+        if(validationCounter == 7) {
+            $('#newUserErrorMessage').empty()
+            resolve({ok: userData})
+        } else {
+            $('#newUserErrorMessage').html(`
+            <div class="alert alert-dismissible alert-warning">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4 class="alert-heading">Debe solucionar los siguientes errores</h4>
+                <p class="mb-0">${errorMessage}</p>
+            </div>
+            `)
+            
+            resolve({err: userData})
+        }
+    })
+}
+
+</script>
+{{/extend}}

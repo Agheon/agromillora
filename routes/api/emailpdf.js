@@ -2,6 +2,7 @@ import Joi from 'joi'
 import nodemailer from 'nodemailer'
 import { db } from '../../config/db'
 import dotEnv from 'dotenv'
+import randtoken from 'rand-token'
 dotEnv.load()
 
 let config = {
@@ -28,8 +29,7 @@ let transporter = nodemailer.createTransport({
 let mailOptions = {
     from: config.from, 
     to: config.to, // emails de destino
-    subject: config.subject, 
-    html: `En atención a lo solicitado, adjunto la correspondiente cotización y potenciales fechas de entrega.` 
+    subject: config.subject
 }
 
 const pdfExport = [
@@ -48,11 +48,22 @@ const pdfExport = [
                     content: pdf,
                     encoding: 'base64'
                 }]
-                
+
+                budgetData.acceptToken = randtoken.generate(32);
+                mailOptions.html = `
+                    En atención a lo solicitado, adjunto la correspondiente cotización y potenciales fechas de entrega.
+                    <br>
+                    <p>Para aceptar la cotización hacer clic en el siguiente link: ${process.env.APP_DOMAIN}/iacceptthequote?token=${budgetData.acceptToken}</p>
+                    <b>Recuerde que la cotización pasa a ser una reserva cuando se transfiere el anticipo estipulado en el documento adjunto.</b>
+                `
+
                 transporter.sendMail(mailOptions, function (err, info) {           
                     if (!err) {
                         console.log(info)
                         budgetData.status = 'sended'
+                        
+                        
+
                         db.insert(budgetData).then(updateRes=>{
                             if(updateRes.ok) {
                                 budgetData.emailInfo = info

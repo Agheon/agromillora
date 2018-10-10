@@ -227,9 +227,11 @@ $(document).ready(function() {
         },
         rowCallback: function(row, data, index){
             if(data.status == 'BORRADOR') {
-                $(row).find('td:eq(4)').css('color', '#2980b9')
+                $(row).find('td:eq(4)').css('color', '#7f8c8d')
             } else if(data.status == 'ENVIADO') {
                 $(row).find('td:eq(4)').css('color', '#1abc9c')
+            } else if(data.status == 'APROBADO') {
+                $(row).find('td:eq(4)').css('color', '#3498db')
             } else if(data.status == 'ENVIANDO...') {
                 $(row).find('td:eq(4)').css('color', '#34495e')
             } else if(data.status == 'CREADO') {
@@ -265,7 +267,7 @@ const getBudgets = () => {
         } else if(res.ok) {
             console.log(res.ok)
             let formatRes = res.ok.map(el=>{
-                if(el.status == 'sended' || el.status == 'created') {
+                if(el.status == 'sended' || el.status == 'created' || el.status == 'approved' || el.status == 'reserved' || el.status == 'expired') {
                     el.number = `COT${el.number}`
                 } else if(el.status == 'draft') {
                     el.number = `BOR${el.number}`
@@ -293,6 +295,12 @@ const formatStatusText = (status) => {
         return 'ENVIADO'
     }  else if(status == 'created') {
         return 'CREADO'
+    } else if(status == 'approved') {
+        return 'APROBADO'
+    } else if(status == 'reserved') {
+        return 'RESERVADO'
+    } else if(status == 'expired') {
+        return 'EXPIRADO'
     }
 }
 
@@ -328,7 +336,7 @@ const chargeModal = () => {
             console.log(res.ok)
             if(res.ok.status == 'draft') {
                 draftBudget(res.ok)
-            } else if(res.ok.status == 'sended' || res.ok.status == 'created') {
+            } else if(res.ok.status == 'sended' || res.ok.status == 'created' || res.ok.status == 'approved' || res.ok.status == 'reserved' || res.ok.status == 'expired') {
                 sendedBudget(res.ok)
             }
         }else {
