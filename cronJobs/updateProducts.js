@@ -17,6 +17,7 @@ async function main() {
         if(connection) {
           let [rows, fields] = await connection.execute(`
             SELECT
+            T9.descripcion AS area,
             T8.descripcion AS especie,
             T2.descripcion AS tipobodega,
             T3.almacen As almacen,
@@ -32,6 +33,7 @@ async function main() {
             LEFT JOIN tbltipoenvase T6 ON T5.idtipoenvase=T6.idtipoenvase
             LEFT JOIN tblmedidaenvase T7 ON T5.idmedidaenvase=T7.idmedidaenvase
             LEFT JOIN tblespecie T8 ON T4.idespecie=T8.idespecie
+            LEFT JOIN tblarea T9 ON T5.idarea=T9.idarea
             GROUP BY
             T2.descripcion,
             T3.almacen,

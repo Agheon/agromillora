@@ -1,0 +1,149 @@
+{{!< layout/default}}
+
+{{#extend "css"}}
+<style>
+.actualWeek {
+    background: rgba(52, 152, 219, 0.1) 
+}
+
+.colorAnimation {
+    animation: colorAnim1 3s;
+}
+
+.colorBackgroundAnimation {
+    animation: colorAnim2 1s;
+}
+
+@keyframes colorAnim1 {
+    0% {
+        color: #3498db;
+    }
+    100% {
+        color: #444444;
+    }
+}
+
+@keyframes colorAnim2 {
+    0% {
+        background: rgba(52, 152, 219,0.2);
+    }
+    100% {
+        background: #FFFFFF;
+    }
+}
+</style>
+{{/extend}}
+
+<div class="row">     
+    <div class="col-md-1"></div>  
+    <div class="col-md-10">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th scope="col"><center>MES</center></th>
+                    <th scope="col"><center>FECHA ESTIMACIÓN DE ENTREGA (SEMANA)</center></th>
+                    <th scope="col"><center>MÁXIMO SALIDA ML (SEMANA)</center></th>
+                    <th scope="col"><center>CANTIDAD DE SEMANAS DE SALIDA DE FRASCOS</center></th>
+                </tr>
+            </thead>
+            <tbody id="estimationsTableBody"></tbody>
+        </table>
+    </div>
+    <div class="col-md-1"></div> 
+</div>
+
+{{#extend "js"}}
+<script>
+$(document).on('ready', function() {
+    for (let i = 1; i <= 52; i++) {
+        let actualWeek = ''
+        if(i == moment().week()) {
+            actualWeek = 'class="actualWeek"'
+        }
+        $('#estimationsTableBody').append(`
+        <tr id="row-${i}" ${actualWeek}>
+            <td>
+                <br>
+                <center>${nameMonth(moment().week(i).format('M'))}</center>
+            </td>
+            <td>
+                <br>
+                <center><h3 id="weekYear-${i}">${i}</h3></center>
+            </td>
+            <td>
+                <input id="maxWeekYear-${i}" class="form-control justNumbers numberControl" type="text" placeholder="SEMANA">       
+            </td>
+            <td id="qtyWeeks-${i}"></td>
+        </tr>
+        `)
+    }
+
+    $('.justNumbers').keyup(function (){
+        this.value = (this.value + '').replace(/[^0-9]/g, '')
+
+        if(this.value < 1) {
+            this.value = 1
+        } else if(this.value > 52) {
+            this.value = 52
+        }
+    })
+
+    $('.numberControl').keyup(function() {
+        let yearWeek = $(this).attr('id')
+        let usingWeek = $(this).val()  
+        yearWeek = yearWeek.split('-')[1];
+       
+        if(usingWeek < moment().week()) {
+            let to52 = 52 - usingWeek
+            let total = to52 + moment().week()
+            moment()
+            $(`#qtyWeeks-${yearWeek}`).html(`<br><center><h3 class="colorAnimation">${total}</h3></center>`)
+        } else {
+            $(`#qtyWeeks-${yearWeek}`).html(`<br><center><h3 class="colorAnimation">${usingWeek-moment().week()}</h3></center>`)
+        }
+        $(`#row-${yearWeek}`).addClass('colorBackgroundAnimation')
+        setTimeout(function(){
+            $(`#row-${yearWeek}`).removeClass('colorBackgroundAnimation')
+        },1000)
+
+    })
+})
+/*
+function qtyweeks(yearWeek){
+    let maxNum = 52
+    let counterWeek = 0
+
+    if(yearWeek) {
+
+    }
+}*/
+
+function nameMonth(numb) {
+    if(numb == 1) {
+        return 'ENERO'
+    } else if(numb == 2) {
+        return 'FEBRERO'
+    } else if(numb == 3) {
+        return 'MARZO'
+    } else if(numb == 4) {
+        return 'ABRIL'
+    } else if(numb == 5) {
+        return 'MAYO'
+    } else if(numb == 6) {
+        return 'JUNIO'
+    } else if(numb == 7) {
+        return 'JULIO'
+    } else if(numb == 8) {
+        return 'AGOSTO'
+    } else if(numb == 9) {
+        return 'SEPTIEMBRE'
+    } else if(numb == 10) {
+        return 'OCTUBRE'
+    } else if(numb == 11) {
+        return 'NOVIEMBRE'
+    } else if(numb == 12) {
+        return 'DICIEMBRE'
+    }
+}
+</script>
+{{/extend}}
