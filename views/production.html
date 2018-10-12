@@ -1,11 +1,22 @@
 {{!< layout/default}}
 
 {{#extend "css"}}
-
 {{/extend}}
 
 <div class="row">
     <div class="col-xs-12 col-sm-12 col-md-12">
+        <!--
+            <div class="col-md-12">
+                    <ul class="nav nav-pills mb-3 nav-justified" id="pills-tab" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="pills-clients-tab" data-toggle="pill" href="#pills-clients" role="tab" aria-controls="pills-home" aria-selected="true">Clientes</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="pills-disabledClients-tab" data-toggle="pill" href="#pills-disabledClients" role="tab" aria-controls="pills-profile" aria-selected="false">Clientes deshabilitados</a>
+                        </li>
+                    </ul>
+                </div>
+            -->
         <div class="accordion" id="accordionAvailability">
             <div class="card">
                 <div class="card-header" id="headingFilter">
@@ -49,6 +60,18 @@
                                                     <label class="custom-control-label" for="allVariedades">Todos</label>
                                                 </div>
                                             </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col">
+                                                <br>
+                                                <h2>Agrupar por producto</h2>
+                                                <div class="custom-control custom-checkbox">
+                                                    <input type="checkbox" class="custom-control-input" id="productGroup">
+                                                    <label class="custom-control-label" for="productGroup">Solo se mostrará el nombre del producto y el stock actual (depende de los filtros)</label>
+                                                </div>
+                                                <br>
                                         </div>
                                     </div>
                             
@@ -139,7 +162,7 @@
                 <div class="card-header" id="headingResults">
                     <h5 class="mb-0">
                         <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseResults" aria-expanded="true" aria-controls="collapseResults">
-                            Resultados de busqueda <span id="searchResultsCount"><span class="badge badge-secondary">0</span></span>
+                            Resultados de busqueda <!--<span id="searchResultsCount"><span class="badge badge-secondary">0</span></span>-->
                         </button>
                     </h5>
                 </div>
@@ -564,6 +587,7 @@ $('#allAlmacenes').on('change', function(){
 
 $('#searchBtn').on('click', function(){
     $(this).attr('disabled', true)
+    
     $('#loadingSearch').html(`
         <center>
             <i style="color:#3498db;" class="fa fa-spinner fa-pulse fa-3x fa-fw"></i>
@@ -574,10 +598,9 @@ $('#searchBtn').on('click', function(){
     searchProducts().then(res=>{
         if(res.ok) {
             $('#searchBtn').attr('disabled', false)
-            $('#loadingSearch').empty()
-            console.log(res.ok)
+            
             chargeResults(res.ok)
-            //$('#collapseFilter').collapse('hide')
+            $('#loadingSearch').empty()
             $('#collapseResults').collapse('show')
         } else if(res.err) {
             $('#searchBtn').attr('disabled', false)
@@ -595,30 +618,8 @@ function removeSpecials(data) {
 }
 
 function chargeResults(products) { /* TODO: ordenar arreglo con lodash */
-    $('#searchResultsCount').html(`<span class="badge badge-primary">${products.original.length}</span>`)
-
-    let productsHTML = products.original.reduce((txt,el,i)=>{
-        return txt += `
-            <tr>
-                <td>
-                    ${el.variedad}
-                </td>
-                <td>
-                    ${el.envase}
-                </td>
-                <td>
-                    ${el.tipobodega}
-                </td>
-                <td>
-                    ${el.almacen}
-                </td>
-                <td>
-                    ${el.stockactual}
-                </td>
-            </tr>
-        `
-    }, '')
-
+    //$('#searchResultsCount').html(`<span class="badge badge-primary">${products.original.length}</span>`)
+    
     let areaSelected = ''
 
     if($(areaFilter).val() == '-- TODAS LAS AREAS --') {
@@ -645,123 +646,124 @@ function chargeResults(products) { /* TODO: ordenar arreglo con lodash */
         return txt += finalCommaOrPoint
     }, '')
 
-    $('#collapseResults').html(`
-        <div class="alert alert-dismissible alert-primary">
-            <button type="button" class="close" data-dismiss="alert">&times;</button>
-            Los siguientes <b>${products.original.length}</b> productos corresponden a los filtros de area <b>${areaSelected}</b>, envase <b>${envasesSelected}</b> tipo de bodega <b>${tipobodegaSelected}</b> y almacen <b>${almacenesSelected}</b>
-        </div>
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th scope="col">PRODUCTO</th>
-                    <th scope="col">ENVASE/TAMAÑO</th>
-                    <th scope="col">TIPO BODEGA</th>
-                    <th scope="col">ALMACEN</th>
-                    <th scope="col">CANTIDAD</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${productsHTML}
-            </tbody>
-        </table>
-
-        <div class="row">
-            <div class="col-md-6">
-                <div id="containerBar"></div>
-            </div>
-        </div>
-    `)
-
-    $('.btnSendToInvoice').on('click', function(){
-        let productId = $(this).attr('id')
-        console.log(productId)
-        let sendProductSelected = products.filter(el => {
-            return `toinvoice-${removeSpecials(el.variedad)}` == productId
-        })[0]
-
-        if($(`#${productId}`).hasClass('btn-primary')) {
-            if(fromInvoiceArr.length < 10) {
-                $(`#${productId}`).removeClass('btn-primary')
-                $(`#${productId}`).addClass('btn-danger')
-                $(`#${productId}`).html('<i class="fas fa-arrow-circle-left"></i>')
-                addToInvoice(sendProductSelected)
-            } else {
-                toastr.warning('10 productos máximo')
+    if($('#productGroup').is(':checked')) {
+        let sumGroup = []
+        products.original.reduce(function (res, value) {
+            if (!res[value.variedad]) {
+                res[value.variedad] = {
+                    stock: 0,
+                    variedad: value.variedad
+                }
+                sumGroup.push(res[value.variedad])
             }
             
-
-        } else if($(`#${productId}`).hasClass('btn-danger')) {
-            $(`#${productId}`).removeClass('btn-danger')
-            $(`#${productId}`).addClass('btn-primary')
-            $(`#${productId}`).html('<i class="fas fa-arrow-circle-right"></i>')
+            res[value.variedad].stock += parseInt(value.stockactual)
             
-            removeFromInvoice(sendProductSelected)
-        }
+            return res
+        }, {})
 
-    })
-}
-
-/*
-function addToInvoice(product) {
-    fromInvoiceArr.push(product.variedad)
-    if(fromInvoiceArr.length > 0) {
-        $('#emptyMessageOrSaveCart').html(`
-            <button type="button" class="btn btn-primary btn-block">GUARDAR CARRITO CON ${fromInvoiceArr.length} PRODUCTOS <i class="fas fa-shopping-cart"></i></button>
-        `)
-    }
-
-    console.log(fromInvoiceArr)
-    $('#toInvoiceBody').append(`
-        <tr id="frominvoicerow-${removeSpecials(product.variedad)}">
-            <td>
-                <button type="button" class="btn btn-danger btn-sm btnRemoveFromInvoice" id="frominvoice-${removeSpecials(product.variedad)}"><i class="fas fa-arrow-circle-left"></i></button>
-            </td>
-            <td>
-                ${product.variedad}
-            </td>
-            <td>
-                ${product.stock}
-            </td>
-            <td>
-                <div class="form-group">
-                    <input class="form-control justNumbers" type="text" placeholder="Cantidad a cotizar">
-                </div>
-            </td>
-        </tr>
-    `)
-
-    $(`#frominvoice-${removeSpecials(product.variedad)}`).on('click', function() {
-        removeFromInvoice(product)
-        if($(`#toinvoice-${removeSpecials(product.variedad)}`).hasClass('btn-danger')) {
-            $(`#toinvoice-${removeSpecials(product.variedad)}`).removeClass('btn-danger')
-            $(`#toinvoice-${removeSpecials(product.variedad)}`).addClass('btn-primary')
-            $(`#toinvoice-${removeSpecials(product.variedad)}`).html('<i class="fas fa-arrow-circle-right"></i>')
-        }
-    })
-}
-
-function removeFromInvoice(product) {
-    $(`#frominvoicerow-${removeSpecials(product.variedad)}`).remove()
-    fromInvoiceArr = fromInvoiceArr.filter(e => e !== product.variedad)
-    if(fromInvoiceArr.length == 0) {
-        $('#emptyMessageOrSaveCart').html(`
+        $('#collapseResults').html(`
+        <div class="col-md-12 col-xs-12 table-responsive">
             <div class="alert alert-dismissible alert-primary">
-                <h3>Sin productos a cotizar</h3>
-                <p>Agregue productos para añadir a una cotización</p>
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                Los siguientes <b>${sumGroup.length}</b> productos corresponden a los filtros de area <b>${areaSelected}</b>, envase <b>${envasesSelected}</b> tipo de bodega <b>${tipobodegaSelected}</b> y almacen <b>${almacenesSelected}</b>
             </div>
-        `)
-    } else {
-        $('#emptyMessageOrSaveCart').html(`
-            <button type="button" class="btn btn-primary btn-block">GUARDAR CARRITO CON ${fromInvoiceArr.length} PRODUCTOS <i class="fas fa-shopping-cart"></i></button>
-        `)
-    }
-    console.log(fromInvoiceArr)
-}
 
-*/
+            <table id="datatableProducts" class="display nowrap table table-condensed" cellspacing="0" width="100%">
+                <thead>
+                    <tr>
+                        <th>PRODUCTO</th>
+                        <th>CANTIDAD</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+        `)
+
+        setTimeout(() => {
+            let datatableProducts = $('#datatableProducts')
+            .DataTable( {
+                dom: 'Bfrtip',
+                buttons: [
+                    'copy', 'csv', 'excel', 'pdf', 'print'
+                ],
+                ordering: true,
+                iDisplayLength: 100,
+                order: [[ 0, 'asc' ]],
+                oLanguage: {
+                    sSearch: 'buscar: '
+                },
+                responsive: false,
+                columns: [
+                    { data: 'variedad' },
+                    { data: 'stock', type: 'num-fmt' }                
+                ],
+                initComplete: function (settings, json) {
+                    setTimeout(() => {
+                        datatableProducts.rows.add(sumGroup).draw()
+                    }, 1000);
+        
+                }
+            })
+        }, 1000);
+    } else {
+        $('#collapseResults').html(`
+        <div class="col-md-12 col-xs-12 table-responsive">
+            <div class="alert alert-dismissible alert-primary">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                Los siguientes <b>${products.original.length}</b> productos corresponden a los filtros de area <b>${areaSelected}</b>, envase <b>${envasesSelected}</b> tipo de bodega <b>${tipobodegaSelected}</b> y almacen <b>${almacenesSelected}</b>
+            </div>
+
+            <table id="datatableProducts" class="display nowrap table table-condensed" cellspacing="0" width="100%">
+                <thead>
+                    <tr>
+                        <th>AREA</th>
+                        <th>PRODUCTO</th>
+                        <th>ENVASE/TAMAÑO</th>
+                        <th>TIPO BODEGA</th>
+                        <th>ALMACEN</th>
+                        <th>CANTIDAD</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+        `)
+
+        setTimeout(() => {
+            let datatableProducts = $('#datatableProducts')
+            .DataTable( {
+                dom: 'Bfrtip',
+                buttons: [
+                    'copy', 'csv', 'excel', 'pdf', 'print'
+                ],
+                ordering: true,
+                iDisplayLength: 100,
+                order: [[ 1, 'asc' ]],
+                oLanguage: {
+                    sSearch: 'buscar: '
+                },
+                responsive: false,
+                columns: [
+                    { data: 'area' },
+                    { data: 'variedad' },
+                    { data: 'envase' },
+                    { data: 'tipobodega' },
+                    { data: 'almacen' },
+                    { data: 'stockactual', type: 'num-fmt' }                
+                ],
+                initComplete: function (settings, json) {
+                    setTimeout(() => {
+                        datatableProducts.rows.add(products.original).draw()
+                    }, 1000);
+        
+                }
+            })
+        }, 1000);
+    }
+}
 
 function cleanResults() {
-    $('#searchResultsCount').html('<span class="badge badge-secondary">0</span>')
+   // $('#searchResultsCount').html('<span class="badge badge-secondary">0</span>')
     $('#collapseResults').empty()
 }
 

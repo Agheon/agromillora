@@ -43,7 +43,7 @@
                     <th scope="col"><center>MES</center></th>
                     <th scope="col"><center>FECHA ESTIMACIÓN DE ENTREGA (SEMANA)</center></th>
                     <th scope="col"><center>MÁXIMO SALIDA ML (SEMANA)</center></th>
-                    <th scope="col"><center>CANTIDAD DE SEMANAS DE SALIDA DE FRASCOS</center></th>
+                    <!--<th scope="col"><center>CANTIDAD DE SEMANAS DE SALIDA DE FRASCOS</center></th>-->
                 </tr>
             </thead>
             <tbody id="estimationsTableBody"></tbody>
@@ -73,7 +73,7 @@ $(document).on('ready', function() {
             <td>
                 <input id="maxWeekYear-${i}" class="form-control justNumbers numberControl" type="text" placeholder="SEMANA">       
             </td>
-            <td id="qtyWeeks-${i}"></td>
+            <!--<td id="qtyWeeks-${i}"></td>-->
         </tr>
         `)
     }
@@ -88,6 +88,7 @@ $(document).on('ready', function() {
         }
     })
 
+    /*
     $('.numberControl').keyup(function() {
         let yearWeek = $(this).attr('id')
         let usingWeek = $(this).val()  
@@ -105,18 +106,10 @@ $(document).on('ready', function() {
         setTimeout(function(){
             $(`#row-${yearWeek}`).removeClass('colorBackgroundAnimation')
         },1000)
-
+       
     })
+     */
 })
-/*
-function qtyweeks(yearWeek){
-    let maxNum = 52
-    let counterWeek = 0
-
-    if(yearWeek) {
-
-    }
-}*/
 
 function nameMonth(numb) {
     if(numb == 1) {

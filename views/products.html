@@ -164,8 +164,13 @@ $(document).ready(function(){
 function chargeProductsTable() {
     datatableProducts = $('#tableProducts')
     .DataTable( {
+        dom: 'Bfrtip',
+        buttons: [
+            'copy', 'csv', 'excel', 'pdf', 'print'
+        ],
         ordering: true,
         iDisplayLength: 100,
+        order: [[ 3, 'asc' ]],
         oLanguage: {
             sSearch: 'buscar: '
         },
@@ -192,8 +197,10 @@ function chargeProductsTable() {
                         return el
                     })
 
+                    let sortedObjs = _.sortBy(formatList, 'variedad' )
+
                     $('#lastUpdate').html(moment(res.ok.lastUpdate).format('YYYY/MM/DD HH:mm'))
-                    datatableProducts.rows.add(formatList).draw()
+                    datatableProducts.rows.add(sortedObjs).draw()
                     $('#loadingProducts').empty()
                 }      
             })

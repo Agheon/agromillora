@@ -21,6 +21,7 @@ async function main() {
             T8.descripcion AS especie,
             T2.descripcion AS tipobodega,
             T3.almacen As almacen,
+            T4.idvariedad AS idvariedad,
             T4.descripcion AS variedad,
             T6.descripcion AS soloEnvase,
             CONCAT(T6.descripcion,' ', T7.descripcion) AS envase,

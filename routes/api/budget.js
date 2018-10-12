@@ -144,6 +144,7 @@ const Budget = [
             reqData.iva = request.payload.iva
             reqData.subtotal = request.payload.subtotal
             
+            parseExpirationDate(reqData.expirationDate)
             return new Promise(resolve => {
                 
                 getBudgetCounter().then(resCounter=>{
@@ -156,7 +157,7 @@ const Budget = [
                             reference: reqData.reference,
                             number: resCounter.ok.count,
                             creationDate: reqData.creationDate,
-                            expirationDate: reqData.expirationDate,
+                            expirationDate: parseExpirationDate(reqData.expirationDate),
                             products: reqData.products,
                             amounts: {
                                 advancePercent: reqData.advancePercent,
@@ -308,7 +309,7 @@ const Budget = [
                                 reference: reqData.reference,
                                 number: resCounter.ok.draftCount,
                                 creationDate: reqData.creationDate,
-                                expirationDate: reqData.expirationDate,
+                                expirationDate: parseExpirationDate(reqData.expirationDate),
                                 products: reqData.products,
                                 amounts: {
                                     advancePercent: reqData.advancePercent,
@@ -401,6 +402,12 @@ function setBudgetCounter(budgetCounter) {
             }
         })
     })
+}
+
+function parseExpirationDate(date) {
+    let format1 = date.split('/')
+    let formatDate = `${format1[2]}-${format1[1]}-${format1[0]}`
+    return formatDate
 }
 
 export default Budget

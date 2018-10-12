@@ -350,6 +350,16 @@ $('#newBudget').on('click', function(){
 })
 
 const sendedBudget = (sendedBudgetData) => {
+    let sendedStatus = ''
+    console.log('VER STATUS', sendedBudgetData)
+    if(sendedBudgetData.status == 'approved') {
+        sendedStatus = '<span class="badge badge-secondary" style="background:#3498db;"> Aprobada </span>'
+    } else if(sendedBudgetData.status == 'sended') {
+        sendedStatus = '<span class="badge badge-secondary" style="background:#2ecc71;"> Enviada </span>'
+    } else if(sendedBudgetData.status == 'created') {
+        sendedStatus = '<span class="badge badge-secondary" style="background:#f39c12;"> Creada </span>'
+    }
+
     $('.modal-content').css({
         'border-color': '#1abc9c'
     })
@@ -362,7 +372,7 @@ const sendedBudget = (sendedBudgetData) => {
     `)
 
     $('#modal_title').html(`
-        Cotización <b>N° ${sendedBudgetData.number} </b><span class="badge badge-secondary" style="background:#2ecc71;"> Enviada </span>
+        Cotización <b>N° ${sendedBudgetData.number} </b> ${sendedStatus}
     `)
 
     $('#modal_body').html(`
@@ -394,7 +404,7 @@ const sendedBudget = (sendedBudgetData) => {
                         </tr>
                         <tr>
                             <td style="background:#ecf0f1">Fecha de vencimiento</td>
-                            <td><h4>${sendedBudgetData.expirationDate}</h4></td>
+                            <td><h4>${moment(sendedBudgetData.expirationDate).format('DD/MM/YYYY')}</h4></td>
                         </tr>
                         <tr>
                             <td style="background:#ecf0f1">Referencia</td>
@@ -1079,7 +1089,7 @@ const draftBudget = (draftBudgetData) => {
             */
 
             $('#serverDate').text(draftBudgetData.creationDate)
-            $('#expirationDate').val(draftBudgetData.expirationDate)
+            $('#expirationDate').val(moment(draftBudgetData.expirationDate).format('DD/MM/YYYY'))
             $('#expirationDate').daterangepicker({
                 "locale": {
                     "format": "DD/MM/YYYY",
@@ -1847,15 +1857,16 @@ function saveDraftBudget(budgetObj) {
 
             toastr.success(resText)
             $('#budgetModal').modal('hide')
-
+            
             let formatRes = res.ok 
+            formatRes.number = `BOR${formatRes.number}`
             formatRes.dateOrder = dateOrder(res.ok._id) // DD/MM/YYYY to YYYYMMDD
             formatRes.reference = res.ok.reference.toUpperCase()
             formatRes.clientName = res.ok.client.name.toUpperCase()
             formatRes.cost = comma_format(parseFloat(res.ok.amounts.iva)+parseFloat(res.ok.amounts.subtotal))
             formatRes.divisa = res.ok.layout.divisa.toUpperCase()
             formatRes.status = formatStatusText(res.ok.status)
-            
+
             let newBudgetAdded = datatable
             .row.add(formatRes)
             .draw()

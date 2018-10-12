@@ -430,7 +430,8 @@ function chargeResults(products) {
     })
     console.log(toInvoiceArr)
     */
-
+    
+    //var sortedObjs = _.sortBy( products, 'variedad' )
     let productsHTML = products.reduce((txt,el,i)=>{
         let statusProductInvoice = {class:'', arrow:''} // danger+left o primary+right
         if(fromInvoiceArr.indexOf(el.variedad) > -1) {
