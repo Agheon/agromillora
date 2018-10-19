@@ -346,7 +346,12 @@ const chargeModal = () => {
 }
 
 $('#newBudget').on('click', function(){
-    newBudget()
+    if(cartData != null) {
+        newBudget()
+    } else {
+        toastr.warning('Para crear una cotización, primero debes <b><a href="/stockAvailability">añadir productos disponibles</a></b>')
+    }
+    
 })
 
 const sendedBudget = (sendedBudgetData) => {

@@ -107,11 +107,12 @@
     <div class="col-xs-12 col-sm-6 col-md-6">
         <div class="card">
             <div class="card-body">
-                <table class="table table-hover">
+                <table id="toInvoiceTable" class="table table-hover">
                     <thead>
                         <tr>
                             <th scope="col">QUITAR</th>
                             <th scope="col">PRODUCTO</th>
+                            <th scope="col">FECHA ESTIMADA DE DESPACHO</th>
                             <th scope="col">STOCK ACTUAL</th>
                             <th scope="col">CANTIDAD A COTIZAR</th>
                         </tr>
@@ -136,6 +137,7 @@
 <script>
 let allProducts = []
 let fromInvoiceArr = []
+let productDateDeliverySelected = ''
 
 $(document).ready(function(){
 
@@ -400,6 +402,7 @@ $('#searchBtn').on('click', function(){
 
     searchProducts().then(res=>{
         if(res.ok) {
+            productDateDeliverySelected = $('#productDateDelivery').val()
             $('#searchBtn').attr('disabled', false)
             $('#loadingSearch').empty()
             console.log(res.ok)
@@ -418,6 +421,7 @@ $('#searchBtn').on('click', function(){
 function removeSpecials(data) {
     data = data.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, '');
     data = data.replace(/\s/g,'')
+    data = data.replace(/-/g,'')
     return data
 }
 
@@ -534,7 +538,7 @@ function addToInvoice(product) {
     fromInvoiceArr.push(product.variedad)
     if(fromInvoiceArr.length > 0) {
         $('#emptyMessageOrSaveCart').html(`
-            <button type="button" class="btn btn-primary btn-block">GUARDAR CARRITO CON ${fromInvoiceArr.length} PRODUCTOS <i class="fas fa-shopping-cart"></i></button>
+            <button id="saveOnCartButton" type="button" class="btn btn-primary btn-block">GUARDAR CARRITO CON ${fromInvoiceArr.length} PRODUCTOS <i class="fas fa-shopping-cart"></i></button>
         `)
     }
 
@@ -548,15 +552,20 @@ function addToInvoice(product) {
                 ${product.variedad}
             </td>
             <td>
+                ${productDateDeliverySelected}
+            </td>
+            <td>
                 ${product.stock}
             </td>
             <td>
                 <div class="form-group">
-                    <input class="form-control justNumbers" type="text" placeholder="Cantidad a cotizar">
+                    <input id="toInvoiceQty-${removeSpecials(product.variedad)}" class="form-control justNumbers" type="text" placeholder="Cantidad a cotizar">
                 </div>
             </td>
         </tr>
     `)
+
+    
 
     $(`#frominvoice-${removeSpecials(product.variedad)}`).on('click', function() {
         removeFromInvoice(product)
@@ -580,11 +589,59 @@ function removeFromInvoice(product) {
         `)
     } else {
         $('#emptyMessageOrSaveCart').html(`
-            <button type="button" class="btn btn-primary btn-block">GUARDAR CARRITO CON ${fromInvoiceArr.length} PRODUCTOS <i class="fas fa-shopping-cart"></i></button>
+            <button id="saveOnCartButton" type="button" class="btn btn-primary btn-block">GUARDAR CARRITO CON ${fromInvoiceArr.length} PRODUCTOS <i class="fas fa-shopping-cart"></i></button>
         `)
     }
     console.log(fromInvoiceArr)
 }
+
+$('#emptyMessageOrSaveCart').on('click', '#saveOnCartButton', function() {
+    
+    let arrToInvoice = [...$('#toInvoiceTable').children('tbody')[0].children]
+    let sendCounter = 0
+    //console.log(arrToInvoice)
+    let reducedToInvoice = arrToInvoice.reduce((arr, el , i)=>{
+        let toInvoiceCart = arr.concat({
+            productName: el.cells[1].innerText,
+            deliveryDate: el.cells[2].innerText,
+            qty: $(`#toInvoiceQty-${el.id.split('-')[1]}`).val()
+        })
+
+        if($(`#toInvoiceQty-${el.id.split('-')[1]}`).val() == '') {  
+            $(`#toInvoiceQty-${el.id.split('-')[1]}`).css({
+                border: '1px solid #e74c3c'
+            })
+        } else{
+            sendCounter++
+            $(`#toInvoiceQty-${el.id.split('-')[1]}`).css({
+                border: '1px solid #3498db'
+            })
+        }
+
+        return toInvoiceCart
+    },  [])
+
+    if(sendCounter == reducedToInvoice.length) {
+        console.log(reducedToInvoice)
+        ajax({
+            url: 'api/saveCart',
+            type: 'POST',
+            data: {
+                toInvoiceArrStr: JSON.stringify(reducedToInvoice)
+            }    
+        }).then(res=>{
+            console.log('RES', res)
+            if(res.ok) {
+                toastr.success('Productos a cotizar guardados correctamente')
+                createCartBadge(res.ok)
+            } else if(res.err) {
+                toastr.error(res.err)
+            }
+        })
+    } else {
+        toastr.warning('Debe asignar una cantidad a cada producto')
+    }
+})
 
 function cleanResults() {
     $('#searchResultsCount').html('<span class="badge badge-secondary">0</span>')

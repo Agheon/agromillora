@@ -1,9 +1,10 @@
 import cron from 'node-cron'
 import mysql from 'mysql2/promise'
+import mssql from 'mssql'
 import moment from 'moment-timezone'
 import { db } from '../config/db'
 
-async function main() {
+async function updateProducts() {
     let connection = null
 
     try {
@@ -57,10 +58,35 @@ async function main() {
     
 }
 
+async function updateClients() {
+    try {
+        mssql.connect('mssql://sa:local1234@192.168.0.115/NAVISION').then(pool=>{
+            return pool.request()
+            .query(`
+                SELECT
+                No_,
+                Name,
+                Address,
+                County,
+                City,
+                [Phone No_],
+                [E-Mail]
+                FROM [Agromillora real$Customer]
+            `)
+        }).then(result => {
+            console.log(result.recordset)
+            mssql.close()
+            return result.recordset
+        })
+    } catch (err) {
+        console.log(err)
+    } 
+}
+
 
 let dailyCron = cron.schedule('0 0 0 * * *', async function(){ // una vez al día a las 12 AM
     
-    main().then(res=>{
+    updateProducts().then(res=>{
         //aqui guardar en base de datos
         db.find({
             selector: {
@@ -84,6 +110,10 @@ let dailyCron = cron.schedule('0 0 0 * * *', async function(){ // una vez al dí
                 
             }
         })
+    })
+
+    updateClients().then(res=>{
+        console.log('CLIENTS', res)
     })
     
 })

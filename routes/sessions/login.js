@@ -57,7 +57,7 @@ const Login = {
               delete account._rev
               await request.server.app.cache.set(sid, { account }, 0)
               request.cookieAuth.set({ sid })
-              return h.redirect('/')
+              return h.redirect('/budget')
             }
           }
         }

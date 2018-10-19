@@ -113,6 +113,39 @@ export default [
     }
 },
 {
+    method: 'DELETE',
+    path: '/api/client',
+    options: {
+        handler: (request, h) => {
+            let id = request.payload._id
+
+            return new Promise(resolve => {
+                db.find({
+                    selector: {
+                        _id: id
+                    }
+                }).then(result => {
+                    if(result.docs[0]) {
+                        db.destroy(result.docs[0]._id, result.docs[0]._rev).then(deleteRes=>{
+                            console.log(deleteRes)
+                            if(deleteRes.ok) {
+                                resolve({ok: `CLIENTE ELIMINADO CORRECTAMENTE`})
+                            }
+                        })
+                    } else {
+                        resolve({err: 'NO HEMOS ENCONTRADO EL CLIENTE SELECCIONADO, POR FAVOR RECARGUE LA PÁGINA E INTENTELO NUEVAMENTE'})
+                    }
+                })
+            });
+        },
+        validate: {
+            payload: Joi.object().keys({
+                _id: Joi.string().required()
+            })
+        }
+    }
+},
+{
     method: 'POST',
     path: '/api/importClients',
     options: {
