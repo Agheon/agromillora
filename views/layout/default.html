@@ -381,6 +381,10 @@
         $('body').on('keyup', '.justNumbers', function (){
             this.value = (this.value + '').replace(/[^0-9]/g, ''); 
         })
+
+        $('body').on('keyup', '.justNumbersFloat', function (){
+            this.value = (this.value + '').replace(/[^0-9.]/g, ''); 
+        })
     </script>
     {{#block "js"}}
     {{/block}}

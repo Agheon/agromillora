@@ -1214,6 +1214,21 @@ const newBudget = () => {
         
         <hr>
         <div class="row">
+            <div class="col-md-12 table-responsive">
+                <table class="table">
+                    <thead>
+                        <th>PRODUCTO</th>
+                        <th>FECHA DE ENTREGA</th>
+                        <th>CANTIDAD A COTIZAR</th>
+                        <th>PRECIO UNITARIO</th>
+                        <th>PRECIO TOTAL</th>
+                    </thead>
+                    <tbody id="budgetProductsCart"></tbody>
+                </table>
+            </div>
+        </div>
+        <!-- // AQUI PRODUCTOS
+        <div class="row">
             <div class="col-md-6" id="selectProductToAddContainer">     
                 <center><select id="selectProductToAdd"><option value="default">Seleccione un producto</option></select></center>     
             </div>
@@ -1226,7 +1241,7 @@ const newBudget = () => {
         <br>
         <div id="budgetProductSelected"></div>
         <div id="budgetProductsTable"></div>
-
+        -->
         <br>
         <div class="row">   
             <div class="col-md-6" id="checkingAccount">
@@ -1293,6 +1308,39 @@ const newBudget = () => {
 
     chargeFirm() // cargar la firma del usuario conectado
 
+    let budgetProductsCartHTML = cartData.products.reduce((txt, el, i) => {
+        console.log('ELLLL', el)
+        return txt += `
+            <tr id="toInvoiceRow-${i}">
+                <td>${el.productName}</td>
+                <td>${el.deliveryDate}</td>
+                <td>${el.qty}</td>
+                <td>
+                    <div class="form-group">
+                        <input id="toInvoiceProductPrice-${i}" class="form-control justNumbersFloat productPrice" type="text" placeholder="Costo unitario">
+                    </div>
+                </td>
+                <td id="toInvoiceProductTotalPrice-${i}">
+                    $ --
+                </td>
+            </tr>
+        `
+    }, '')
+
+    $('#budgetProductsCart').html(budgetProductsCartHTML)
+
+    $('.productPrice').keyup(function() {
+        let productRow = $(this).attr('id')
+
+        let rowToInvoice = [...$(`#toInvoiceRow-${productRow.split('-')[1]}`)[0].children]
+    
+        console.log(rowToInvoice[2].innerText * $(this).val())
+        $(`#toInvoiceProductTotalPrice-${productRow.split('-')[1]}`).html(`
+            $ ${rowToInvoice[2].innerText * $(this).val()}
+        `)
+    })
+
+    /* //METODO ANTIGUO DE AGREGAR PRODUCTOS A COTIZACION
     $('#addProductToBudget').on('click', function() {
         console.log('addingStatus: ' +addingProductStatus)
         console.log('counter: ' +productsAddedToBudget)
@@ -1379,6 +1427,7 @@ const newBudget = () => {
             toastr.warning('Debe seleccionar un producto')
         }
     })
+    */
 
     getLayouts().then(res=>{
         if(res) {
