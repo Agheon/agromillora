@@ -78,6 +78,40 @@ export default [
             });
         }
     }
+},
+{ 
+    method: 'GET',
+    path: '/api/cleanCart', 
+    options: {
+        handler: (request, h) => {
+            let credentials = request.auth.credentials;
+            
+            return new Promise(resolve => {
+                
+                db.find({
+                    selector: {
+                        _id: credentials.rut,
+                        type: 'user'
+                    }
+                }).then(result => {
+                    if (result.docs[0]) {
+                        delete result.docs[0].cart
+
+                        db.insert(result.docs[0]).then(cartRes=>{
+                            if(cartRes.ok) {
+                                resolve({ok: 'carrito limpio'})
+                            } else {
+                                resolve({err: 'No se ha podido limpiar el carrito, por favor vuelva a intentarlo nuevamente.'})
+                            }
+                        })
+                    } else {
+                        resolve({err: 'No se ha encontrado información del usuario, por favor contacte con un administrador.'})
+                    }
+                })
+                
+            });
+        }
+    }
 }
 ]
 

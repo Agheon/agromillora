@@ -70,8 +70,26 @@
 
             <div class="tab-pane fade" id="pills-importedClients" role="tabpanel" aria-labelledby="pills-importedClients-tab">
                 <div class="row">
-                    <div class="col-md-2 col-xs-12">
-                        <br>
+                    <div class="col">
+                        <div class="col-md-12 col-xs-12 table-responsive">
+                            <h1>Ultima actualización: <span id="lastUpdate"></span></h1>
+                            <table id="tableImportedClients" class="display nowrap table table-condensed" cellspacing="0" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>RUT</th>
+                                        <th>NOMBRE</th>
+                                        <th>TELEFONO</th>
+                                        <th>EMAIL</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                            <div id="loadingImportedClients">
+                                <center>
+                                    <i style="color:#3498db;" class="fa fa-spinner fa-pulse fa-2x fa-fw"></i>
+                                    <span class="sr-only">Cargando...</span>
+                                </center>
+                            </div>
+                        </div>
                     </div>
                     
                 </div>
@@ -102,13 +120,14 @@
 
 <script>
 let datatableClients
-let datatableDisabledClients
+let datatableImportedClients
 let clientRowSelected
 let clientRowSelectedData
 let importClientsArray = []
 
 $(document).ready(function(){
     chargeClientsTable()
+    chargeImportedClientsTable()
 })
 
 function ExportToTable() {  
@@ -319,6 +338,47 @@ function chargeClientsTable() {
     })
 }
 
+function chargeImportedClientsTable() {
+    datatableImportedClients = $('#tableImportedClients')
+    .DataTable( {
+        dom: 'Bfrtip',
+        buttons: [
+            'copy', 'csv', 'excel', 'pdf', 'print'
+        ],
+        ordering: true,
+        iDisplayLength: 50,
+        oLanguage: {
+            sSearch: 'buscar: '
+        },
+        responsive: false,
+        columns: [
+            { data: 'No_' },
+            { data: 'Name' },
+            { data: 'Phone No_' },
+            { data: 'E-Mail' }                
+        ],
+        initComplete: function (settings, json) {
+            getImportedClientsEnabled()
+        }
+    })
+
+
+    $('#tableClients tbody').on('click', 'tr', function () {
+        if ($(this).hasClass('selected')) {
+            $(this).removeClass('selected')
+            $('#optionModClient').prop('disabled', true)
+            $('#optionDeleteClient').prop('disabled', true)
+        } else {
+            datatableClients.$('tr.selected').removeClass('selected');
+            $(this).addClass('selected');
+            $('#optionModClient').prop('disabled', false)
+            $('#optionDeleteClient').prop('disabled', false)
+            clientRowSelectedData = cleanData(datatableClients.row($(this)).data())
+            clientRowSelected = datatableClients.row($(this))
+        }
+    })
+}
+
 function getClientsEnabled() {
     ajax({
         url: 'api/clientsEnabled'
@@ -336,6 +396,49 @@ function getClientsEnabled() {
             $('#loadingClients').empty()
         }      
     })
+}
+
+function getImportedClientsEnabled() {
+    ajax({
+        url: 'api/importedClients'
+    }).then(res => {
+        if (res.err) {
+            //toastr.warning(res.err)
+            $('#loadingImportedClients').empty()
+        } else if(res.ok) {
+            /*
+            let formatRes = res.ok.map(el=>{
+                el.rut = `<b>${rutFunc(el.rut)}</b>`    
+                return el
+            })
+            */
+            
+            console.log(res.ok)
+            console.log('Duplicate names: ' + checkDuplicateInObject('Name', res.ok.list));
+            datatableImportedClients.rows.add(res.ok.list).draw()
+            $('#loadingImportedClients').empty()
+        }      
+    })
+}
+
+function checkDuplicateInObject(propertyName, inputArray) {
+  var seenDuplicate = false,
+      testObject = {};
+  
+  inputArray.map(function(item) {
+    var itemPropertyName = item[propertyName]; 
+    if (itemPropertyName in testObject) {
+      testObject[itemPropertyName].duplicate = true;
+      item.duplicate = true;
+      seenDuplicate = true;
+    }
+    else {
+      testObject[itemPropertyName] = item;
+      delete item.duplicate;
+    }
+  });
+  
+  return seenDuplicate;
 }
 
 function cleanData(data){

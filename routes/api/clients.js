@@ -32,6 +32,27 @@ export default [
 },
 { 
     method: 'GET',
+    path: '/api/importedClients', 
+    options: {
+        handler: (request, h) => {
+            return new Promise(resolve => {
+                db.find({
+                    selector: {
+                        _id: 'clients'
+                    }
+                }).then(result => {
+                    if (result.docs[0]) {
+                        resolve({ok: result.docs[0] })
+                    } else {
+                        resolve({ err: 'No existen clientes importados' })
+                    }
+                })
+            })
+        }
+    }
+},
+{ 
+    method: 'GET',
     path: '/api/clientsDisabled', 
     options: {
         handler: (request, h) => {

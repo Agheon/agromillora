@@ -58,8 +58,8 @@ async function updateProducts() {
     
 }
 
-async function updateClients() {
-    try {
+function updateClients() {
+    return new Promise(resolve=> {
         mssql.connect('mssql://sa:local1234@192.168.0.115/NAVISION').then(pool=>{
             return pool.request()
             .query(`
@@ -74,13 +74,16 @@ async function updateClients() {
                 FROM [Agromillora real$Customer]
             `)
         }).then(result => {
-            console.log(result.recordset)
             mssql.close()
-            return result.recordset
+            resolve({ok: result.recordset})
+        }).catch(err=> {
+            console.log('ERROR: ',err)
+            mssql.close()
+            resolve({err: 'No se han actualizado los clientes'})
         })
-    } catch (err) {
-        console.log(err)
-    } 
+    })
+
+    
 }
 
 
@@ -113,7 +116,31 @@ let dailyCron = cron.schedule('0 0 0 * * *', async function(){ // una vez al dí
     })
 
     updateClients().then(res=>{
-        console.log('CLIENTS', res)
+        if(res.ok) {
+            db.find({
+                selector: {
+                    _id: 'clients'
+                }
+            }).then(result => {
+                if (result.docs[0]) {
+                    let clients = result.docs[0]
+    
+                    clients.lastUpdate = moment.tz('America/Santiago').format('YYYY-MM-DDTHH:mm:ss.SSSSS'),
+                    clients.list = res.ok
+                    try {
+                        db.insert(clients).then(resUpdate=>{
+                            if(resUpdate.ok) {
+                                console.log(resUpdate)
+                            }
+                        }) 
+                    } catch (error) {
+                        console.log(error)
+                    }
+                    
+                }
+            })
+        }
+
     })
     
 })

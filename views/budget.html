@@ -1186,7 +1186,7 @@ const newBudget = () => {
         <div class="row">
             <div class="col-md-6">
                 <p>Cliente:</p>
-                <center><select id="selectClient" name="clientName"></select></center>
+                <center><select id="selectClient" name="clientName"><option></option></select></center>
                 <div id="selectedClientInfo"></div>
             </div>
             
@@ -1335,7 +1335,8 @@ const newBudget = () => {
 
                 $('#selectClient').select2({
                     width:'80%',
-                    data: s2clients
+                    data: s2clients,
+                    placeholder: 'Seleccione un cliente'
                 })
 
                 $('#selectClient').on('select2:select', function (e) {
@@ -1403,14 +1404,14 @@ const newBudget = () => {
                     <tr id="toInvoiceRow-${i}">
                         <td>${el.productName}</td>
                         <td>${el.deliveryDate}</td>
-                        <td>${el.qty}</td>
+                        <td class="qtyProductClass" id="qtyProduct-${i}">${el.qty}</td>
                         <td>
                             <div class="form-group">
-                                <input min="0" id="toInvoiceProductPrice-${i}" class="form-control ${justNumbersSelected} productPrice" type="number" placeholder="Costo unitario">
+                                <input value="0" min="0" id="toInvoiceProductPrice-${i}" class="form-control ${justNumbersSelected} productPrice" type="number" placeholder="Costo unitario">
                             </div>
                         </td>
                         <td>
-                            <span id="toInvoiceProductTotalPrice-${i}">0.00</span>
+                            <span class="productTotalPrice" id="toInvoiceProductTotalPrice-${i}">0</span>
                         </td>
                     </tr>
                 `
@@ -1419,6 +1420,7 @@ const newBudget = () => {
             $('#budgetProductsCart').html(budgetProductsCartHTML)
 
             $('.productPrice').on('keyup change', function() {
+                console.log('TEST DE EVENTO!!')
                 let productRow = $(this).attr('id')
                 let rowToInvoice = [...$(`#toInvoiceRow-${productRow.split('-')[1]}`)[0].children]
                 
@@ -1426,23 +1428,6 @@ const newBudget = () => {
                     $(this).val(0)
                 }
                 setTimeout(() => {
-                    $(`#toInvoiceProductTotalPrice-${productRow.split('-')[1]}`).html(`
-                        ${(rowToInvoice[2].innerText * $(this).val()).toFixed(2)}
-                    `)
-                    
-                    let rowsToInvoice = [...$('#budgetProductsCart')[0].children]
-
-                    addingProductsArr = rowsToInvoice.reduce((arr,el,i)=> {
-                        return arr.concat({
-                            product: el.cells[0].innerText,
-                            deliveryDate: el.cells[1].innerText,
-                            qty: el.cells[2].innerText,
-                            unitPrice: $(`#toInvoiceProductPrice-${i}`).val(),
-                            totalPrice: parseFloat(el.cells[4].innerText)
-                        })   
-                    }, [])
-                    console.log(addingProductsArr)
-
                     finalCalculation()
                 }, 300);
             })
@@ -1477,35 +1462,42 @@ $('#budgetModal').on('click', '.closeModal', function(){
 
 
 function updateClientsHTML() {
-    
+
     let selectedClient = $('#selectClient').select2('data')[0].id
-    selectedClientData = clientsArr.filter(el=> {
-        return el.rut == selectedClient
-    })[0]
-    
-    $('#selectedClientInfo').html(`
-    <br>
-        <table class="table">
-            <tbody>
-                <tr>
-                    <td><center>Rut</center></td>
-                    <td><center><b>${rutFunc(selectedClientData.rut)}</b></center></td>
-                </tr>
-                <tr>
-                    <td><center>Nombre</center></td>
-                    <td><center><b>${selectedClientData.name}</b></center></td>
-                </tr>
-                <tr>
-                    <td><center>Teléfono</center></td>
-                    <td><center><b>${selectedClientData.phone}</b></center></td>
-                </tr>
-                <tr>
-                    <td><center>Email</center></td>
-                    <td><center><b>${selectedClientData.email}</b></center></td>
-                </tr>
-            </tbody>
-        </table>
-    `)
+    console.log('SELECTEDCLIENT',selectedClient)
+    if(selectedClient) {
+        selectedClientData = clientsArr.filter(el=> {
+            return el.rut == selectedClient
+        })[0]
+        
+        $('#selectedClientInfo').html(`
+        <br>
+            <table class="table">
+                <tbody>
+                    <tr>
+                        <td><center>Rut</center></td>
+                        <td><center><b>${rutFunc(selectedClientData.rut)}</b></center></td>
+                    </tr>
+                    <tr>
+                        <td><center>Nombre</center></td>
+                        <td><center><b>${selectedClientData.name}</b></center></td>
+                    </tr>
+                    <tr>
+                        <td><center>Teléfono</center></td>
+                        <td><center><b>${selectedClientData.phone}</b></center></td>
+                    </tr>
+                    <tr>
+                        <td><center>Email</center></td>
+                        <td><center><b>${selectedClientData.email}</b></center></td>
+                    </tr>
+                </tbody>
+            </table>
+        `)
+        $('#saveBudget').attr('disabled', false)
+    } else {
+        $('#saveBudget').attr('disabled', true)
+        
+    }
     
 }
 
@@ -1565,14 +1557,15 @@ function saveBudget(type, continueDraftId) {
     }
     
     if(status == 'new') {
-        if(addingProductsArr.length > 0) { // 2
+        console.log(addingProductsArr, cartData)
+        if(addingProductsArr.length == cartData.products.length) { // 2
             validateCounter++
             budgetObj.products = addingProductsArr
             $('#selectProductToAddContainer').css({
                 border: '1px solid #3498db'
             })
         } else {
-            errorMessage += `<br> * Debe agregar 1 producto como mínimo.`
+            errorMessage += `<br> * Debe asignar un valor unitario a cada producto.`
             $('#selectProductToAddContainer').css({
                 border: '1px solid #e74c3c'
             })
@@ -1660,6 +1653,8 @@ function saveNewBudget(budgetObj) {
                 $(newBudgetAdded).css( 'color', '#000000' )
             }, 5000)
             $('#budgetModal').modal('hide')
+            
+            removeCart()
 
             sendEmailLoading(budgetObj, 1) // enviar correo loading
             exportToPdf(res.ok, 'send').then(exportRes=> {
@@ -1688,6 +1683,17 @@ function saveNewBudget(budgetObj) {
                 }
             })
 
+        }
+    })
+}
+
+function removeCart() {
+    ajax({
+        url: 'api/cleanCart'
+    }).then(res=>{
+        if(res.ok) {
+            $('#cart').empty()
+            cartData = null
         }
     })
 }
@@ -1895,46 +1901,39 @@ function getClients() {
         })
     })
 }
-/*
-function removeBudgetProduct(productToRemove) {
-   // $('#tableBudgetProductsTbody')
-    $(`[id='row${productToRemove}']`).empty()
-    s2EnabledProducts.push(productToRemove)
-    $(`#selectProductToAdd>option[value="${productToRemove}"]`).attr('disabled',false).change();
-    $('#selectProductToAdd').select2({width:'80%'});
-    console.log(s2EnabledProducts)
-    productsAddedToBudget--
-    $('#addProductToBudget').attr('disabled',false)
-    if(productsAddedToBudget == 0) {
-        $('#budgetProductsTable').empty()
+
+$('#modal_body').on('change', '#inputSelectDivisa', function() {
+    if($(this).val() == 'clp') {
+        selectedLayoutData.divisa = 'clp'
+        $('.productPrice').each(function( i, el ) {
+            $(`#toInvoiceProductPrice-${i}`).val(0)
+        })
+
+        addingProductsArr = []
+    } else if($(this).val() == 'usd') { 
+        selectedLayoutData.divisa = 'usd'
+        $('.productPrice').each(function( i, el ) {
+            $(`#toInvoiceProductPrice-${i}`).val(0)
+        })
+
+        addingProductsArr = []
+    } else if($(this).val() == 'eur') {
+        selectedLayoutData.divisa = 'eur'
+        $('.productPrice').each(function( i, el ) {
+            $(`#toInvoiceProductPrice-${i}`).val(0)
+        })
+
+        addingProductsArr = []
     }
-
-    addingProductsArr = addingProductsArr.filter(function(item) {
-        return item.identifier !== productToRemove
-    })
+    
+    
     finalCalculation()
+    
+})
 
-    console.log(addingProductsArr)        
-}
-*/
 function finalCalculation() {
-    let finalAmount = addingProductsArr.reduce((total, el, i)=>{
-        return total += el.totalPrice
-    },0)
-
-    console.log(finalAmount)
-
-    let finalAdvance = (finalAmount * parseInt(advancePercent)) / 100
-    let finalInDelivery = (finalAmount * (100-parseInt(advancePercent)) ) / 100
-
-    let amountNew = (finalAmount / ((19 / 100) + 1))
-    let amountTax = parseFloat(finalAmount) - parseFloat(amountNew)
-    let iva
-    let amountTXT = ''
-
     if(selectedLayoutData.divisa == 'clp') {
-        iva = parseInt(amountTax)
-        amountTXT = 'CLP $'
+        
         $('#selectedDivisa').html(`
         <div class="form-group">
             <select class="form-control" id="inputSelectDivisa">
@@ -1947,14 +1946,17 @@ function finalCalculation() {
 
         $('.productPrice').removeClass('justNumbersFloat')
         $('.productPrice').addClass('justNumbers')
-        
-        $('.productPrice').each(function( element ) {
-            $(this).val( $(this).val().split('.').join(''))
+       
+
+        $('.qtyProductClass').each(function( i, el ) {
+            $(`#toInvoiceProductTotalPrice-${i}`).html(`
+                ${($(`#qtyProduct-${i}`).text() * $(`#toInvoiceProductPrice-${i}`).val())}
+            `)
+            
         });
 
     } else if (selectedLayoutData.divisa == 'usd') {
-        iva = 0
-        amountTXT = 'USD $'
+        
         $('#selectedDivisa').html(`
         <div class="form-group">
             <select class="form-control" id="inputSelectDivisa">
@@ -1967,9 +1969,18 @@ function finalCalculation() {
 
         $('.productPrice').removeClass('justNumbers')
         $('.productPrice').addClass('justNumbersFloat')
+        
+        $('.productPrice').each(function( i, el ) {
+            //console.log($(`#qtyProduct-${i}`).text())
+            
+            $(`#toInvoiceProductTotalPrice-${i}`).html(`
+                ${($(`#qtyProduct-${i}`).text() * $(el).val()).toFixed(1)}
+            `)
+            
+        });
+
     } else if(selectedLayoutData.divisa == 'eur') {
-        iva = 0
-        amountTXT = 'EUR €'
+        
         $('#selectedDivisa').html(`
         <div class="form-group">
             <select class="form-control" id="inputSelectDivisa">
@@ -1982,54 +1993,89 @@ function finalCalculation() {
 
         $('.productPrice').removeClass('justNumbers')
         $('.productPrice').addClass('justNumbersFloat')
+
+        $('.productPrice').each(function( i, el ) {
+            $(`#toInvoiceProductTotalPrice-${i}`).html(`
+                ${($(`#qtyProduct-${i}`).text() * $(el).val()).toFixed(1)}
+            `)
+        });
     }
 
-    $('#inputSelectDivisa').on('change', function() {
-        if($(this).val() == 'clp') {
-            selectedLayoutData.divisa = 'clp'
-        } else if($(this).val() == 'usd') {
-            selectedLayoutData.divisa = 'usd'
-        } else if($(this).val() == 'eur') {
-            selectedLayoutData.divisa = 'eur'
-        }
-
-        finalCalculation()
-    })
-    
     //console.log(amountNew, amountTax, iva)
 
-    amounts.advancedPercent = parseInt(advancePercent)
-    amounts.finalAdvance = finalAdvance
-    amounts.iva = iva
-    amounts.subtotal = finalAmount
-    console.log(amounts)
-    $('#finalCalculations').html(`
-        <h3><b>Condiciones comerciales, de pago y Facturación:</b></h3>
-        <table class="table table-hover">
-            <tbody>
-                <tr>
-                    <td><center>${advancePercent}% de anticipo de reserva:</center></td>
-                    <td><center><b>${amountTXT}${finalAdvance}</b></center></td>
-                </tr>
-                <tr>
-                    <td><center>${100-parseInt(advancePercent)}% Saldo, al momento del despacho de las plantas:</center></td>
-                    <td><center><b>${amountTXT}${finalInDelivery}</b></center></td>
-                </tr>
-                <tr>
-                    <td><center>IVA, se deberá cancelar documentado, al día 10 del mes siguiente de la fecha de despacho:</center></td>
-                    <td><center><b>${amountTXT}${iva}</b></center></td>
-                </tr>
-                <tr>
-                    <td><center>Sub total:</center></td>
-                    <td><center><b>${amountTXT}${finalAmount}</b></center></td>
-                </tr>
-                <tr>
-                    <td><center><h3>Total a pagar:</h3></center></td>
-                    <td><center><h3 style="color:#1abc9c;"><b>${amountTXT}${finalAmount+iva}</b></h3></center></td>
-                </tr>
-            </tbody>
-        </table>
-    `)
+    setTimeout(() => {
+        let rowsToInvoice = [...$('#budgetProductsCart')[0].children]
+    
+        addingProductsArr = rowsToInvoice.reduce((arr, el, i)=> {
+            return arr.concat({
+                product: el.cells[0].innerText,
+                deliveryDate: el.cells[1].innerText,
+                qty: el.cells[2].innerText,
+                unitPrice: $(`#toInvoiceProductPrice-${i}`).val(),
+                totalPrice: parseInt(el.cells[4].innerText)
+            })   
+        }, [])
+        console.log(addingProductsArr)
+
+        let finalAmount = addingProductsArr.reduce((total, el, i)=>{
+            return total += el.totalPrice
+        },0)
+
+        //console.log(finalAmount)
+
+        let finalAdvance = (finalAmount * parseInt(advancePercent)) / 100
+        let finalInDelivery = (finalAmount * (100-parseInt(advancePercent)) ) / 100
+
+        let amountNew = (finalAmount / ((19 / 100) + 1))
+        let amountTax = parseFloat(finalAmount) - parseFloat(amountNew)
+        let iva
+        let amountTXT = ''
+
+        if(selectedLayoutData.divisa == 'clp') {
+            iva = parseInt(amountTax)
+            amountTXT = 'CLP $'
+        } else if(selectedLayoutData.divisa == 'usd') {
+            iva = 0
+            amountTXT = 'USD $'
+        } else if(selectedLayoutData.divisa == 'eur') {
+            iva = 0
+            amountTXT = 'EUR €'
+        }
+
+        amounts.advancedPercent = parseInt(advancePercent)
+        amounts.finalAdvance = finalAdvance
+        amounts.iva = iva
+        amounts.subtotal = finalAmount
+        console.log(amounts)
+        $('#finalCalculations').html(`
+            <h3><b>Condiciones comerciales, de pago y Facturación:</b></h3>
+            <table class="table table-hover">
+                <tbody>
+                    <tr>
+                        <td><center>${advancePercent}% de anticipo de reserva:</center></td>
+                        <td><center><b>${amountTXT}${finalAdvance}</b></center></td>
+                    </tr>
+                    <tr>
+                        <td><center>${100-parseInt(advancePercent)}% Saldo, al momento del despacho de las plantas:</center></td>
+                        <td><center><b>${amountTXT}${finalInDelivery}</b></center></td>
+                    </tr>
+                    <tr>
+                        <td><center>IVA, se deberá cancelar documentado, al día 10 del mes siguiente de la fecha de despacho:</center></td>
+                        <td><center><b>${amountTXT}${iva}</b></center></td>
+                    </tr>
+                    <tr>
+                        <td><center>Sub total:</center></td>
+                        <td><center><b>${amountTXT}${finalAmount}</b></center></td>
+                    </tr>
+                    <tr>
+                        <td><center><h3>Total a pagar:</h3></center></td>
+                        <td><center><h3 style="color:#1abc9c;"><b>${amountTXT}${finalAmount+iva}</b></h3></center></td>
+                    </tr>
+                </tbody>
+            </table>
+        `)
+    }, 200);
+    
 }
 
 function chargeFirm(draftFirm) {
