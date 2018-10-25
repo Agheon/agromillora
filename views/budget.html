@@ -272,11 +272,18 @@ const getBudgets = () => {
                 } else if(el.status == 'draft') {
                     el.number = `BOR${el.number}`
                 }
+                
+                let rowCostFormat
+                if(el.layout.divisa == 'clp') {
+                    rowCostFormat = comma_format(parseFloat(el.amounts.iva)+parseFloat(el.amounts.subtotal))
+                } else{ 
+                    rowCostFormat = parseFloat(el.amounts.iva)+parseFloat(el.amounts.subtotal)
+                }
 
                 el.dateOrder = dateOrder(el._id) // DD/MM/YYYY to YYYYMMDD
                 el.reference = el.reference.toUpperCase()
                 el.clientName = el.client.name.toUpperCase()
-                el.cost = comma_format(parseFloat(el.amounts.iva)+parseFloat(el.amounts.subtotal))
+                el.cost = rowCostFormat
                 el.status = formatStatusText(el.status)
                 el.divisa = el.layout.divisa.toUpperCase()
                 return el
@@ -534,7 +541,7 @@ const sendedBudget = (sendedBudgetData) => {
             <td>${el.deliveryDate}</td>
             <td>${el.qty}</td>
             <td>$${el.unitPrice}</td>
-            <td>$${comma_format(el.totalPrice)}</td>
+            <td>$${el.totalPrice}</td>
         </tr>
         `
     }, '')
@@ -579,28 +586,47 @@ const sendedBudget = (sendedBudgetData) => {
     /*
         CHECKING ACCOUNT END
     */
-    
+   
     /*
         FINAL CANCULATIONS INIT sendedBudgetData
     */
-   
     let iva
     let amountTXT = ''
     let sendedBudgetAdvancePercent = sendedBudgetData.amounts.advancePercent
     let finalAdvance = (parseFloat(sendedBudgetData.amounts.subtotal) * sendedBudgetAdvancePercent) / 100
     let finalInDelivery = (parseFloat(sendedBudgetData.amounts.subtotal) * (100-sendedBudgetAdvancePercent) ) / 100
     let amountNew = (parseFloat(sendedBudgetData.amounts.subtotal) / ((19 / 100) + 1))
-    let amountTax = parseFloat(sendedBudgetData.amounts.subtotal) - parseFloat(amountNew)
+    let amountTax = sendedBudgetData.amounts.iva //parseFloat(sendedBudgetData.amounts.subtotal) - parseFloat(amountNew)
 
+    let finalAdvanceFormat
+    let finalInDeliveryFormat
+    let ivaFormat
+    let finalAmountFormat
+    let totalAmountFormat // finalAmount+iva
     if(sendedBudgetData.layout.divisa == 'clp') {
-        iva = parseFloat(amountTax)
+        iva = parseInt(amountTax)
         amountTXT = 'CLP $'
+        finalAdvanceFormat = comma_format(finalAdvance)
+        finalInDeliveryFormat = comma_format(finalInDelivery)
+        ivaFormat = comma_format(iva)
+        finalAmountFormat = comma_format(sendedBudgetData.amounts.subtotal)
+        totalAmountFormat = comma_format(parseInt(sendedBudgetData.amounts.subtotal)+iva)
     } else if (sendedBudgetData.layout.divisa == 'usd') {
         iva = 0
         amountTXT = 'USD $'
+        finalAdvanceFormat = finalAdvance
+        finalInDeliveryFormat = finalInDelivery
+        ivaFormat = iva
+        finalAmountFormat = sendedBudgetData.amounts.subtotal
+        totalAmountFormat = parseFloat(sendedBudgetData.amounts.subtotal)+iva
     } else if(sendedBudgetData.layout.divisa == 'eur') {
         iva = 0
         amountTXT = 'EUR €'
+        finalAdvanceFormat = finalAdvance
+        finalInDeliveryFormat = finalInDelivery
+        ivaFormat = iva
+        finalAmountFormat = sendedBudgetData.amounts.subtotal
+        totalAmountFormat = parseFloat(sendedBudgetData.amounts.subtotal)+iva
     }
     $('#finalCalculations').html(`
         <h3><b>Condiciones comerciales, de pago y Facturación:</b></h3>
@@ -608,27 +634,28 @@ const sendedBudget = (sendedBudgetData) => {
             <tbody>
                 <tr>
                     <td><center>${sendedBudgetAdvancePercent}% de anticipo de reserva:</center></td>
-                    <td><center><b>${amountTXT}${comma_format(finalAdvance)}</b></center></td>
+                    <td><center><b>${amountTXT}${finalAdvanceFormat}</b></center></td>
                 </tr>
                 <tr>
                     <td><center>${100-sendedBudgetAdvancePercent}% Saldo, al momento del despacho de las plantas:</center></td>
-                    <td><center><b>${amountTXT}${comma_format(finalInDelivery)}</b></center></td>
-                </tr>
-                <tr>
-                    <td><center>IVA, se deberá cancelar documentado, al día 10 del mes siguiente de la fecha de despacho:</center></td>
-                    <td><center><b>${amountTXT}${comma_format(iva)}</b></center></td>
+                    <td><center><b>${amountTXT}${finalInDeliveryFormat}</b></center></td>
                 </tr>
                 <tr>
                     <td><center>Sub total:</center></td>
-                    <td><center><b>${amountTXT}${comma_format(sendedBudgetData.amounts.subtotal)}</b></center></td>
+                    <td><center><b>${amountTXT}${sendedBudgetData.amounts.subtotal}</b></center></td>
+                </tr>
+                <tr>
+                    <td><center>IVA, se deberá cancelar documentado, al día 10 del mes siguiente de la fecha de despacho:</center></td>
+                    <td><center><b>${amountTXT}${ivaFormat}</b></center></td>
                 </tr>
                 <tr>
                     <td><center><h3>Total a pagar:</h3></center></td>
-                    <td><center><h3 style="color:#1abc9c;"><b>${amountTXT}${comma_format(parseFloat(sendedBudgetData.amounts.subtotal)+iva)}</b></h3></center></td>
+                    <td><center><h3 style="color:#1abc9c;"><b>${amountTXT}${totalAmountFormat}</b></h3></center></td>
                 </tr>
             </tbody>
         </table>
     `)
+    
     /*
         FINAL CALCULATIONS END
     */
@@ -1943,6 +1970,7 @@ function finalCalculation() {
             </select>
         </div>
         `)
+        
 
         $('.productPrice').removeClass('justNumbersFloat')
         $('.productPrice').addClass('justNumbers')
@@ -1950,7 +1978,7 @@ function finalCalculation() {
 
         $('.qtyProductClass').each(function( i, el ) {
             $(`#toInvoiceProductTotalPrice-${i}`).html(`
-                ${($(`#qtyProduct-${i}`).text() * $(`#toInvoiceProductPrice-${i}`).val())}
+                ${comma_format($(`#qtyProduct-${i}`).text() * $(`#toInvoiceProductPrice-${i}`).val())}
             `)
             
         });
@@ -1966,6 +1994,7 @@ function finalCalculation() {
             </select>
         </div>
         `)
+        
 
         $('.productPrice').removeClass('justNumbers')
         $('.productPrice').addClass('justNumbersFloat')
@@ -1990,6 +2019,7 @@ function finalCalculation() {
             </select>
         </div>
         `)
+        
 
         $('.productPrice').removeClass('justNumbers')
         $('.productPrice').addClass('justNumbersFloat')
@@ -2005,14 +2035,25 @@ function finalCalculation() {
 
     setTimeout(() => {
         let rowsToInvoice = [...$('#budgetProductsCart')[0].children]
-    
+        
+        
         addingProductsArr = rowsToInvoice.reduce((arr, el, i)=> {
+            let rowTotalPrice
+            if(selectedLayoutData.divisa == 'clp') {
+                rowTotalPrice = removeCommas(el.cells[4].innerText)
+            } else {
+                
+                rowTotalPrice = parseFloat(el.cells[4].innerText)
+                console.log('PRICE', el.cells[4].innerText)
+                console.log('PRICECOMMAS:' , rowTotalPrice)
+            }
+            console.log('rowTotalPrice', rowTotalPrice)
             return arr.concat({
                 product: el.cells[0].innerText,
                 deliveryDate: el.cells[1].innerText,
                 qty: el.cells[2].innerText,
                 unitPrice: $(`#toInvoiceProductPrice-${i}`).val(),
-                totalPrice: parseInt(el.cells[4].innerText)
+                totalPrice: rowTotalPrice
             })   
         }, [])
         console.log(addingProductsArr)
@@ -2021,7 +2062,7 @@ function finalCalculation() {
             return total += el.totalPrice
         },0)
 
-        //console.log(finalAmount)
+        console.log(finalAmount)
 
         let finalAdvance = (finalAmount * parseInt(advancePercent)) / 100
         let finalInDelivery = (finalAmount * (100-parseInt(advancePercent)) ) / 100
@@ -2030,16 +2071,39 @@ function finalCalculation() {
         let amountTax = parseFloat(finalAmount) - parseFloat(amountNew)
         let iva
         let amountTXT = ''
-
+        
+        /*
+            Valores a mostrar
+        */
+        let finalAdvanceFormat
+        let finalInDeliveryFormat
+        let ivaFormat
+        let finalAmountFormat
+        let totalAmountFormat // finalAmount+iva
         if(selectedLayoutData.divisa == 'clp') {
             iva = parseInt(amountTax)
             amountTXT = 'CLP $'
+            finalAdvanceFormat = comma_format(finalAdvance)
+            finalInDeliveryFormat = comma_format(finalInDelivery)
+            ivaFormat = comma_format(iva)
+            finalAmountFormat = comma_format(finalAmount)
+            totalAmountFormat = comma_format(finalAmount+iva)
         } else if(selectedLayoutData.divisa == 'usd') {
             iva = 0
             amountTXT = 'USD $'
+            finalAdvanceFormat = finalAdvance
+            finalInDeliveryFormat = finalInDelivery
+            ivaFormat = iva
+            finalAmountFormat = finalAmount
+            totalAmountFormat = finalAmount+iva
         } else if(selectedLayoutData.divisa == 'eur') {
             iva = 0
             amountTXT = 'EUR €'
+            finalAdvanceFormat = finalAdvance
+            finalInDeliveryFormat = finalInDelivery
+            ivaFormat = iva
+            finalAmountFormat = finalAmount
+            totalAmountFormat = finalAmount+iva
         }
 
         amounts.advancedPercent = parseInt(advancePercent)
@@ -2047,29 +2111,31 @@ function finalCalculation() {
         amounts.iva = iva
         amounts.subtotal = finalAmount
         console.log(amounts)
+
+        
         $('#finalCalculations').html(`
             <h3><b>Condiciones comerciales, de pago y Facturación:</b></h3>
             <table class="table table-hover">
                 <tbody>
                     <tr>
                         <td><center>${advancePercent}% de anticipo de reserva:</center></td>
-                        <td><center><b>${amountTXT}${finalAdvance}</b></center></td>
+                        <td><center><b>${amountTXT}${finalAdvanceFormat}</b></center></td>
                     </tr>
                     <tr>
                         <td><center>${100-parseInt(advancePercent)}% Saldo, al momento del despacho de las plantas:</center></td>
-                        <td><center><b>${amountTXT}${finalInDelivery}</b></center></td>
-                    </tr>
-                    <tr>
-                        <td><center>IVA, se deberá cancelar documentado, al día 10 del mes siguiente de la fecha de despacho:</center></td>
-                        <td><center><b>${amountTXT}${iva}</b></center></td>
+                        <td><center><b>${amountTXT}${finalInDeliveryFormat}</b></center></td>
                     </tr>
                     <tr>
                         <td><center>Sub total:</center></td>
-                        <td><center><b>${amountTXT}${finalAmount}</b></center></td>
+                        <td><center><b>${amountTXT}${finalAmountFormat}</b></center></td>
+                    </tr>
+                    <tr>
+                        <td><center>IVA, se deberá cancelar documentado, al día 10 del mes siguiente de la fecha de despacho:</center></td>
+                        <td><center><b>${amountTXT}${ivaFormat}</b></center></td>
                     </tr>
                     <tr>
                         <td><center><h3>Total a pagar:</h3></center></td>
-                        <td><center><h3 style="color:#1abc9c;"><b>${amountTXT}${finalAmount+iva}</b></h3></center></td>
+                        <td><center><h3 style="color:#1abc9c;"><b>${amountTXT}${totalAmountFormat}</b></h3></center></td>
                     </tr>
                 </tbody>
             </table>
@@ -2199,7 +2265,7 @@ function exportToPdf(budgetData, statusPDF) {
         doc.text(300, rightYPos, 'Fecha de vencimiento')
         doc.setFontType('bold')
         doc.setFontSize(9)
-        doc.text(400, rightYPos, budgetData.expirationDate)
+        doc.text(400, rightYPos, moment(budgetData.expirationDate).format('DD/MM/YYYY'))
 
         rightYPos += 25
         doc.setFontType('normal')
@@ -2210,12 +2276,23 @@ function exportToPdf(budgetData, statusPDF) {
         doc.text(400, rightYPos, replaceAll(budgetData.reference, '<br>', '\n'))
 
         let tableColumns = ['Producto', 'Precio c/u', 'Unidades', 'Monto', 'Fecha estimada de entrega'];
+
         var tableRows = budgetData.products.reduce((arr,el,i) => {
+            let unitPriceFormat
+            let totalPriceFormat
+            if(budgetData.layout.divisa == 'clp') {
+                unitPriceFormat = comma_format(el.unitPrice)
+                totalPriceFormat = comma_format(el.totalPrice)
+            } else {
+                unitPriceFormat = el.unitPrice
+                totalPriceFormat = el.totalPrice
+            }
+
             return arr.concat([[
                 `${el.product}`,
-                `$${comma_format(el.unitPrice)}`,
+                `$${unitPriceFormat}`,
                 el.qty,
-                `$${comma_format(el.totalPrice)}`,
+                `$${totalPriceFormat}`,
                 el.deliveryDate
             ]])
         }, []) 
@@ -2253,7 +2330,6 @@ function exportToPdf(budgetData, statusPDF) {
 
         doc.text(300, rightYPos, 'Condiciones comerciales, de pago y \nFacturación:');
         
-
         let finalAdvance = (budgetData.amounts.subtotal * budgetData.amounts.advancePercent) / 100
         let finalAdvance2 = (budgetData.amounts.subtotal * ((100-budgetData.amounts.advancePercent)) / 100)
         let amountNew = (parseFloat(budgetData.amounts.subtotal) / ((19 / 100) + 1))
@@ -2261,15 +2337,39 @@ function exportToPdf(budgetData, statusPDF) {
 
         let amountTXT = ''
         iva = 0
+
+        let finalAdvanceFormat
+        let finalInDeliveryFormat
+        let ivaFormat
+        let finalAmountFormat
+        let totalAmountFormat // finalAmount+iva
         if(budgetData.layout.divisa == 'clp') {
             iva = parseInt(amountTax)
             amountTXT = 'CLP $'
+
+            finalAdvanceFormat = comma_format(finalAdvance)
+            finalInDeliveryFormat = comma_format(finalAdvance2)
+            ivaFormat = comma_format(iva)
+            finalAmountFormat = comma_format(budgetData.amounts.subtotal)
+            totalAmountFormat = comma_format(parseInt(budgetData.amounts.subtotal)+iva)
         } else if (budgetData.layout.divisa == 'usd') {
             iva = 0
             amountTXT = 'USD $'
+
+            finalAdvanceFormat = finalAdvance
+            finalInDeliveryFormat = finalAdvance2
+            ivaFormat = iva
+            finalAmountFormat = budgetData.amounts.subtotal
+            totalAmountFormat = parseInt(budgetData.amounts.subtotal)+iva
         } else if(budgetData.layout.divisa == 'eur') {
             iva = 0
             amountTXT = 'EUR €'
+
+            finalAdvanceFormat = finalAdvance
+            finalInDeliveryFormat = finalAdvance2
+            ivaFormat = iva
+            finalAmountFormat = budgetData.amounts.subtotal
+            totalAmountFormat = parseInt(budgetData.amounts.subtotal)+iva
         }
 
         rightYPos += 40
@@ -2278,7 +2378,7 @@ function exportToPdf(budgetData, statusPDF) {
         doc.text(300, rightYPos, `${budgetData.amounts.advancePercent}% de anticipo de reserva:`)
         doc.setFontType('bold')
         doc.setFontSize(9)
-        doc.text(450, rightYPos, `${amountTXT} ${comma_format(finalAdvance)}`)
+        doc.text(450, rightYPos, `${amountTXT} ${finalAdvance}`)
 
         rightYPos += 25
         doc.setFontType('normal')
@@ -2286,31 +2386,31 @@ function exportToPdf(budgetData, statusPDF) {
         doc.text(300, rightYPos, `${100-budgetData.amounts.advancePercent}% Saldo, al momento del\ndespacho de las plantas:`)
         doc.setFontType('bold')
         doc.setFontSize(9)
-        doc.text(450, rightYPos, `${amountTXT} ${comma_format(finalAdvance2)}`)
+        doc.text(450, rightYPos, `${amountTXT} ${finalAdvance2}`)
 
         rightYPos += 35
-        doc.setFontType('normal')
-        doc.setFontSize(9)
-        doc.text(300, rightYPos, `IVA, se deberá cancelar\ndocumentado, al día 10\ndel mes siguiente de la fecha\nde despacho:`)
-        doc.setFontType('bold')
-        doc.setFontSize(9)
-        doc.text(450, rightYPos, `${amountTXT} ${comma_format(iva)}`)
-
-        rightYPos += 60
         doc.setFontType('normal')
         doc.setFontSize(9)
         doc.text(300, rightYPos, `Subtotal:`)
         doc.setFontType('bold')
         doc.setFontSize(9)
-        doc.text(450, rightYPos, `${amountTXT} ${comma_format(budgetData.amounts.subtotal)}`)
+        doc.text(450, rightYPos, `${amountTXT} ${budgetData.amounts.subtotal}`)
 
-        rightYPos += 30
+        rightYPos += 25
+        doc.setFontType('normal')
+        doc.setFontSize(9)
+        doc.text(300, rightYPos, `IVA, se deberá cancelar\ndocumentado, al día 10\ndel mes siguiente de la fecha\nde despacho:`)
+        doc.setFontType('bold')
+        doc.setFontSize(9)
+        doc.text(450, rightYPos, `${amountTXT} ${iva}`)
+
+        rightYPos += 60
         doc.setFontType('bold')
         doc.setFontSize(9)
         doc.text(300, rightYPos, `Total a pagar:`)
         doc.setFontType('bold')
         doc.setTextColor(42,200,138)
-        doc.text(450, rightYPos, `${amountTXT} ${comma_format(parseFloat(budgetData.amounts.subtotal)+iva)}`)
+        doc.text(450, rightYPos, `${amountTXT} ${parseFloat(budgetData.amounts.subtotal)+iva}`)
         
         let reformatHTML = budgetData.layout.textInfo
 
