@@ -749,16 +749,6 @@ const draftBudget = (draftBudgetData) => {
         </div>
         
         <hr>
-        <div class="row">
-            <div class="col-md-6" id="selectProductToAddContainer">     
-                <center><select id="selectProductToAdd"><option value="default">Seleccione un producto</option></select></center>     
-            </div>
-            <div class="col-md-6">
-                <button class="btn btn-dark btn-block" id="addProductToBudget">
-                    <i style="color:#3498db;" class="fas fa-plus"></i> Añadir producto
-                </button>
-            </div>
-        </div>
         <br>
         <div id="budgetProductSelected"></div>
         <div id="budgetProductsTable"></div>
@@ -826,17 +816,29 @@ const draftBudget = (draftBudgetData) => {
     chargeFirm(draftBudgetData.user) // cargar la firma del usuario creador original de la cotización
 
     if(draftBudgetData.products[0]) {
-        let productsInDraft = draftBudgetData.products.reduce((htmlTXT,el,i)=>{
-            return htmlTXT += `
-            <tr id="row${el.type}">
-                <td><center>${el.type} ${el.name}</center></td>
-                <td><center>$${el.price}</center></td>
-                <td>${el.stock}</td>
-                <td>$${comma_format(parseInt(el.price * el.stock))}</td>
-                <td>${el.deliveryDate}</td>
-                <td><button onclick="removeBudgetProduct('${el.type}')" id="${el.type}" type="button" class="btn btn-danger btn-xs">x</button></td>
-            </tr>
-            `
+        console.log('PRODUCTS',draftBudgetData.products)
+        let justNumbersSelected = ''
+        if(draftBudgetData.layout.divisa == 'clp') {
+            justNumbersSelected = 'justNumbers'
+        } else {
+            justNumbersSelected = 'justNumbersFloat'
+        }
+        let productsInDraft = draftBudgetData.products.reduce((txt,el,i)=>{
+            return txt += `
+                <tr id="toInvoiceRow-${i}">
+                    <td>${el.product}</td>
+                    <td>${el.deliveryDate}</td>
+                    <td class="qtyProductClass" id="qtyProduct-${i}">${el.qty}</td>
+                    <td>
+                        <div class="form-group">
+                            <input value="${el.unitPrice}" min="0" id="toInvoiceProductPrice-${i}" class="form-control ${justNumbersSelected} productPrice" type="number" placeholder="Costo unitario">
+                        </div>
+                    </td>
+                    <td>
+                        <span class="productTotalPrice" id="toInvoiceProductTotalPrice-${i}">0</span>
+                    </td>
+                </tr>
+                `
         }, '')
         
         console.log(productsInDraft)
@@ -849,15 +851,14 @@ const draftBudget = (draftBudgetData) => {
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <td>Producto</td>
-                                        <td>Precio c/u</td>
-                                        <td>Unidades</td>
-                                        <td>Monto</td>
-                                        <td>Fecha estimada de entrega</td>
-                                        <td></td>
+                                        <td>PRODUCTO</td>
+                                        <td>FECHA DE ENTREGA</td>
+                                        <td>CANTIDAD A COTIZAR</td>
+                                        <td>PRECIO UNITARIO</td>
+                                        <td>PRECIO TOTAL</td>
                                     </tr>
                                 </thead>
-                                <tbody id="tableBudgetProductsTbody">
+                                <tbody id="budgetProductsCart">
                                     ${productsInDraft}
                                 </tbody>
                             </table>
@@ -869,92 +870,7 @@ const draftBudget = (draftBudgetData) => {
             
     }
 
-    $('#addProductToBudget').on('click', function() {
-        console.log('addingStatus: ' +addingProductStatus)
-        console.log('counter: ' +productsAddedToBudget)
-        if(addingProductStatus == 1 && $('#selectProductToAdd').val() != 'default') {
-            if(productsAddedToBudget == 0) {
-                productsAddedToBudget = 1 // contador de productos añadidos
-                $('#budgetProductsTable').html(`
-                <div class="card bg-light">
-                    <div class="card-header">Productos de cotización</div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-12 table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <td>Producto</td>
-                                            <td>Precio c/u</td>
-                                            <td>Unidades</td>
-                                            <td>Monto</td>
-                                            <td>Fecha estimada de entrega</td>
-                                            <td></td>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="tableBudgetProductsTbody">
-                                        <tr id="row${s2ValueToAdd}">
-                                            <td><center>${productSelectedObj.type} ${$(productSelectedObj.name).text()}</center></td>
-                                            <td><center>$${productSelectedObj.price}</center></td>
-                                            <td>${$('#budgetProductStock').val()}</td>
-                                            <td>$${comma_format(parseInt(productSelectedObj.price * $('#budgetProductStock').val()))}</td>
-                                            <td>${$('#budgetProductDateOfDelivery').val()}</td>
-                                            <td><button onclick="removeBudgetProduct('${s2ValueToAdd}')" id="${s2ValueToAdd}" type="button" class="btn btn-danger btn-xs">x</button></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                `)
-            } else {
-                productsAddedToBudget++
-                $('#tableBudgetProductsTbody').append(`
-                    <tr id="row${s2ValueToAdd}">
-                        <td><center>${productSelectedObj.type} ${$(productSelectedObj.name).text()}</center></td>
-                        <td><center>$${productSelectedObj.price}</center></td>
-                        <td>${$('#budgetProductStock').val()}</td>
-                        <td>$${comma_format(parseInt(productSelectedObj.price * $('#budgetProductStock').val()))}</td>
-                        <td>${$('#budgetProductDateOfDelivery').val()}</td>
-                        <td><button onclick="removeBudgetProduct('${s2ValueToAdd}')" id="${s2ValueToAdd}" type="button" class="btn btn-danger btn-xs">x</button></td>
-                    </tr>
-                `)
-            }
-            
-            console.log(s2ValueToAdd)
-            $(`#selectProductToAdd>option[value="${s2ValueToAdd}"]`).attr('disabled',true).change();
-            $('#selectProductToAdd').select2({width:'80%'});
-
-            s2EnabledProducts = s2EnabledProducts.filter(function(item) {
-                return item !== s2ValueToAdd
-            })
-            
-            addingProductsArr.push({
-                name: $(productSelectedObj.name).text().toLowerCase(),
-                type: productSelectedObj.type.toLowerCase(),
-                price: parseInt(productSelectedObj.price),
-                stock: parseInt($('#budgetProductStock').val()),
-                deliveryDate: $('#budgetProductDateOfDelivery').val(),
-                identifier: s2ValueToAdd
-            })
-            finalCalculation()
-            console.log(addingProductsArr)
-
-            if(s2EnabledProducts[0]) {
-                $('#selectProductToAdd').val('default').trigger('change')
-                $('#budgetProductSelected').empty()
-            } else {
-                $('#selectProductToAdd').val('default').trigger('change')
-                $('#addProductToBudget').attr('disabled', true)
-                $('#budgetProductSelected').empty()
-            }
-            
-            addingProductStatus = 0
-        } else {
-            toastr.warning('Debe seleccionar un producto')
-        }
-    })
+    finalCalculationDraft(draftBudgetData)
 
     getLayouts(draftBudgetData.layout).then(res=>{ // draft
         if(res) {
@@ -2144,6 +2060,194 @@ function finalCalculation() {
     
 }
 
+
+function finalCalculationDraft(draftBudgetData) {
+    let divisaSelect = draftBudgetData.layout.divisa
+
+    if(divisaSelect == 'clp') {
+        
+        $('#selectedDivisa').html(`
+        <div class="form-group">
+            <select class="form-control" id="inputSelectDivisa">
+                <option value="clp" selected>Divisa Seleccionada: CLP </option>
+                <option value="usd">Divisa Seleccionada: USD</option>
+                <option value="eur">Divisa Seleccionada: EUR </option>
+            </select>
+        </div>
+        `)
+        
+
+        $('.productPrice').removeClass('justNumbersFloat')
+        $('.productPrice').addClass('justNumbers')
+       
+
+        $('.qtyProductClass').each(function( i, el ) {
+            $(`#toInvoiceProductTotalPrice-${i}`).html(`
+                ${comma_format($(`#qtyProduct-${i}`).text() * $(`#toInvoiceProductPrice-${i}`).val())}
+            `)
+            
+        });
+
+    } else if (divisaSelect == 'usd') {
+        
+        $('#selectedDivisa').html(`
+        <div class="form-group">
+            <select class="form-control" id="inputSelectDivisa">
+                <option value="clp">Divisa Seleccionada: CLP </option>
+                <option value="usd" selected>Divisa Seleccionada: USD</option>
+                <option value="eur">Divisa Seleccionada: EUR </option>
+            </select>
+        </div>
+        `)
+        
+
+        $('.productPrice').removeClass('justNumbers')
+        $('.productPrice').addClass('justNumbersFloat')
+        
+        $('.productPrice').each(function( i, el ) {
+            //console.log($(`#qtyProduct-${i}`).text())
+            
+            $(`#toInvoiceProductTotalPrice-${i}`).html(`
+                ${($(`#qtyProduct-${i}`).text() * $(el).val()).toFixed(1)}
+            `)
+            
+        });
+
+    } else if(divisaSelect == 'eur') {
+        
+        $('#selectedDivisa').html(`
+        <div class="form-group">
+            <select class="form-control" id="inputSelectDivisa">
+                <option value="clp">Divisa Seleccionada: CLP </option>
+                <option value="usd">Divisa Seleccionada: USD</option>
+                <option value="eur" selected>Divisa Seleccionada: EUR </option>
+            </select>
+        </div>
+        `)
+        
+
+        $('.productPrice').removeClass('justNumbers')
+        $('.productPrice').addClass('justNumbersFloat')
+
+        $('.productPrice').each(function( i, el ) {
+            $(`#toInvoiceProductTotalPrice-${i}`).html(`
+                ${($(`#qtyProduct-${i}`).text() * $(el).val()).toFixed(1)}
+            `)
+        });
+    }
+
+    //console.log(amountNew, amountTax, iva)
+
+    setTimeout(() => {
+        let rowsToInvoice = [...$('#budgetProductsCart')[0].children]
+        
+        
+        addingProductsArr = rowsToInvoice.reduce((arr, el, i)=> {
+            let rowTotalPrice
+            if(divisaSelect == 'clp') {
+                rowTotalPrice = removeCommas(el.cells[4].innerText)
+            } else {
+                
+                rowTotalPrice = parseFloat(el.cells[4].innerText)
+                console.log('PRICE', el.cells[4].innerText)
+                console.log('PRICECOMMAS:' , rowTotalPrice)
+            }
+            console.log('rowTotalPrice', rowTotalPrice)
+            return arr.concat({
+                product: el.cells[0].innerText,
+                deliveryDate: el.cells[1].innerText,
+                qty: el.cells[2].innerText,
+                unitPrice: $(`#toInvoiceProductPrice-${i}`).val(),
+                totalPrice: rowTotalPrice
+            })   
+        }, [])
+        console.log(addingProductsArr)
+
+        let finalAmount = addingProductsArr.reduce((total, el, i)=>{
+            return total += el.totalPrice
+        },0)
+
+        console.log(finalAmount)
+
+        let finalAdvance = (finalAmount * parseInt(advancePercent)) / 100
+        let finalInDelivery = (finalAmount * (100-parseInt(advancePercent)) ) / 100
+
+        let amountNew = (finalAmount / ((19 / 100) + 1))
+        let amountTax = parseFloat(finalAmount) - parseFloat(amountNew)
+        let iva
+        let amountTXT = ''
+        
+        /*
+            Valores a mostrar
+        */
+        let finalAdvanceFormat
+        let finalInDeliveryFormat
+        let ivaFormat
+        let finalAmountFormat
+        let totalAmountFormat // finalAmount+iva
+        if(divisaSelect == 'clp') {
+            iva = parseInt(amountTax)
+            amountTXT = 'CLP $'
+            finalAdvanceFormat = comma_format(finalAdvance)
+            finalInDeliveryFormat = comma_format(finalInDelivery)
+            ivaFormat = comma_format(iva)
+            finalAmountFormat = comma_format(finalAmount)
+            totalAmountFormat = comma_format(finalAmount+iva)
+        } else if(divisaSelect == 'usd') {
+            iva = 0
+            amountTXT = 'USD $'
+            finalAdvanceFormat = finalAdvance
+            finalInDeliveryFormat = finalInDelivery
+            ivaFormat = iva
+            finalAmountFormat = finalAmount
+            totalAmountFormat = finalAmount+iva
+        } else if(divisaSelect == 'eur') {
+            iva = 0
+            amountTXT = 'EUR €'
+            finalAdvanceFormat = finalAdvance
+            finalInDeliveryFormat = finalInDelivery
+            ivaFormat = iva
+            finalAmountFormat = finalAmount
+            totalAmountFormat = finalAmount+iva
+        }
+
+        amounts.advancedPercent = parseInt(advancePercent)
+        amounts.finalAdvance = finalAdvance
+        amounts.iva = iva
+        amounts.subtotal = finalAmount
+        console.log(amounts)
+
+        
+        $('#finalCalculations').html(`
+            <h3><b>Condiciones comerciales, de pago y Facturación:</b></h3>
+            <table class="table table-hover">
+                <tbody>
+                    <tr>
+                        <td><center>${advancePercent}% de anticipo de reserva:</center></td>
+                        <td><center><b>${amountTXT}${finalAdvanceFormat}</b></center></td>
+                    </tr>
+                    <tr>
+                        <td><center>${100-parseInt(advancePercent)}% Saldo, al momento del despacho de las plantas:</center></td>
+                        <td><center><b>${amountTXT}${finalInDeliveryFormat}</b></center></td>
+                    </tr>
+                    <tr>
+                        <td><center>Sub total:</center></td>
+                        <td><center><b>${amountTXT}${finalAmountFormat}</b></center></td>
+                    </tr>
+                    <tr>
+                        <td><center>IVA, se deberá cancelar documentado, al día 10 del mes siguiente de la fecha de despacho:</center></td>
+                        <td><center><b>${amountTXT}${ivaFormat}</b></center></td>
+                    </tr>
+                    <tr>
+                        <td><center><h3>Total a pagar:</h3></center></td>
+                        <td><center><h3 style="color:#1abc9c;"><b>${amountTXT}${totalAmountFormat}</b></h3></center></td>
+                    </tr>
+                </tbody>
+            </table>
+        `)
+    }, 200);
+}
+
 function chargeFirm(draftFirm) {
     if(draftFirm) {
         firmObj = {
@@ -2378,7 +2482,7 @@ function exportToPdf(budgetData, statusPDF) {
         doc.text(300, rightYPos, `${budgetData.amounts.advancePercent}% de anticipo de reserva:`)
         doc.setFontType('bold')
         doc.setFontSize(9)
-        doc.text(450, rightYPos, `${amountTXT} ${finalAdvance}`)
+        doc.text(450, rightYPos, `${amountTXT} ${finalAdvanceFormat}`)
 
         rightYPos += 25
         doc.setFontType('normal')
@@ -2386,7 +2490,7 @@ function exportToPdf(budgetData, statusPDF) {
         doc.text(300, rightYPos, `${100-budgetData.amounts.advancePercent}% Saldo, al momento del\ndespacho de las plantas:`)
         doc.setFontType('bold')
         doc.setFontSize(9)
-        doc.text(450, rightYPos, `${amountTXT} ${finalAdvance2}`)
+        doc.text(450, rightYPos, `${amountTXT} ${finalInDeliveryFormat}`)
 
         rightYPos += 35
         doc.setFontType('normal')
@@ -2394,7 +2498,7 @@ function exportToPdf(budgetData, statusPDF) {
         doc.text(300, rightYPos, `Subtotal:`)
         doc.setFontType('bold')
         doc.setFontSize(9)
-        doc.text(450, rightYPos, `${amountTXT} ${budgetData.amounts.subtotal}`)
+        doc.text(450, rightYPos, `${amountTXT} ${finalAmountFormat}`)
 
         rightYPos += 25
         doc.setFontType('normal')
@@ -2402,7 +2506,7 @@ function exportToPdf(budgetData, statusPDF) {
         doc.text(300, rightYPos, `IVA, se deberá cancelar\ndocumentado, al día 10\ndel mes siguiente de la fecha\nde despacho:`)
         doc.setFontType('bold')
         doc.setFontSize(9)
-        doc.text(450, rightYPos, `${amountTXT} ${iva}`)
+        doc.text(450, rightYPos, `${amountTXT} ${ivaFormat}`)
 
         rightYPos += 60
         doc.setFontType('bold')
@@ -2410,7 +2514,7 @@ function exportToPdf(budgetData, statusPDF) {
         doc.text(300, rightYPos, `Total a pagar:`)
         doc.setFontType('bold')
         doc.setTextColor(42,200,138)
-        doc.text(450, rightYPos, `${amountTXT} ${parseFloat(budgetData.amounts.subtotal)+iva}`)
+        doc.text(450, rightYPos, `${amountTXT} ${totalAmountFormat}`)
         
         let reformatHTML = budgetData.layout.textInfo
 

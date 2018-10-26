@@ -256,7 +256,7 @@ const Budget = [
             reqData.products = JSON.parse(request.payload.products)
             reqData.layout = JSON.parse(request.payload.layout)
             reqData.creationDate = request.payload.creationDate
-            reqData.expirationDate = request.payload.expirationDate
+            reqData.expirationDate = parseExpirationDate(request.payload.expirationDate)
             reqData.advancePercent = request.payload.advancePercent
             reqData.iva = request.payload.iva
             reqData.subtotal = request.payload.subtotal
@@ -309,7 +309,7 @@ const Budget = [
                                 reference: reqData.reference,
                                 number: resCounter.ok.draftCount,
                                 creationDate: reqData.creationDate,
-                                expirationDate: parseExpirationDate(reqData.expirationDate),
+                                expirationDate: reqData.expirationDate,
                                 products: reqData.products,
                                 amounts: {
                                     advancePercent: reqData.advancePercent,
