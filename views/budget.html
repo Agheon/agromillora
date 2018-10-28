@@ -397,7 +397,7 @@ const sendedBudget = (sendedBudgetData) => {
 
         <div class="row">
             <div class="col-md-4"><hr></div>
-            <div class="col-md-4" style="text-align:center;"><h3 style="color:#2196F3;">COTIZACIÓN</h3></div>
+            <div class="col-md-4" style="text-align:center;"><h3 style="color:#2196F3;">COTIZACIÓN ${sendedBudgetData.number}</h3></div>
             <div class="col-md-4"><hr></div>
         </div>
 
@@ -642,7 +642,7 @@ const sendedBudget = (sendedBudgetData) => {
                 </tr>
                 <tr>
                     <td><center>Sub total:</center></td>
-                    <td><center><b>${amountTXT}${sendedBudgetData.amounts.subtotal}</b></center></td>
+                    <td><center><b>${amountTXT}${finalAmountFormat}</b></center></td>
                 </tr>
                 <tr>
                     <td><center>IVA, se deberá cancelar documentado, al día 10 del mes siguiente de la fecha de despacho:</center></td>
