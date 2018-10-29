@@ -140,7 +140,7 @@ let fromInvoiceArr = []
 let productDateDeliverySelected = ''
 
 $(document).ready(function(){
-
+    
     //$('#budgetProductDateOfDelivery').val(formatCurrentServerTime)
     $('#productDateDelivery').daterangepicker({
         "locale": {
@@ -452,7 +452,7 @@ function chargeResults(products) {
                     ${el.variedad}
                 </td>
                 <td>
-                    ${el.stock}
+                    ${numeral(el.stock).format('0,0')}
                 </td>
                 <td>
                     <button type="button" class="btn btn-${statusProductInvoice.class} btn-sm btnSendToInvoice" id="toinvoice-${removeSpecials(el.variedad)}"><i class="fas fa-arrow-circle-${statusProductInvoice.arrow}"></i></button>
@@ -555,7 +555,7 @@ function addToInvoice(product) {
                 ${productDateDeliverySelected}
             </td>
             <td>
-                ${product.stock}
+                ${numeral(product.stock).format('0,0')}
             </td>
             <td>
                 <div class="form-group">

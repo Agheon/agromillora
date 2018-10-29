@@ -700,6 +700,10 @@ function chargeResults(products) { /* TODO: ordenar arreglo con lodash */
                 ],
                 initComplete: function (settings, json) {
                     setTimeout(() => {
+                        sumGroup = sumGroup.map(el=>{ // agregar comas
+                            el.stock = numeral(el.stock).format('0,0')
+                            return el
+                        })
                         datatableProducts.rows.add(sumGroup).draw()
                     }, 1000);
         
@@ -753,6 +757,12 @@ function chargeResults(products) { /* TODO: ordenar arreglo con lodash */
                 ],
                 initComplete: function (settings, json) {
                     setTimeout(() => {
+                        
+                        products.original = products.original.map(el=>{ // agregar comas
+                            el.stockactual = numeral(el.stockactual).format('0,0')
+                            return el
+                        })
+                        console.log(products)
                         datatableProducts.rows.add(products.original).draw()
                     }, 1000);
         

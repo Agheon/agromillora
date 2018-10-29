@@ -189,6 +189,11 @@ let selectedLayoutData
 let amounts = {}
 let firmObj = {}
 let orderCount = 0
+let productsInDraftUpdate
+let productsInDraft
+let draftBudgetDataVar
+
+let originalBudgetDivisa // para saber los datos originales de una cotización en continuación
 
 $(document).ready(function() {
     $('#budget-filter').select2({
@@ -342,6 +347,7 @@ const chargeModal = () => {
         if(res.ok) {
             console.log(res.ok)
             if(res.ok.status == 'draft') {
+                originalBudgetDivisa = res.ok.layout.divisa
                 draftBudget(res.ok)
             } else if(res.ok.status == 'sended' || res.ok.status == 'created' || res.ok.status == 'approved' || res.ok.status == 'reserved' || res.ok.status == 'expired') {
                 sendedBudget(res.ok)
@@ -671,6 +677,8 @@ const sendedBudget = (sendedBudgetData) => {
 }
 
 const draftBudget = (draftBudgetData) => {
+    
+    draftBudgetDataVar = draftBudgetData
     $('.modal-content').css({
         'border-color': '#3498db'
     })
@@ -815,60 +823,72 @@ const draftBudget = (draftBudgetData) => {
     $('#reference').val(draftBudgetData.reference)
     chargeFirm(draftBudgetData.user) // cargar la firma del usuario creador original de la cotización
 
-    if(draftBudgetData.products[0]) {
-        console.log('PRODUCTS',draftBudgetData.products)
-        let justNumbersSelected = ''
-        if(draftBudgetData.layout.divisa == 'clp') {
-            justNumbersSelected = 'justNumbers'
-        } else {
-            justNumbersSelected = 'justNumbersFloat'
-        }
-        let productsInDraft = draftBudgetData.products.reduce((txt,el,i)=>{
-            return txt += `
-                <tr id="toInvoiceRow-${i}">
-                    <td>${el.product}</td>
-                    <td>${el.deliveryDate}</td>
-                    <td class="qtyProductClass" id="qtyProduct-${i}">${el.qty}</td>
-                    <td>
-                        <div class="form-group">
-                            <input value="${el.unitPrice}" min="0" id="toInvoiceProductPrice-${i}" class="form-control ${justNumbersSelected} productPrice" type="number" placeholder="Costo unitario">
-                        </div>
-                    </td>
-                    <td>
-                        <span class="productTotalPrice" id="toInvoiceProductTotalPrice-${i}">0</span>
-                    </td>
-                </tr>
-                `
-        }, '')
+    
+    console.log('PRODUCTS',draftBudgetData.products)
+    let justNumbersSelected = ''
+    if(draftBudgetData.layout.divisa == 'clp') {
+        justNumbersSelected = 'justNumbers'
+    } else {
+        justNumbersSelected = 'justNumbersFloat'
+    }
+    productsInDraft = draftBudgetData.products.reduce((txt,el,i)=>{
+        return txt += `
+            <tr id="toInvoiceRow-${i}">
+                <td>${el.product}</td>
+                <td>${el.deliveryDate}</td>
+                <td class="qtyProductClass" id="qtyProduct-${i}">${el.qty}</td>
+                <td>
+                    <div class="form-group">
+                        <input value="${el.unitPrice}" min="0" id="toInvoiceProductPrice-${i}" class="form-control ${justNumbersSelected} productPrice" type="number" placeholder="Costo unitario">
+                    </div>
+                </td>
+                <td>
+                    <span class="productTotalPrice" id="toInvoiceProductTotalPrice-${i}">0</span>
+                </td>
+            </tr>
+            `
+    }, '')
+    
+    console.log(productsInDraft)
+    $('#budgetProductsTable').html(`
         
-        console.log(productsInDraft)
-        $('#budgetProductsTable').html(`
-            <div class="card bg-light">
-                <div class="card-header">Productos de cotización</div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-12 table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <td>PRODUCTO</td>
-                                        <td>FECHA DE ENTREGA</td>
-                                        <td>CANTIDAD A COTIZAR</td>
-                                        <td>PRECIO UNITARIO</td>
-                                        <td>PRECIO TOTAL</td>
-                                    </tr>
-                                </thead>
-                                <tbody id="budgetProductsCart">
-                                    ${productsInDraft}
-                                </tbody>
-                            </table>
-                        </div>
+        <div class="card bg-light">
+            <div class="card-header">Productos de cotización <span id="draftActionButtonContainer"><button onclick="updateAction()" id="draftActionButton" class="btn btn-sm btn-dark"><i class="fas fa-retweet"></i> Actualizar </button></span></div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12 table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <td>PRODUCTO</td>
+                                    <td>FECHA DE ENTREGA</td>
+                                    <td>CANTIDAD A COTIZAR</td>
+                                    <td>PRECIO UNITARIO</td>
+                                    <td>PRECIO TOTAL</td>
+                                </tr>
+                            </thead>
+                            <tbody id="budgetProductsCart">
+                                ${productsInDraft}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
-        `)
-            
-    }
+        </div>
+    `)
+    
+    $('.productPrice').on('keyup change', function() { // se repite el evento
+        console.log('TEST DE EVENTO!!')
+        let productRow = $(this).attr('id')
+        let rowToInvoice = [...$(`#toInvoiceRow-${productRow.split('-')[1]}`)[0].children]
+        
+        if($(this).val() < 0) {
+            $(this).val(0)
+        }
+        setTimeout(() => {
+            finalCalculationDraft(draftBudgetData)
+        }, 300);
+    })
 
     finalCalculationDraft(draftBudgetData)
 
@@ -1075,6 +1095,85 @@ const draftBudget = (draftBudgetData) => {
    })
 }
 
+function backAction () {
+    $('#budgetProductsCart').html(productsInDraft)
+    
+    $('#inputSelectDivisa').val(originalBudgetDivisa)
+    draftBudgetDataVar.layout.divisa = originalBudgetDivisa
+    finalCalculationDraft(draftBudgetDataVar)    
+
+    $('.productPrice').on('keyup change', function() { // se repite el evento
+        console.log('TEST DE EVENTO!!')
+        let productRow = $(this).attr('id')
+        let rowToInvoice = [...$(`#toInvoiceRow-${productRow.split('-')[1]}`)[0].children]
+        
+        if($(this).val() < 0) {
+            $(this).val(0)
+        }
+
+        
+        setTimeout(() => {
+            finalCalculationDraft(draftBudgetDataVar)
+        }, 300);
+    })
+
+
+    $('#draftActionButtonContainer').html('<button onclick="updateAction()" id="draftActionButton" class="btn btn-sm btn-dark"><i class="fas fa-retweet"></i> Actualizar </button>')
+}
+
+function updateAction() {
+    if(cartData) {
+        let justNumbersSelected = ''
+        if(draftBudgetDataVar.layout.divisa == 'clp') {
+            justNumbersSelected = 'justNumbers'
+        } else {
+            justNumbersSelected = 'justNumbersFloat'
+        }
+        productsInDraftUpdate = cartData.products.reduce((txt,el,i)=>{
+            return txt += `
+                <tr id="toInvoiceRow-${i}">
+                    <td>${el.productName}</td>
+                    <td>${el.deliveryDate}</td>
+                    <td class="qtyProductClass" id="qtyProduct-${i}">${el.qty}</td>
+                    <td>
+                        <div class="form-group">
+                            <input value="0" min="0" id="toInvoiceProductPrice-${i}" class="form-control ${justNumbersSelected} productPrice" type="number" placeholder="Costo unitario">
+                        </div>
+                    </td>
+                    <td>
+                        <span class="productTotalPrice" id="toInvoiceProductTotalPrice-${i}">0</span>
+                    </td>
+                </tr>
+                `
+        }, '')
+
+        $('#budgetProductsCart').html(productsInDraftUpdate)
+
+        finalCalculationDraft(draftBudgetDataVar)
+
+        $('.productPrice').on('keyup change', function() { // se repite el evento
+            console.log('TEST DE EVENTO!!')
+            let productRow = $(this).attr('id')
+            let rowToInvoice = [...$(`#toInvoiceRow-${productRow.split('-')[1]}`)[0].children]
+            
+            if($(this).val() < 0) {
+                $(this).val(0)
+            }
+            setTimeout(() => {
+                finalCalculationDraft(draftBudgetDataVar)
+            }, 300);
+        })
+        
+
+        $('#draftActionButtonContainer').html('<button onclick="backAction()" id="draftActionButton" class="btn btn-sm btn-dark"><i class="fas fa-undo-alt"></i> Original </button>')
+            
+    } else {
+        toastr.warning('Para actualizar los productos de la cotización debes <b><a href="/stockAvailability">añadir productos disponibles</a></b>')
+    }
+        
+        
+}
+
 const newBudget = () => {
     $('#budgetModal').modal('show')
 
@@ -1168,21 +1267,6 @@ const newBudget = () => {
                 </table>
             </div>
         </div>
-        <!-- // AQUI PRODUCTOS
-        <div class="row">
-            <div class="col-md-6" id="selectProductToAddContainer">     
-                <center><select id="selectProductToAdd"><option value="default">Seleccione un producto</option></select></center>     
-            </div>
-            <div class="col-md-6">
-                <button class="btn btn-dark btn-block" id="addProductToBudget">
-                    <i style="color:#3498db;" class="fas fa-plus"></i> Añadir producto
-                </button>
-            </div>
-        </div>
-        <br>
-        <div id="budgetProductSelected"></div>
-        <div id="budgetProductsTable"></div>
-        -->
         <br>
         <div class="row">   
             <div class="col-md-6" id="checkingAccount">
@@ -1407,7 +1491,7 @@ $('#budgetModal').on('click', '.closeModal', function(){
 function updateClientsHTML() {
 
     let selectedClient = $('#selectClient').select2('data')[0].id
-    console.log('SELECTEDCLIENT',selectedClient)
+    //console.log('SELECTEDCLIENT',selectedClient)
     if(selectedClient) {
         selectedClientData = clientsArr.filter(el=> {
             return el.rut == selectedClient
@@ -1437,9 +1521,10 @@ function updateClientsHTML() {
             </table>
         `)
         $('#saveBudget').attr('disabled', false)
+        $('#saveDraftBudget').attr('disabled', false)
     } else {
         $('#saveBudget').attr('disabled', true)
-        
+        $('#saveDraftBudget').attr('disabled', true)
     }
     
 }
@@ -1500,7 +1585,8 @@ function saveBudget(type, continueDraftId) {
     }
     
     if(status == 'new') {
-        console.log(addingProductsArr, cartData)
+        /*
+        console.log('PRODUCTOS DE LA COTIZACION', addingProductsArr, cartData)
         if(addingProductsArr.length == cartData.products.length) { // 2
             validateCounter++
             budgetObj.products = addingProductsArr
@@ -1513,6 +1599,7 @@ function saveBudget(type, continueDraftId) {
                 border: '1px solid #e74c3c'
             })
         }
+        */
 
         if(selectedClientData.rut && selectedClientData.name && selectedClientData.phone && selectedClientData.email) { // 3
             validateCounter++
@@ -1527,7 +1614,7 @@ function saveBudget(type, continueDraftId) {
         }
 
 
-        if(validateCounter == 3) {
+        if(validateCounter == 2) {
             $('#saveBudget').attr('disabled', true)
             saveNewBudget(budgetObj)
         } else {
@@ -1582,7 +1669,11 @@ function saveNewBudget(budgetObj) {
             formatRes.dateOrder = dateOrder(res.ok._id) // DD/MM/YYYY to YYYYMMDD
             formatRes.reference = res.ok.reference.toUpperCase()
             formatRes.clientName = res.ok.client.name.toUpperCase()
-            formatRes.cost = comma_format(parseFloat(res.ok.amounts.iva)+parseFloat(res.ok.amounts.subtotal))
+            if(res.ok.layout.divisa == 'clp') {
+                formatRes.cost = comma_format(parseInt(res.ok.amounts.iva)+parseInt(res.ok.amounts.subtotal))    
+            } else {
+                formatRes.cost = parseFloat(res.ok.amounts.iva)+parseFloat(res.ok.amounts.subtotal)
+            }
             formatRes.divisa = res.ok.layout.divisa.toUpperCase()
             formatRes.status = 'ENVIANDO...'/*formatStatusText(res.ok.status)*/
             
@@ -1649,6 +1740,8 @@ function saveDraftBudget(budgetObj) {
         continueDraftId = budgetObj.id
     }
 
+    budgetObj.layout.layoutName = budgetObj.layout.layoutName.replace(' (original)','');
+
     ajax({
         url: 'api/draftBudget',
         type: 'POST',
@@ -1693,7 +1786,12 @@ function saveDraftBudget(budgetObj) {
             formatRes.dateOrder = dateOrder(res.ok._id) // DD/MM/YYYY to YYYYMMDD
             formatRes.reference = res.ok.reference.toUpperCase()
             formatRes.clientName = res.ok.client.name.toUpperCase()
-            formatRes.cost = comma_format(parseFloat(res.ok.amounts.iva)+parseFloat(res.ok.amounts.subtotal))
+            if(res.ok.layout.divisa == 'clp') {
+                formatRes.cost = comma_format(parseInt(res.ok.amounts.iva)+parseInt(res.ok.amounts.subtotal))    
+            } else {
+                formatRes.cost = parseFloat(res.ok.amounts.iva)+parseFloat(res.ok.amounts.subtotal)
+            }
+            
             formatRes.divisa = res.ok.layout.divisa.toUpperCase()
             formatRes.status = formatStatusText(res.ok.status)
 
@@ -1720,7 +1818,13 @@ function printLayout() {
     })[0]
 
     advancePercent = selectedLayoutData.advancePercent
-    finalCalculation()
+
+    if(selectedLayoutData.layoutName.indexOf('(original)') > -1) { // si es borrador
+        finalCalculationDraft(draftBudgetDataVar)
+    } else { // no es borrador
+        finalCalculation()
+    }
+    
     console.log(advancePercent)
     let generalInfoHTML = selectedLayoutData.generalInfo.reduce((txt, el, i)=>{
         let elReturn = ''
@@ -2007,19 +2111,19 @@ function finalCalculation() {
         } else if(selectedLayoutData.divisa == 'usd') {
             iva = 0
             amountTXT = 'USD $'
-            finalAdvanceFormat = finalAdvance
-            finalInDeliveryFormat = finalInDelivery
+            finalAdvanceFormat = finalAdvance.toFixed(2)
+            finalInDeliveryFormat = finalInDelivery.toFixed(2)
             ivaFormat = iva
-            finalAmountFormat = finalAmount
-            totalAmountFormat = finalAmount+iva
+            finalAmountFormat = finalAmount.toFixed(2)
+            totalAmountFormat = (finalAmount+iva).toFixed(2)
         } else if(selectedLayoutData.divisa == 'eur') {
             iva = 0
             amountTXT = 'EUR €'
-            finalAdvanceFormat = finalAdvance
-            finalInDeliveryFormat = finalInDelivery
+            finalAdvanceFormat = finalAdvance.toFixed(2)
+            finalInDeliveryFormat = finalInDelivery.toFixed(2)
             ivaFormat = iva
-            finalAmountFormat = finalAmount
-            totalAmountFormat = finalAmount+iva
+            finalAmountFormat = finalAmount.toFixed(2)
+            totalAmountFormat = (finalAmount+iva).toFixed(2)
         }
 
         amounts.advancedPercent = parseInt(advancePercent)
@@ -2196,25 +2300,25 @@ function finalCalculationDraft(draftBudgetData) {
         } else if(divisaSelect == 'usd') {
             iva = 0
             amountTXT = 'USD $'
-            finalAdvanceFormat = finalAdvance
-            finalInDeliveryFormat = finalInDelivery
+            finalAdvanceFormat = finalAdvance.toFixed(2)
+            finalInDeliveryFormat = finalInDelivery.toFixed(2)
             ivaFormat = iva
-            finalAmountFormat = finalAmount
-            totalAmountFormat = finalAmount+iva
+            finalAmountFormat = finalAmount.toFixed(2)
+            totalAmountFormat = (finalAmount+iva).toFixed(2)
         } else if(divisaSelect == 'eur') {
             iva = 0
             amountTXT = 'EUR €'
-            finalAdvanceFormat = finalAdvance
-            finalInDeliveryFormat = finalInDelivery
+            finalAdvanceFormat = finalAdvance.toFixed(2)
+            finalInDeliveryFormat = finalInDelivery.toFixed(2)
             ivaFormat = iva
-            finalAmountFormat = finalAmount
-            totalAmountFormat = finalAmount+iva
+            finalAmountFormat = finalAmount.toFixed(2)
+            totalAmountFormat = (finalAmount+iva).toFixed(2)
         }
 
         amounts.advancedPercent = parseInt(advancePercent)
-        amounts.finalAdvance = finalAdvance
+        amounts.finalAdvance = finalAdvance.toFixed(2)
         amounts.iva = iva
-        amounts.subtotal = finalAmount
+        amounts.subtotal = finalAmount.toFixed(2)
         console.log(amounts)
 
         
