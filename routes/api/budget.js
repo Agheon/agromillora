@@ -89,6 +89,47 @@ const Budget = [
 },
 {
     method: 'POST',
+    path: '/api/changeBudgetStatus',
+    options: {
+        handler: (request, h) => {
+            let budgetId = request.payload.id
+            let toStatus = request.payload.toStatus
+
+            return new Promise(resolve => {
+                db.find({
+                    selector: {
+                        _id: budgetId
+                    }
+                }).then(result => {
+                    if (result.docs[0]) {
+                        result.docs[0].status = toStatus
+
+                        db.insert(result.docs[0]).then(budgetRes=>{
+                            console.log(budgetRes)
+                            if(budgetRes.ok) {
+                                resolve({ ok: result.docs[0] })
+                            } else {
+                                resolve({ err: 'Ocurrio un error, por favor recargue la página' }) 
+                            }
+                        })
+
+                        resolve({ ok: result.docs[0] })
+                    } else {
+                        resolve({ err: 'No existe la cotización' })
+                    }
+                })
+            })
+        },
+        validate: {
+            payload: Joi.object().keys({
+                id: Joi.string().required(),
+                toStatus: Joi.string().required()
+            })
+        }
+    }
+},
+{
+    method: 'POST',
     path: '/api/getBudget',
     options: {
         handler: (request, h) => {

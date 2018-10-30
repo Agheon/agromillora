@@ -241,6 +241,10 @@ $(document).ready(function() {
                 $(row).find('td:eq(4)').css('color', '#34495e')
             } else if(data.status == 'CREADO') {
                 $(row).find('td:eq(4)').css('color', '#f39c12')
+            } else if(data.status == 'CANCELADO') {
+                $(row).find('td:eq(4)').css('color', '#e74c3c')
+            } else if(data.status == 'RESERVADO') {
+                $(row).find('td:eq(4)').css('color', '#16a085')
             }
         }
     });
@@ -272,7 +276,7 @@ const getBudgets = () => {
         } else if(res.ok) {
             console.log(res.ok)
             let formatRes = res.ok.map(el=>{
-                if(el.status == 'sended' || el.status == 'created' || el.status == 'approved' || el.status == 'reserved' || el.status == 'expired') {
+                if(el.status == 'sended' || el.status == 'created' || el.status == 'approved' || el.status == 'reserved' || el.status == 'canceled' || el.status == 'expired') {
                     el.number = `COT${el.number}`
                 } else if(el.status == 'draft') {
                     el.number = `BOR${el.number}`
@@ -311,6 +315,8 @@ const formatStatusText = (status) => {
         return 'APROBADO'
     } else if(status == 'reserved') {
         return 'RESERVADO'
+    } else if(status == 'canceled') {
+        return 'CANCELADO'
     } else if(status == 'expired') {
         return 'EXPIRADO'
     }
@@ -349,7 +355,7 @@ const chargeModal = () => {
             if(res.ok.status == 'draft') {
                 originalBudgetDivisa = res.ok.layout.divisa
                 draftBudget(res.ok)
-            } else if(res.ok.status == 'sended' || res.ok.status == 'created' || res.ok.status == 'approved' || res.ok.status == 'reserved' || res.ok.status == 'expired') {
+            } else if(res.ok.status == 'sended' || res.ok.status == 'created' || res.ok.status == 'approved' || res.ok.status == 'reserved' || res.ok.status == 'canceled' || res.ok.status == 'expired') {
                 sendedBudget(res.ok)
             }
         }else {
@@ -376,6 +382,10 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
         sendedStatus = '<span class="badge badge-secondary" style="background:#2ecc71;"> Enviada </span>'
     } else if(sendedBudgetData.status == 'created') {
         sendedStatus = '<span class="badge badge-secondary" style="background:#f39c12;"> Creada </span>'
+    } else if(sendedBudgetData.status == 'reserved') {
+        sendedStatus = '<span class="badge badge-secondary" style="background:#16a085;"> Reservada </span>'
+    } else if(sendedBudgetData.status == 'canceled') { // TENGO QUE CAMBIAR EL STATUS A CANCELED
+        sendedStatus = '<span class="badge badge-secondary" style="background:#e74c3c;"> Cancelada </span>' 
     }
 
     $('.modal-content').css({
@@ -439,7 +449,7 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
                     <thead>
                         <th>PRODUCTO</th>
                         <th>FECHA DE ENTREGA</th>
-                        <th>CANTIDAD A COTIZAR</th>
+                        <th>UNIDADES</th>
                         <th>PRECIO UNITARIO</th>
                         <th>PRECIO TOTAL</th>
                     </thead>
@@ -501,8 +511,77 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
     })
 
 
-    $('#budgetChangeStatus').on('change', function() {
-        console.log($(this).val())
+    $('#budgetChangeStatus').on('change', function() { // cambiar estado de una cotización
+        let thisStatus = $(this).val()
+        let statusTranslate = ''
+
+        if(thisStatus == 'reserved') {
+            statusTranslate = 'reservado'
+        } else if(thisStatus == 'canceled') {
+            statusTranslate = 'cancelado'
+        }
+        swal({
+            title: '¿Estás seguro de cambiar el estado de esta cotización?',
+            text: `El estado cambiará a ${statusTranslate}`,
+            type: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, cambiar estado',
+            cancelButtonText: 'No, cancelar'
+        }).then((result) => {
+            if(result.value) {
+                ajax({
+                    url: '/api/changeBudgetStatus',
+                    type: 'POST',
+                    data: {
+                        id: sendedBudgetData._id,
+                        toStatus: thisStatus
+                    }
+                }).then(res=>{
+                    if(res.ok) {
+                        toastr.success(`Modificada la cotización ${res.ok.number}`)
+                        $('#budgetModal').modal('hide')
+
+                        datatable
+                        .row( rowSelected )
+                        .remove()
+                        .draw()
+                        
+                        let rowCostFormat
+                        let formatRes = res.ok
+
+                        formatRes.number = `COT${res.ok.number}`
+                        if(formatRes.layout.divisa == 'clp') {
+                            rowCostFormat = comma_format(parseFloat(formatRes.amounts.iva)+parseFloat(formatRes.amounts.subtotal))
+                        } else {
+                            rowCostFormat = parseFloat(formatRes.amounts.iva)+parseFloat(formatRes.amounts.subtotal)
+                        }
+                        formatRes.dateOrder = dateOrder(formatRes._id) // DD/MM/YYYY to YYYYMMDD
+                        formatRes.reference = formatRes.reference.toUpperCase()
+                        formatRes.clientName = formatRes.client.name.toUpperCase()
+                        formatRes.cost = rowCostFormat
+                        formatRes.status = formatStatusText(formatRes.status)
+                        formatRes.divisa = formatRes.layout.divisa.toUpperCase()
+                        
+                        let newBudgetAdded = datatable
+                        .row.add(formatRes)
+                        .draw()
+                        .node()
+                        
+                        $(newBudgetAdded).css( 'color', '#1abc9c' )
+                        setTimeout(() => {
+                            $(newBudgetAdded).css( 'color', '#000000' )
+                        }, 5000)
+
+                        $('#budgetModal').modal('hide')
+
+                    } else if(res.err) {
+                        toastr.error(res.err)
+                    }
+                })
+            }
+        })
     })
 
     /*
@@ -2333,9 +2412,9 @@ function finalCalculationDraft(draftBudgetData) {
         }
 
         amounts.advancedPercent = parseInt(advancePercent)
-        amounts.finalAdvance = finalAdvance.toFixed(2)
+        amounts.finalAdvance = finalAdvance
         amounts.iva = iva
-        amounts.subtotal = finalAmount.toFixed(2)
+        amounts.subtotal = finalAmount
         console.log(amounts)
 
         
@@ -2500,7 +2579,7 @@ function exportToPdf(budgetData, statusPDF) {
         doc.setFontSize(9)
         doc.text(400, rightYPos, replaceAll(budgetData.reference, '<br>', '\n'))
 
-        let tableColumns = ['Producto', 'Precio c/u', 'Unidades', 'Monto', 'Fecha estimada de entrega'];
+        let tableColumns = ['Producto', 'Fecha estimada de entrega', 'Unidades', 'Precio unitario', 'Monto'];
 
         var tableRows = budgetData.products.reduce((arr,el,i) => {
             let unitPriceFormat
@@ -2515,10 +2594,10 @@ function exportToPdf(budgetData, statusPDF) {
 
             return arr.concat([[
                 `${el.product}`,
-                `$${unitPriceFormat}`,
+                el.deliveryDate,
                 el.qty,
-                `$${totalPriceFormat}`,
-                el.deliveryDate
+                `$${unitPriceFormat}`,
+                `$${totalPriceFormat}`
             ]])
         }, []) 
         
