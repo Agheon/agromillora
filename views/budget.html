@@ -367,7 +367,7 @@ $('#newBudget').on('click', function(){
     
 })
 
-const sendedBudget = (sendedBudgetData) => {
+const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cancelada, 
     let sendedStatus = ''
     console.log('VER STATUS', sendedBudgetData)
     if(sendedBudgetData.status == 'approved') {
@@ -472,9 +472,21 @@ const sendedBudget = (sendedBudgetData) => {
                 </button>
             </div>
 
-            <div class="col-md-5"></div>
+            <div class="col-md-3">
+                
+            </div>
 
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <div class="form-group">
+                    <select id="budgetChangeStatus" class="custom-select">
+                        <option selected value="" disabled>Cambiar estado</option>
+                        <option value="reserved">Reservado</option>
+                        <option value="canceled">Cancelado (rechazado)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="col-md-3">
                 <button class="btn btn-danger btn-block" id="exportToPdf">
                     <i class="fas fa-file-pdf"></i> Exportar a pdf
                 </button>
@@ -486,6 +498,11 @@ const sendedBudget = (sendedBudgetData) => {
 
     $('#exportToPdf').on('click', function() {
         exportToPdf(sendedBudgetData, 'view')
+    })
+
+
+    $('#budgetChangeStatus').on('change', function() {
+        console.log($(this).val())
     })
 
     /*
