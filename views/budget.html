@@ -375,6 +375,7 @@ $('#newBudget').on('click', function(){
 
 const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cancelada, 
     let sendedStatus = ''
+    let ifCreated = ''
     console.log('VER STATUS', sendedBudgetData)
     if(sendedBudgetData.status == 'approved') {
         sendedStatus = '<span class="badge badge-secondary" style="background:#3498db;"> Aprobada </span>'
@@ -382,6 +383,11 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
         sendedStatus = '<span class="badge badge-secondary" style="background:#2ecc71;"> Enviada </span>'
     } else if(sendedBudgetData.status == 'created') {
         sendedStatus = '<span class="badge badge-secondary" style="background:#f39c12;"> Creada </span>'
+        ifCreated = `
+            <button id="sendCreatedInvoice" class="btn btn-primary btn-block" >
+                <i class="fas fa-envelope"></i> Enviar
+            </button>
+        `
     } else if(sendedBudgetData.status == 'reserved') {
         sendedStatus = '<span class="badge badge-secondary" style="background:#16a085;"> Reservada </span>'
     } else if(sendedBudgetData.status == 'canceled') { // TENGO QUE CAMBIAR EL STATUS A CANCELED
@@ -483,7 +489,7 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
             </div>
 
             <div class="col-md-3">
-                
+                ${ifCreated}
             </div>
 
             <div class="col-md-3">
@@ -505,6 +511,54 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
         </div>
         <br>
     `)
+
+    $('#sendCreatedInvoice').on('click', function() {
+        sendEmailLoading(sendedBudgetData, 1)
+        //exportToPdf(sendedBudgetData, 'send')
+
+        exportToPdf(sendedBudgetData, 'send').then(sendRes=> {
+            console.log('SENDRES', sendRes)
+            if(sendRes.ok) { 
+                
+                datatable
+                .row( rowSelected )
+                .remove()
+                .draw()
+                
+                let rowCostFormat
+                let formatRes = sendRes.ok
+
+                formatRes.number = `COT${formatRes.number}`
+                if(formatRes.layout.divisa == 'clp') {
+                    rowCostFormat = comma_format(parseFloat(formatRes.amounts.iva)+parseFloat(formatRes.amounts.subtotal))
+                } else {
+                    rowCostFormat = parseFloat(formatRes.amounts.iva)+parseFloat(formatRes.amounts.subtotal)
+                }
+                formatRes.dateOrder = dateOrder(formatRes._id) // DD/MM/YYYY to YYYYMMDD
+                formatRes.reference = formatRes.reference.toUpperCase()
+                formatRes.clientName = formatRes.client.name.toUpperCase()
+                formatRes.cost = rowCostFormat
+                formatRes.status = formatStatusText(formatRes.status)
+                formatRes.divisa = formatRes.layout.divisa.toUpperCase()
+                
+                let newBudgetAdded = datatable
+                .row.add(formatRes)
+                .draw()
+                .node()
+                
+                $(newBudgetAdded).css( 'color', '#1abc9c' )
+                setTimeout(() => {
+                    $(newBudgetAdded).css( 'color', '#000000' )
+                }, 5000)
+                
+                sendEmailLoading(null, 1) // finalizar envío
+                $('#budgetModal').modal('hide')
+            } else if(sendRes.err) {
+                toastr.error(`No pudimos enviar la cotización con referencia <b>${sendedBudgetData.reference}</b> para el cliente <b>${sendedBudgetData.client.name}</b>.`)
+                sendEmailLoading(null, 1) // finalizar envío
+            }
+        })
+    })
 
     $('#exportToPdf').on('click', function() {
         exportToPdf(sendedBudgetData, 'view')

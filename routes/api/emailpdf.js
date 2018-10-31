@@ -53,7 +53,7 @@ const pdfExport = [
                 mailOptions.html = `
                     En atención a lo solicitado, adjunto la correspondiente cotización y potenciales fechas de entrega.
                     <br>
-                    <p>Para aceptar la cotización hacer clic en el siguiente link: ${process.env.APP_DOMAIN}/iacceptthequote?token=${budgetData.acceptToken}</p>
+                    <p>Para aceptar la cotización hacer clic en el siguiente enlace: <a href="${process.env.APP_DOMAIN}/iacceptthequote?token=${budgetData.acceptToken}">ACEPTO LA COTIZACIÓN</a></p>
                     <b>Recuerde que la cotización pasa a ser una reserva cuando se transfiere el anticipo estipulado en el documento adjunto.</b>
                 `
 
