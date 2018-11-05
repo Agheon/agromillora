@@ -247,6 +247,8 @@ $(document).ready(function() {
                 $(row).find('td:eq(4)').css('color', '#f39c12')
             } else if(data.status == 'CANCELADO') {
                 $(row).find('td:eq(4)').css('color', '#e74c3c')
+            } else if(data.status == 'VENCIDO') {
+                $(row).find('td:eq(4)').css('color', '#c0392b')
             } else if(data.status == 'RESERVADO') {
                 $(row).find('td:eq(4)').css('color', '#16a085')
             }
@@ -371,7 +373,7 @@ const formatStatusText = (status) => {
     } else if(status == 'canceled') {
         return 'CANCELADO'
     } else if(status == 'expired') {
-        return 'EXPIRADO'
+        return 'VENCIDO'
     }
 }
 
