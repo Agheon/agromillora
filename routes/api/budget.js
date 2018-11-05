@@ -113,7 +113,7 @@ const Budget = [
                             }
                         })
 
-                        resolve({ ok: result.docs[0] })
+                        //resolve({ ok: result.docs[0] })
                     } else {
                         resolve({ err: 'No existe la cotización' })
                     }
@@ -124,6 +124,42 @@ const Budget = [
             payload: Joi.object().keys({
                 id: Joi.string().required(),
                 toStatus: Joi.string().required()
+            })
+        }
+    }
+},
+{
+    method: 'DELETE',
+    path: '/api/deleteDraftBudget',
+    options: {
+        handler: (request, h) => {
+            let draftBudgetId = request.payload.id
+
+            return new Promise(resolve => {
+                db.find({
+                    selector: {
+                        _id: draftBudgetId
+                    }
+                }).then(result => {
+                    if (result.docs[0]) {
+
+                        db.destroy(result.docs[0]._id, result.docs[0]._rev).then(destroyRes=>{
+                            if(destroyRes.ok) {
+                                resolve({ok: result.docs[0]})
+                            } else {
+                                resolve({err: 'No hemos podido eliminar el borrador'})
+                            }
+                        })
+                        
+                    } else {
+                        resolve({ err: 'No existe el borrador' })
+                    }
+                })
+            })
+        },
+        validate: {
+            payload: Joi.object().keys({
+                id: Joi.string().required()
             })
         }
     }

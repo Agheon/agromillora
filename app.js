@@ -7,7 +7,7 @@ import hapiRouter from 'hapi-router'
 import hapiAuthCookie from 'hapi-auth-cookie'
 import moment from 'moment'
 import dotEnv from 'dotenv'
-import updateProducts from './cronJobs/updateProducts' // CRON JOB
+import updateDaily from './cronJobs/updateDaily' // CRON JOB
 dotEnv.load()
 
 const server = Hapi.server({

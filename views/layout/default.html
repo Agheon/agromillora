@@ -317,6 +317,11 @@
         function removeExtraSpaces(val) {
             return val.replace(/\s+/g, ' ').trim()
         }
+        
+        function removePoints(amount) {
+            let replace = amount.split('.').join('');
+            return parseInt(replace);
+        }
 
         function removeCommas(amount) {
             let replace = amount.split(',').join('');

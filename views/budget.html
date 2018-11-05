@@ -2,6 +2,10 @@
 
 {{#extend "css"}}
     <style>
+        .select2-search{
+            z-index: 9999 !important;
+        }
+
         .sended {
             color: #2196F3;
         }
@@ -144,7 +148,7 @@
                 <th scope="col">NOMBRE DEL CLIENTE</th>
                 <th scope="col">ESTADO</th>
                 <th scope="col">DIVISA</th>
-                <th scope="col">COSTO</th>
+                <th scope="col">MONTO VENTA</th>
             </tr>
         </thead>
         <tbody></tbody>
@@ -152,7 +156,7 @@
 </div>
 
 <!-- Modal -->
-<div class="modal fade" id="budgetModal" data-keyboard="false" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="modal_title">
+<div class="modal fade" id="budgetModal" data-keyboard="false" data-backdrop="static" role="dialog" aria-labelledby="modal_title">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header" id="modal_header">
@@ -181,6 +185,7 @@ let addingProductStatus = 0
 let productSelectedObj = {}
 let s2ValueToAdd = ''
 let clientsArr = [] //Arreglo con todos los clientes
+let clientsNavisionArr = [] //Arreglo con todos los clientes navision
 let s2EnabledProducts = [] // select2 de productos habilitados (values)
 let addingProductsArr = [] // arreglo de productos a añadir a la cotización
 let advancePercent = 0 // porcentaje de avance
@@ -284,9 +289,9 @@ const getBudgets = () => {
                 
                 let rowCostFormat
                 if(el.layout.divisa == 'clp') {
-                    rowCostFormat = comma_format(parseFloat(el.amounts.iva)+parseFloat(el.amounts.subtotal))
+                    rowCostFormat = number_format(parseInt(el.amounts.iva)+parseInt(el.amounts.subtotal)); //comma_format(parseFloat(el.amounts.iva)+parseFloat(el.amounts.subtotal))
                 } else{ 
-                    rowCostFormat = parseFloat(el.amounts.iva)+parseFloat(el.amounts.subtotal)
+                    rowCostFormat = (parseFloat(el.amounts.iva)+parseFloat(el.amounts.subtotal)).toFixed(2)
                 }
 
                 el.dateOrder = dateOrder(el._id) // DD/MM/YYYY to YYYYMMDD
@@ -373,7 +378,7 @@ $('#newBudget').on('click', function(){
     
 })
 
-const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cancelada, 
+const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cancelada...
     let sendedStatus = ''
     let ifCreated = ''
     console.log('VER STATUS', sendedBudgetData)
@@ -530,9 +535,9 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
 
                 formatRes.number = `COT${formatRes.number}`
                 if(formatRes.layout.divisa == 'clp') {
-                    rowCostFormat = comma_format(parseFloat(formatRes.amounts.iva)+parseFloat(formatRes.amounts.subtotal))
+                    rowCostFormat = number_format(parseInt(formatRes.amounts.iva)+parseInt(formatRes.amounts.subtotal))
                 } else {
-                    rowCostFormat = parseFloat(formatRes.amounts.iva)+parseFloat(formatRes.amounts.subtotal)
+                    rowCostFormat = (parseFloat(formatRes.amounts.iva)+parseFloat(formatRes.amounts.subtotal)).toFixed(2)
                 }
                 formatRes.dateOrder = dateOrder(formatRes._id) // DD/MM/YYYY to YYYYMMDD
                 formatRes.reference = formatRes.reference.toUpperCase()
@@ -607,9 +612,9 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
 
                         formatRes.number = `COT${res.ok.number}`
                         if(formatRes.layout.divisa == 'clp') {
-                            rowCostFormat = comma_format(parseFloat(formatRes.amounts.iva)+parseFloat(formatRes.amounts.subtotal))
+                            rowCostFormat = number_format(parseInt(formatRes.amounts.iva)+parseInt(formatRes.amounts.subtotal))
                         } else {
-                            rowCostFormat = parseFloat(formatRes.amounts.iva)+parseFloat(formatRes.amounts.subtotal)
+                            rowCostFormat = (parseFloat(formatRes.amounts.iva)+parseFloat(formatRes.amounts.subtotal)).toFixed(2)
                         }
                         formatRes.dateOrder = dateOrder(formatRes._id) // DD/MM/YYYY to YYYYMMDD
                         formatRes.reference = formatRes.reference.toUpperCase()
@@ -691,13 +696,19 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
         BUDGET PRODUCTS INIT
     */
     let productsInBudget = sendedBudgetData.products.reduce((htmlTXT,el,i)=>{
+        let formatTotalPrice
+        if(sendedBudgetData.layout.divisa == 'clp') {
+            formatTotalPrice = number_format(el.totalPrice)
+        } else {
+            formatTotalPrice = el.totalPrice
+        }
         return htmlTXT += `
         <tr>
             <td>${el.product}</td>
             <td>${el.deliveryDate}</td>
-            <td>${el.qty}</td>
-            <td>$${el.unitPrice}</td>
-            <td>$${el.totalPrice}</td>
+            <td>${number_format(el.qty)}</td>
+            <td>${el.unitPrice}</td>
+            <td>${formatTotalPrice}</td>
         </tr>
         `
     }, '')
@@ -762,11 +773,11 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
     if(sendedBudgetData.layout.divisa == 'clp') {
         iva = parseInt(amountTax)
         amountTXT = 'CLP $'
-        finalAdvanceFormat = comma_format(finalAdvance)
-        finalInDeliveryFormat = comma_format(finalInDelivery)
-        ivaFormat = comma_format(iva)
-        finalAmountFormat = comma_format(sendedBudgetData.amounts.subtotal)
-        totalAmountFormat = comma_format(parseInt(sendedBudgetData.amounts.subtotal)+iva)
+        finalAdvanceFormat = number_format(finalAdvance)
+        finalInDeliveryFormat = number_format(finalInDelivery)
+        ivaFormat = number_format(iva)
+        finalAmountFormat = number_format(sendedBudgetData.amounts.subtotal)
+        totalAmountFormat = number_format(parseInt(sendedBudgetData.amounts.subtotal)+iva)
     } else if (sendedBudgetData.layout.divisa == 'usd') {
         iva = 0
         amountTXT = 'USD $'
@@ -881,8 +892,23 @@ const draftBudget = (draftBudgetData) => {
 
         <div class="row">
             <div class="col-md-6">
-                <p>Cliente:</p>
-                <center><select id="selectClient" name="clientName"></select></center>
+                <nav>
+                    <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                        <a class="nav-item nav-link active" id="nav-clients-tab" data-toggle="tab" href="#nav-clients" role="tab" aria-controls="nav-clients" aria-selected="true">Clientes</a>
+                        <a class="nav-item nav-link" id="nav-navision-tab" data-toggle="tab" href="#nav-navision" role="tab" aria-controls="nav-navision" aria-selected="false">Clientes Navision</a>
+                    </div>
+                </nav>
+                <div class="tab-content" id="nav-tabContent">
+                    <div class="tab-pane fade show active" id="nav-clients" role="tabpanel" aria-labelledby="nav-clients-tab">
+                        <br>
+                        <center><select id="selectClient" name="clientName"></select></center>
+                    </div>
+                    <div class="tab-pane fade" id="nav-navision" role="tabpanel" aria-labelledby="nav-navision-tab">
+                        <br>
+                        <center><select id="selectClientNavision" name="navisionClientName"><option></option></select></center>
+                    </div>
+                </div>
+
                 <div id="selectedClientInfo"></div>
             </div>
             
@@ -941,13 +967,19 @@ const draftBudget = (draftBudgetData) => {
         <hr>
         
         <div class="row" style="margin-left:10px; margin-right:10px;">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <button class="btn btn-secondary btn-block closeBudgetModal" >
                     <i style="color:#e74c3c;" class="fas fa-times"></i> Cerrar
                 </button>
             </div>
 
-            <div class="col-md-5">
+            <div class="col-md-2">
+                <button class="btn btn-danger btn-block" id="deleteDraftBudget">
+                    <i class="fas fa-trash-alt"></i> Eliminar
+                </button>
+            </div>
+
+            <div class="col-md-4">
                 <button class="btn btn-secondary btn-block" id="saveDraftBudget">
                     <i class="fas fa-save"></i> Guardar como borrador
                 </button>
@@ -962,8 +994,37 @@ const draftBudget = (draftBudgetData) => {
         <br>
     `)
 
+    $('#deleteDraftBudget').on('click', function() {
+        swal({
+            title: '¿Seguro de eliminar el borrador?',
+            text: 'No podrás revertir esta acción',
+            type: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Si, eliminar',
+            cancelButtonText: 'No, cancelar'
+        }).then((result) => {
+            if (result.value) {
+                deleteDraftBudget(draftBudgetData._id).then(res=>{
+                    if (res.ok) {
+                        datatable
+                        .row( rowSelected )
+                        .remove()
+                        .draw()
+                        $('#budgetModal').modal('hide')
+                        toastr.success(`Borrador ${draftBudgetData.number} eliminado correctamente`)
+                    } else if(res.err) {
+                        toastr.error(`El borrador ${draftBudgetData.number} no fue eliminado`)
+                    }
+                })
+            }
+        })
+        
+    })
+
     $('#saveBudget').on('click', function(){
-        saveBudget('new')
+        saveBudget('new', draftBudgetData._id)
     })
 
     $('#saveDraftBudget').on('click', function(){
@@ -986,7 +1047,7 @@ const draftBudget = (draftBudgetData) => {
             <tr id="toInvoiceRow-${i}">
                 <td>${el.product}</td>
                 <td>${el.deliveryDate}</td>
-                <td class="qtyProductClass" id="qtyProduct-${i}">${el.qty}</td>
+                <td class="qtyProductClass" id="qtyProduct-${i}">${number_format(el.qty)}</td>
                 <td>
                     <div class="form-group">
                         <input value="${el.unitPrice}" min="0" id="toInvoiceProductPrice-${i}" class="form-control ${justNumbersSelected} productPrice" type="number" placeholder="Costo unitario">
@@ -1061,20 +1122,14 @@ const draftBudget = (draftBudgetData) => {
                 printLayout() // draft
             });
 
-
             getClients().then(clients=>{
-                let s2clients = [] 
+                let s2clients = []
                 s2clients[0] = { // plantilla original de la cotización en borrador
                     id: draftBudgetData.client.rut,
                     text: draftBudgetData.client.name +' (original)'
                 }
-                s2clients = clients.reduce((arr, el, i)=>{
-                    /*
-                    let test = arr.filter(el=> {
-                        return 
-                    })
-                    */
 
+                s2clients = clients.reduce((arr, el, i)=>{
                     return arr.concat({
                         id: el.rut,
                         text: el.name
@@ -1087,11 +1142,36 @@ const draftBudget = (draftBudgetData) => {
                 })
 
                 $('#selectClient').on('select2:select', function (e) {
-                    updateClientsHTML()
+                    if($('#selectClient').select2('data')[0].text.indexOf('(original)') > -1) {
+                        updateClientsHTML(draftBudgetData.client)
+                    } else {
+                        updateClientsHTML()
+                    }
+                });
+
+                updateClientsHTML(draftBudgetData.client)
+            })
+
+            getClientsNavision().then(clients=>{
+                let s2clients = clients.reduce((arr, el, i)=>{
+                    return arr.concat({
+                        id: el.No_,
+                        text: el.Name
+                    })
+                }, [])
+
+                $('#selectClientNavision').select2({
+                    width:'80%',
+                    data: s2clients,
+                    placeholder: 'Seleccione un cliente'
+                })
+
+                $('#selectClientNavision').on('select2:select', function (e) {
+                    updateClientsNavisionHTML()
                 });
 
 
-                updateClientsHTML()
+                //updateClientsNavisionHTML()
             })
 
             getProducts().then(products=>{
@@ -1271,6 +1351,24 @@ function backAction () {
     $('#draftActionButtonContainer').html('<button onclick="updateAction()" id="draftActionButton" class="btn btn-sm btn-dark"><i class="fas fa-retweet"></i> Actualizar </button>')
 }
 
+function deleteDraftBudget(id) {
+    return new Promise(resolve=> {
+        ajax({
+            url: 'api/deleteDraftBudget',
+            type: 'DELETE',
+            data: {
+                id: id
+            }
+        }).then(res=>{
+            if(res.ok) {
+                resolve({ok: res.ok})
+            } else if(res.err) {
+                resolve({err: res.err})
+            }
+        })
+    })
+}
+
 function updateAction() {
     if(cartData) {
         let justNumbersSelected = ''
@@ -1284,7 +1382,7 @@ function updateAction() {
                 <tr id="toInvoiceRow-${i}">
                     <td>${el.productName}</td>
                     <td>${el.deliveryDate}</td>
-                    <td class="qtyProductClass" id="qtyProduct-${i}">${el.qty}</td>
+                    <td class="qtyProductClass" id="qtyProduct-${i}">${number_format(el.qty)}</td>
                     <td>
                         <div class="form-group">
                             <input value="0" min="0" id="toInvoiceProductPrice-${i}" class="form-control ${justNumbersSelected} productPrice" type="number" placeholder="Costo unitario">
@@ -1377,8 +1475,23 @@ const newBudget = () => {
 
         <div class="row">
             <div class="col-md-6">
-                <p>Cliente:</p>
-                <center><select id="selectClient" name="clientName"><option></option></select></center>
+                <nav>
+                    <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                        <a class="nav-item nav-link active" id="nav-clients-tab" data-toggle="tab" href="#nav-clients" role="tab" aria-controls="nav-clients" aria-selected="true">Clientes</a>
+                        <a class="nav-item nav-link" id="nav-navision-tab" data-toggle="tab" href="#nav-navision" role="tab" aria-controls="nav-navision" aria-selected="false">Clientes Navision</a>
+                    </div>
+                </nav>
+                <div class="tab-content" id="nav-tabContent">
+                    <div class="tab-pane fade show active" id="nav-clients" role="tabpanel" aria-labelledby="nav-clients-tab">
+                        <br>
+                        <center><select id="selectClient" name="clientName"><option></option></select></center>
+                    </div>
+                    <div class="tab-pane fade" id="nav-navision" role="tabpanel" aria-labelledby="nav-navision-tab">
+                        <br>
+                        <center><select id="selectClientNavision" name="navisionClientName"><option></option></select></center>
+                    </div>
+                </div>
+
                 <div id="selectedClientInfo"></div>
             </div>
             
@@ -1455,20 +1568,23 @@ const newBudget = () => {
             </div>
 
             <div class="col-md-5">
-                <button class="btn btn-secondary btn-block" id="saveDraftBudget">
+                <button class="btn btn-secondary btn-block" id="saveDraftBudget" disabled>
                     <i class="fas fa-save"></i> Guardar como borrador
                 </button>
             </div>
 
             <div class="col-md-4">
-                <button class="btn btn-primary btn-block" id="saveBudget">
+                <button class="btn btn-primary btn-block" id="saveBudget" disabled>
                     <i class="fas fa-save"></i> Guardar cotización
                 </button>
             </div>
         </div>
         <br>
     `)
-
+    /*
+    $('#saveBudget').attr('disabled', true)
+    $('#saveDraftBudget').attr('disabled', true)
+    */
     $('#saveBudget').on('click', function(){
         saveBudget('new')
     })
@@ -1521,7 +1637,29 @@ const newBudget = () => {
                 });
 
 
-                updateClientsHTML()
+                //updateClientsHTML()
+            })
+
+            getClientsNavision().then(clients=>{
+                let s2clients = clients.reduce((arr, el, i)=>{
+                    return arr.concat({
+                        id: el.No_,
+                        text: el.Name
+                    })
+                }, [])
+
+                $('#selectClientNavision').select2({
+                    width:'80%',
+                    data: s2clients,
+                    placeholder: 'Seleccione un cliente'
+                })
+
+                $('#selectClientNavision').on('select2:select', function (e) {
+                    updateClientsNavisionHTML()
+                });
+
+
+                //updateClientsNavisionHTML()
             })
             
             getTime().then(time=>{
@@ -1581,7 +1719,7 @@ const newBudget = () => {
                     <tr id="toInvoiceRow-${i}">
                         <td>${el.productName}</td>
                         <td>${el.deliveryDate}</td>
-                        <td class="qtyProductClass" id="qtyProduct-${i}">${el.qty}</td>
+                        <td class="qtyProductClass" id="qtyProduct-${i}">${number_format(el.qty)}</td>
                         <td>
                             <div class="form-group">
                                 <input value="0" min="0" id="toInvoiceProductPrice-${i}" class="form-control ${justNumbersSelected} productPrice" type="number" placeholder="Costo unitario">
@@ -1638,14 +1776,18 @@ $('#budgetModal').on('click', '.closeModal', function(){
 })
 
 
-function updateClientsHTML() {
+function updateClientsHTML(originalClientData) { // originalClientData en caso que sea borrador
 
     let selectedClient = $('#selectClient').select2('data')[0].id
     //console.log('SELECTEDCLIENT',selectedClient)
     if(selectedClient) {
-        selectedClientData = clientsArr.filter(el=> {
-            return el.rut == selectedClient
-        })[0]
+        if(originalClientData) {
+            selectedClientData = originalClientData
+        } else {
+            selectedClientData = clientsArr.filter(el=> {
+                return el.rut == selectedClient
+            })[0]
+        }
         
         $('#selectedClientInfo').html(`
         <br>
@@ -1677,6 +1819,71 @@ function updateClientsHTML() {
         $('#saveDraftBudget').attr('disabled', true)
     }
     
+}
+
+
+function updateClientsNavisionHTML() {
+
+    let selectedClient = $('#selectClientNavision').select2('data')[0].id
+    //console.log('SELECTEDCLIENT',selectedClient)
+    if(selectedClient) {
+        let selectedClientDataRough = clientsNavisionArr.filter(el=> { //recoger todo en bruto
+            return el.No_ == selectedClient
+        })[0]
+        
+        selectedClientData = {
+            rut: selectedClientDataRough.No_,
+            name: selectedClientDataRough.Name,
+            phone: selectedClientDataRough['Phone No_'],
+            email: selectedClientDataRough['E-Mail']
+        }
+        console.log(selectedClientData)
+
+        let withoutEmail = ''
+        let withoutPhone = ''
+
+        if(selectedClientData.email == '') {
+            withoutEmail = `<input id="withoutEmail" class="form-control border-input" type="text" placeholder="Debe ingresar un email"`
+        } else {
+            withoutEmail = `<center><b>${selectedClientData.email}</b></center>`
+        }
+
+        if(selectedClientData.phone == '') {
+            withoutPhone = `<input id="withoutPhone" class="form-control border-input" type="text" placeholder="Debe ingresar un teléfono"`
+        } else {
+            withoutPhone = `<center><b>${selectedClientData.phone}</b></center>`
+        }
+        
+        $('#selectedClientInfo').html(`
+        <br>
+            <table class="table">
+                <tbody>
+                    <tr>
+                        <td><center>Rut</center></td>
+                        <td><center><b>${rutFunc(selectedClientData.rut)}</b></center></td>
+                    </tr>
+                    <tr>
+                        <td><center>Nombre</center></td>
+                        <td><center><b>${selectedClientData.name}</b></center></td>
+                    </tr>
+                    <tr>
+                        <td><center>Teléfono</center></td>
+                        <td>${withoutPhone}</td>
+                    </tr>
+                    <tr>
+                        <td><center>Email</center></td>
+                        <td>${withoutEmail}</td>
+                    </tr>
+                </tbody>
+            </table>
+        `)
+        $('#saveBudget').attr('disabled', false)
+        $('#saveDraftBudget').attr('disabled', false)
+    } else {
+        $('#saveBudget').attr('disabled', true)
+        $('#saveDraftBudget').attr('disabled', true)
+    }
+
 }
 
 function saveBudget(type, continueDraftId) {
@@ -1721,8 +1928,94 @@ function saveBudget(type, continueDraftId) {
 
     if(status == 'draft') {
         if(budgetObj.reference.length > 0 && validateCounter > 0) {
-            saveDraftBudget(budgetObj)
-            $('#errorMessage').empty()
+
+            if(selectedClientData.rut && selectedClientData.name && selectedClientData.phone != '' && isEmail(selectedClientData.email)) { // 2
+                validateCounter++
+                $('#selectedClientInfo').css({
+                    border: '1px solid #3498db'
+                })
+            } else {
+                let validateClient = 0 // debe llegar a 2
+                selectedClientData.email = $('#withoutEmail').val()
+                selectedClientData.phone = $('#withoutPhone').val()
+
+                if(selectedClientData.phone == '') {
+                    $('#withoutPhone').css({
+                        border: '1px solid #e74c3c'
+                    })
+                } else {
+                    validateClient++
+                    $('#withoutPhone').css({
+                        border: '1px solid #3498db'
+                    })
+                    
+                }
+
+                if(selectedClientData.email == '') {
+                    $('#withoutEmail').css({
+                        border: '1px solid #e74c3c'
+                    })
+                } else {
+                    if(isEmail(selectedClientData.email)) {
+                        validateClient++
+                        $('#withoutEmail').css({
+                            border: '1px solid #3498db'
+                        })
+                    } else {
+                        $('#withoutEmail').css({
+                            border: '1px solid #e74c3c'
+                        })
+                    }
+                }
+                
+                console.log(selectedClientData)
+                if(validateClient == 2) {
+                    validateCounter++
+                    $('#selectedClientInfo').css({
+                        border: '1px solid #3498db'
+                    })
+                    
+                } else {
+                    errorMessage += `<br> * Debe seleccionar un cliente.`
+
+                    $('#selectedClientInfo').css({
+                        border: '1px solid #e74c3c'
+                    })
+                }
+
+                
+            }
+
+            $('#saveBudget').attr('disabled', true)
+            $('#saveDraftBudget').attr('disabled', true)
+            setTimeout(() => {
+                if(validateCounter == 2) {
+                    console.log('CORRECTO',selectedClientData)
+                    
+                    $('#saveBudget').attr('disabled', true)
+
+                    budgetObj.client.rut = selectedClientData.rut
+                    budgetObj.client.name = selectedClientData.name
+                    budgetObj.client.phone = selectedClientData.phone
+                    budgetObj.client.email = selectedClientData.email
+
+                    saveDraftBudget(budgetObj)
+                    
+                    $('#errorMessage').empty()
+                } else {
+                    $('#errorMessage').html(`
+                    <div class="alert alert-dismissible alert-warning">
+                        <button type="button" class="close" data-dismiss="alert">&times;</button>
+                        <h4 class="alert-heading">Debe solucionar los siguientes errores:</h4>
+                        <p class="mb-0">${errorMessage}</p>
+                    </div> 
+                    `)
+
+                    $('#saveBudget').attr('disabled', false)
+                    $('#saveDraftBudget').attr('disabled', false)
+                }    
+            }, 1000);
+
         } else {
             $('#errorMessage').html(`
             <div class="alert alert-dismissible alert-warning">
@@ -1751,31 +2044,103 @@ function saveBudget(type, continueDraftId) {
         }
         */
 
-        if(selectedClientData.rut && selectedClientData.name && selectedClientData.phone && selectedClientData.email) { // 3
+        if(selectedClientData.rut && selectedClientData.name && selectedClientData.phone != '' && isEmail(selectedClientData.email)) { // 2
             validateCounter++
             $('#selectedClientInfo').css({
                 border: '1px solid #3498db'
             })
         } else {
-            errorMessage += `<br> * Debe seleccionar un cliente.`
-            $('#selectedClientInfo').css({
-                border: '1px solid #e74c3c'
-            })
+            let validateClient = 0 // debe llegar a 2
+            selectedClientData.email = $('#withoutEmail').val()
+            selectedClientData.phone = $('#withoutPhone').val()
+
+            if(selectedClientData.phone == '') {
+                $('#withoutPhone').css({
+                    border: '1px solid #e74c3c'
+                })
+            } else {
+                validateClient++
+                $('#withoutPhone').css({
+                    border: '1px solid #3498db'
+                })
+                
+            }
+
+            if(selectedClientData.email == '') {
+                $('#withoutEmail').css({
+                    border: '1px solid #e74c3c'
+                })
+            } else {
+                if(isEmail(selectedClientData.email)) {
+                    validateClient++
+                    $('#withoutEmail').css({
+                        border: '1px solid #3498db'
+                    })
+                } else {
+                    $('#withoutEmail').css({
+                        border: '1px solid #e74c3c'
+                    })
+                }
+            }
+            
+            console.log(selectedClientData)
+            if(validateClient == 2) {
+                validateCounter++
+                $('#selectedClientInfo').css({
+                    border: '1px solid #3498db'
+                })
+                
+            } else {
+                errorMessage += `<br> * Debe seleccionar un cliente.`
+
+                $('#selectedClientInfo').css({
+                    border: '1px solid #e74c3c'
+                })
+            }
+
+            
         }
 
+        $('#saveBudget').attr('disabled', true)
+        $('#saveDraftBudget').attr('disabled', true)
+        setTimeout(() => {
+            if(validateCounter == 2) {
+                $('#saveBudget').attr('disabled', true)
+                
+                if(continueDraftId) { // en caso que se cree una nueva cotización desde un borrador
+                    deleteDraftBudget(continueDraftId).then(res=>{
+                        if (res.ok) {
+                            datatable
+                            .row( rowSelected )
+                            .remove()
+                            .draw()
+                            //$('#budgetModal').modal('hide')
+                            //toastr.success(`Borrador ${draftBudgetData.number} eliminado correctamente`)
+                        } else if(res.err) {
+                            //toastr.error(`El borrador ${draftBudgetData.number} no fue eliminado`)
+                        }
+                    })
+                }
 
-        if(validateCounter == 2) {
-            $('#saveBudget').attr('disabled', true)
-            saveNewBudget(budgetObj)
-        } else {
-            $('#errorMessage').html(`
-            <div class="alert alert-dismissible alert-warning">
-                <button type="button" class="close" data-dismiss="alert">&times;</button>
-                <h4 class="alert-heading">Debe solucionar los siguientes errores:</h4>
-                <p class="mb-0">${errorMessage}</p>
-            </div> 
-            `)
-        }
+                budgetObj.client.rut = selectedClientData.rut
+                budgetObj.client.name = selectedClientData.name
+                budgetObj.client.phone = selectedClientData.phone
+                budgetObj.client.email = selectedClientData.email
+                saveNewBudget(budgetObj)
+            } else {
+                $('#errorMessage').html(`
+                <div class="alert alert-dismissible alert-warning">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    <h4 class="alert-heading">Debe solucionar los siguientes errores:</h4>
+                    <p class="mb-0">${errorMessage}</p>
+                </div> 
+                `)
+
+                $('#saveBudget').attr('disabled', false)
+                $('#saveDraftBudget').attr('disabled', false)
+            }    
+        }, 1000);
+        
     }
 }
 
@@ -1820,9 +2185,9 @@ function saveNewBudget(budgetObj) {
             formatRes.reference = res.ok.reference.toUpperCase()
             formatRes.clientName = res.ok.client.name.toUpperCase()
             if(res.ok.layout.divisa == 'clp') {
-                formatRes.cost = comma_format(parseInt(res.ok.amounts.iva)+parseInt(res.ok.amounts.subtotal))    
+                formatRes.cost = number_format(parseInt(res.ok.amounts.iva)+parseInt(res.ok.amounts.subtotal))    
             } else {
-                formatRes.cost = parseFloat(res.ok.amounts.iva)+parseFloat(res.ok.amounts.subtotal)
+                formatRes.cost = (parseFloat(res.ok.amounts.iva)+parseFloat(res.ok.amounts.subtotal)).toFixed(2)
             }
             formatRes.divisa = res.ok.layout.divisa.toUpperCase()
             formatRes.status = 'ENVIANDO...'/*formatStatusText(res.ok.status)*/
@@ -1937,9 +2302,9 @@ function saveDraftBudget(budgetObj) {
             formatRes.reference = res.ok.reference.toUpperCase()
             formatRes.clientName = res.ok.client.name.toUpperCase()
             if(res.ok.layout.divisa == 'clp') {
-                formatRes.cost = comma_format(parseInt(res.ok.amounts.iva)+parseInt(res.ok.amounts.subtotal))    
+                formatRes.cost = number_format(parseInt(res.ok.amounts.iva)+parseInt(res.ok.amounts.subtotal))    
             } else {
-                formatRes.cost = parseFloat(res.ok.amounts.iva)+parseFloat(res.ok.amounts.subtotal)
+                formatRes.cost = (parseFloat(res.ok.amounts.iva)+parseFloat(res.ok.amounts.subtotal)).toFixed(2)
             }
             
             formatRes.divisa = res.ok.layout.divisa.toUpperCase()
@@ -2099,6 +2464,23 @@ function getClients() {
     })
 }
 
+function getClientsNavision() {
+    return new Promise(resolve=> {
+        ajax({
+            url:'api/clientsNavision'
+        }).then(res=> {
+            if(res.ok) {
+                console.log(res)
+                clientsNavisionArr = res.ok.list
+                resolve(res.ok.list)
+            } else if (res.err) {
+                toastr.warning(res.err)
+                resolve(null)
+            }     
+        })
+    })
+}
+
 $('#modal_body').on('change', '#inputSelectDivisa', function() {
     if($(this).val() == 'clp') {
         selectedLayoutData.divisa = 'clp'
@@ -2148,7 +2530,7 @@ function finalCalculation() {
 
         $('.qtyProductClass').each(function( i, el ) {
             $(`#toInvoiceProductTotalPrice-${i}`).html(`
-                ${comma_format($(`#qtyProduct-${i}`).text() * $(`#toInvoiceProductPrice-${i}`).val())}
+                ${number_format(removePoints($(`#qtyProduct-${i}`).text()) * $(`#toInvoiceProductPrice-${i}`).val())}
             `)
             
         });
@@ -2173,7 +2555,7 @@ function finalCalculation() {
             //console.log($(`#qtyProduct-${i}`).text())
             
             $(`#toInvoiceProductTotalPrice-${i}`).html(`
-                ${($(`#qtyProduct-${i}`).text() * $(el).val()).toFixed(1)}
+                ${(removePoints($(`#qtyProduct-${i}`).text()) * $(el).val()).toFixed(2)}
             `)
             
         });
@@ -2196,7 +2578,7 @@ function finalCalculation() {
 
         $('.productPrice').each(function( i, el ) {
             $(`#toInvoiceProductTotalPrice-${i}`).html(`
-                ${($(`#qtyProduct-${i}`).text() * $(el).val()).toFixed(1)}
+                ${(removePoints($(`#qtyProduct-${i}`).text()) * $(el).val()).toFixed(2)}
             `)
         });
     }
@@ -2210,18 +2592,18 @@ function finalCalculation() {
         addingProductsArr = rowsToInvoice.reduce((arr, el, i)=> {
             let rowTotalPrice
             if(selectedLayoutData.divisa == 'clp') {
-                rowTotalPrice = removeCommas(el.cells[4].innerText)
+                rowTotalPrice = parseInt(removePoints(el.cells[4].innerText))
             } else {
                 
                 rowTotalPrice = parseFloat(el.cells[4].innerText)
-                console.log('PRICE', el.cells[4].innerText)
-                console.log('PRICECOMMAS:' , rowTotalPrice)
+                //console.log('PRICE', el.cells[4].innerText)
+                //console.log('PRICECOMMAS:' , rowTotalPrice)
             }
             console.log('rowTotalPrice', rowTotalPrice)
             return arr.concat({
                 product: el.cells[0].innerText,
                 deliveryDate: el.cells[1].innerText,
-                qty: el.cells[2].innerText,
+                qty: removePoints(el.cells[2].innerText),
                 unitPrice: $(`#toInvoiceProductPrice-${i}`).val(),
                 totalPrice: rowTotalPrice
             })   
@@ -2253,11 +2635,11 @@ function finalCalculation() {
         if(selectedLayoutData.divisa == 'clp') {
             iva = parseInt(amountTax)
             amountTXT = 'CLP $'
-            finalAdvanceFormat = comma_format(finalAdvance)
-            finalInDeliveryFormat = comma_format(finalInDelivery)
-            ivaFormat = comma_format(iva)
-            finalAmountFormat = comma_format(finalAmount)
-            totalAmountFormat = comma_format(finalAmount+iva)
+            finalAdvanceFormat = number_format(finalAdvance)
+            finalInDeliveryFormat = number_format(finalInDelivery)
+            ivaFormat = number_format(iva)
+            finalAmountFormat = number_format(finalAmount)
+            totalAmountFormat = number_format(finalAmount+iva)
         } else if(selectedLayoutData.divisa == 'usd') {
             iva = 0
             amountTXT = 'USD $'
@@ -2337,7 +2719,7 @@ function finalCalculationDraft(draftBudgetData) {
 
         $('.qtyProductClass').each(function( i, el ) {
             $(`#toInvoiceProductTotalPrice-${i}`).html(`
-                ${comma_format($(`#qtyProduct-${i}`).text() * $(`#toInvoiceProductPrice-${i}`).val())}
+                ${number_format(removePoints($(`#qtyProduct-${i}`).text()) * $(`#toInvoiceProductPrice-${i}`).val())}
             `)
             
         });
@@ -2362,7 +2744,7 @@ function finalCalculationDraft(draftBudgetData) {
             //console.log($(`#qtyProduct-${i}`).text())
             
             $(`#toInvoiceProductTotalPrice-${i}`).html(`
-                ${($(`#qtyProduct-${i}`).text() * $(el).val()).toFixed(1)}
+                ${(removePoints($(`#qtyProduct-${i}`).text()) * $(el).val()).toFixed(2)}
             `)
             
         });
@@ -2385,7 +2767,7 @@ function finalCalculationDraft(draftBudgetData) {
 
         $('.productPrice').each(function( i, el ) {
             $(`#toInvoiceProductTotalPrice-${i}`).html(`
-                ${($(`#qtyProduct-${i}`).text() * $(el).val()).toFixed(1)}
+                ${(removePoints($(`#qtyProduct-${i}`).text()) * $(el).val()).toFixed(2)}
             `)
         });
     }
@@ -2395,11 +2777,10 @@ function finalCalculationDraft(draftBudgetData) {
     setTimeout(() => {
         let rowsToInvoice = [...$('#budgetProductsCart')[0].children]
         
-        
         addingProductsArr = rowsToInvoice.reduce((arr, el, i)=> {
             let rowTotalPrice
             if(divisaSelect == 'clp') {
-                rowTotalPrice = removeCommas(el.cells[4].innerText)
+                rowTotalPrice = removePoints(el.cells[4].innerText)
             } else {
                 
                 rowTotalPrice = parseFloat(el.cells[4].innerText)
@@ -2410,7 +2791,7 @@ function finalCalculationDraft(draftBudgetData) {
             return arr.concat({
                 product: el.cells[0].innerText,
                 deliveryDate: el.cells[1].innerText,
-                qty: el.cells[2].innerText,
+                qty: removePoints(el.cells[2].innerText),
                 unitPrice: $(`#toInvoiceProductPrice-${i}`).val(),
                 totalPrice: rowTotalPrice
             })   
@@ -2442,11 +2823,11 @@ function finalCalculationDraft(draftBudgetData) {
         if(divisaSelect == 'clp') {
             iva = parseInt(amountTax)
             amountTXT = 'CLP $'
-            finalAdvanceFormat = comma_format(finalAdvance)
-            finalInDeliveryFormat = comma_format(finalInDelivery)
-            ivaFormat = comma_format(iva)
-            finalAmountFormat = comma_format(finalAmount)
-            totalAmountFormat = comma_format(finalAmount+iva)
+            finalAdvanceFormat = number_format(finalAdvance)
+            finalInDeliveryFormat = number_format(finalInDelivery)
+            ivaFormat = number_format(iva)
+            finalAmountFormat = number_format(finalAmount)
+            totalAmountFormat = number_format(finalAmount+iva)
         } else if(divisaSelect == 'usd') {
             iva = 0
             amountTXT = 'USD $'
@@ -2639,8 +3020,8 @@ function exportToPdf(budgetData, statusPDF) {
             let unitPriceFormat
             let totalPriceFormat
             if(budgetData.layout.divisa == 'clp') {
-                unitPriceFormat = comma_format(el.unitPrice)
-                totalPriceFormat = comma_format(el.totalPrice)
+                unitPriceFormat = number_format(el.unitPrice)
+                totalPriceFormat = number_format(el.totalPrice)
             } else {
                 unitPriceFormat = el.unitPrice
                 totalPriceFormat = el.totalPrice
@@ -2649,9 +3030,9 @@ function exportToPdf(budgetData, statusPDF) {
             return arr.concat([[
                 `${el.product}`,
                 el.deliveryDate,
-                el.qty,
-                `$${unitPriceFormat}`,
-                `$${totalPriceFormat}`
+                number_format(el.qty),
+                `${unitPriceFormat}`,
+                `${totalPriceFormat}`
             ]])
         }, []) 
         
@@ -2705,11 +3086,11 @@ function exportToPdf(budgetData, statusPDF) {
             iva = parseInt(amountTax)
             amountTXT = 'CLP $'
 
-            finalAdvanceFormat = comma_format(finalAdvance)
-            finalInDeliveryFormat = comma_format(finalAdvance2)
-            ivaFormat = comma_format(iva)
-            finalAmountFormat = comma_format(budgetData.amounts.subtotal)
-            totalAmountFormat = comma_format(parseInt(budgetData.amounts.subtotal)+iva)
+            finalAdvanceFormat = number_format(finalAdvance)
+            finalInDeliveryFormat = number_format(finalAdvance2)
+            ivaFormat = number_format(iva)
+            finalAmountFormat = number_format(budgetData.amounts.subtotal)
+            totalAmountFormat = number_format(parseInt(budgetData.amounts.subtotal)+iva)
         } else if (budgetData.layout.divisa == 'usd') {
             iva = 0
             amountTXT = 'USD $'
