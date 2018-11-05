@@ -124,13 +124,14 @@
         </div>
         <div class="col-md-2 col-sm-4 col-xs-12">
             <select id="budget-filter" name="state">
-                <option></option>
-                <option value="sended">TODAS LAS COTIZACIONES</option>
-                <option value="sended">EN BORRADOR</option>
+                <option value="all">TODAS LAS COTIZACIONES</option>
+                <option value="draft">EN BORRADOR</option>
                 <option value="sended">ENVIADOS</option>
-                <option value="beaten">VENCIDOS</option>
+                <option value="created">CREADOS</option>
+                <option value="expirated">VENCIDOS</option>
                 <option value="approved">APROBADOS</option>
-                <option value="rejected">RECHAZADOS</option>
+                <option value="rejected">CANCELADOS</option>
+                <option value="byMe">CREADAS POR MI</option>
             </select>
         </div>
         
@@ -201,9 +202,7 @@ let draftBudgetDataVar
 let originalBudgetDivisa // para saber los datos originales de una cotización en continuación
 
 $(document).ready(function() {
-    $('#budget-filter').select2({
-        placeholder: 'Filtrar por estado'
-    });
+    $('#budget-filter').select2();
     $('#budget-link').css('color', '#2196F3');
 
     datatable = $('#budget-table')
@@ -270,6 +269,49 @@ $(document).ready(function() {
     });
 });
 
+$('#budget-filter').on('change', function() {
+    console.log($(this).val())
+ 
+    ajax({
+        url: 'api/getBudgets',
+        type: 'POST',
+        data: {
+            status: $(this).val()
+        }
+    }).then(res => {
+        if (res.err) {
+            toastr.warning(res.err)
+            $('#loadingBudgets').empty()
+        } else if(res.ok) {
+            console.log(res.ok)
+            let formatRes = res.ok.map(el=>{
+                if(el.status == 'sended' || el.status == 'created' || el.status == 'approved' || el.status == 'reserved' || el.status == 'canceled' || el.status == 'expired') {
+                    el.number = `COT${el.number}`
+                } else if(el.status == 'draft') {
+                    el.number = `BOR${el.number}`
+                }
+                
+                let rowCostFormat
+                if(el.layout.divisa == 'clp') {
+                    rowCostFormat = number_format(parseInt(el.amounts.iva)+parseInt(el.amounts.subtotal)); //comma_format(parseFloat(el.amounts.iva)+parseFloat(el.amounts.subtotal))
+                } else{ 
+                    rowCostFormat = (parseFloat(el.amounts.iva)+parseFloat(el.amounts.subtotal)).toFixed(2)
+                }
+
+                el.dateOrder = dateOrder(el._id) // DD/MM/YYYY to YYYYMMDD
+                el.reference = el.reference.toUpperCase()
+                el.clientName = el.client.name.toUpperCase()
+                el.cost = rowCostFormat
+                el.status = formatStatusText(el.status)
+                el.divisa = el.layout.divisa.toUpperCase()
+                return el
+            })
+
+            datatable.rows.add(formatRes).draw()
+            $('#loadingBudgets').empty()
+        }      
+    })
+})
 
 const getBudgets = () => {
     ajax({
@@ -2044,15 +2086,25 @@ function saveBudget(type, continueDraftId) {
         }
         */
 
-        if(selectedClientData.rut && selectedClientData.name && selectedClientData.phone != '' && isEmail(selectedClientData.email)) { // 2
+        if(selectedClientData.rut && selectedClientData.name && selectedClientData.phone != '' && isEmail(removeExtraSpaces(selectedClientData.email))) { // 2
             validateCounter++
             $('#selectedClientInfo').css({
                 border: '1px solid #3498db'
             })
         } else {
             let validateClient = 0 // debe llegar a 2
-            selectedClientData.email = $('#withoutEmail').val()
-            selectedClientData.phone = $('#withoutPhone').val()
+            
+            console.log('CLIENTDATA', selectedClientData)
+            if(selectedClientData.phone == '') {
+                selectedClientData.phone = removeExtraSpaces($('#withoutPhone').val())
+            }
+
+            if(selectedClientData.email == '') {
+                selectedClientData.email = removeExtraSpaces($('#withoutEmail').val())
+            }
+            console.log('CLIENTDATA2', selectedClientData)
+            
+            
 
             if(selectedClientData.phone == '') {
                 $('#withoutPhone').css({

@@ -89,6 +89,41 @@ const Budget = [
 },
 {
     method: 'POST',
+    path: '/api/getBudgets',
+    options: {
+        handler: (request, h) => {
+            let status = request.payload.status
+
+            return new Promise(resolve => {
+                db.find({
+                    selector: {
+                        _id: {
+                            $gt: null
+                        },
+                        type: 'budget',
+                        status : status
+                    },
+                    sort: [{
+                        _id: 'desc'
+                    }]
+                }).then(result => {
+                    if (result.docs[0]) {
+                        resolve({ok: result.docs })
+                    } else {
+                        resolve({ err: 'No existen cotizaciones.' })
+                    }
+                })
+            })
+        },
+        validate: {
+            payload: Joi.object().keys({
+                status: Joi.string().required()
+            })
+        }
+    }
+},
+{
+    method: 'POST',
     path: '/api/changeBudgetStatus',
     options: {
         handler: (request, h) => {
