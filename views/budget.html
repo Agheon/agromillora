@@ -130,7 +130,7 @@
                 <option value="created">CREADOS</option>
                 <option value="expirated">VENCIDOS</option>
                 <option value="approved">APROBADOS</option>
-                <option value="rejected">CANCELADOS</option>
+                <option value="canceled">CANCELADOS</option>
                 <option value="byMe">CREADAS POR MI</option>
             </select>
         </div>
@@ -265,7 +265,11 @@ $(document).ready(function() {
     $('#budget-table tbody').on('click', 'tr', function() {
         rowSelected = datatable.row($(this))
         rowDataSelected = datatable.row($(this)).data()
-        chargeModal()
+        
+        if(rowDataSelected) {
+            chargeModal()
+        }
+       
     });
 });
 
@@ -282,6 +286,7 @@ $('#budget-filter').on('change', function() {
         if (res.err) {
             toastr.warning(res.err)
             $('#loadingBudgets').empty()
+            datatable.clear().draw();
         } else if(res.ok) {
             console.log(res.ok)
             let formatRes = res.ok.map(el=>{
@@ -306,7 +311,8 @@ $('#budget-filter').on('change', function() {
                 el.divisa = el.layout.divisa.toUpperCase()
                 return el
             })
-
+            
+            datatable.clear();
             datatable.rows.add(formatRes).draw()
             $('#loadingBudgets').empty()
         }      

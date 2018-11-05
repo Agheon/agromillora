@@ -92,17 +92,28 @@ const Budget = [
     path: '/api/getBudgets',
     options: {
         handler: (request, h) => {
+            let credentials = request.auth.credentials
+            console.log(credentials)
             let status = request.payload.status
+            let query = {
+                _id: {
+                    $gt: null
+                },
+                type: 'budget'
+            }
+
+            if(status == 'all') {
+                query = query
+            } else if(status == 'byMe') {
+                query.user = {}
+                query.user.rut = credentials.rut
+            } else {
+                query.status = status
+            }
 
             return new Promise(resolve => {
                 db.find({
-                    selector: {
-                        _id: {
-                            $gt: null
-                        },
-                        type: 'budget',
-                        status : status
-                    },
+                    selector: query,
                     sort: [{
                         _id: 'desc'
                     }]
@@ -233,6 +244,7 @@ const Budget = [
     path: '/api/newBudget',
     options: {
         handler: (request, h) => {
+            let credentials = request.auth.credentials
             let reqData = {}
             
             reqData.reference = request.payload.reference
@@ -287,7 +299,8 @@ const Budget = [
                                 lastname: reqData.userFirmLastname,
                                 position: reqData.userFirmPosition,
                                 phone: reqData.userFirmPhone,
-                                email: reqData.userFirmEmail
+                                email: reqData.userFirmEmail,
+                                rut: credentials.rut
                             },
                             layout: reqData.layout
                         }
@@ -341,6 +354,7 @@ const Budget = [
     path: '/api/draftBudget',
     options: {
         handler: (request, h) => {
+            let credentials = request.auth.credentials
             let reqData = {}
             if(request.payload.id != '') {
                 reqData.id = request.payload.id
@@ -439,7 +453,8 @@ const Budget = [
                                     lastname: reqData.userFirmLastname,
                                     position: reqData.userFirmPosition,
                                     phone: reqData.userFirmPhone,
-                                    email: reqData.userFirmEmail
+                                    email: reqData.userFirmEmail,
+                                    rut: credentials.rut
                                 },
                                 layout: reqData.layout
                             }
