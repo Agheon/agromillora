@@ -1971,15 +1971,23 @@ function saveBudget(type, continueDraftId) {
     if(status == 'draft') {
         if(budgetObj.reference.length > 0 && validateCounter > 0) {
 
-            if(selectedClientData.rut && selectedClientData.name && selectedClientData.phone != '' && isEmail(selectedClientData.email)) { // 2
+            if(selectedClientData.rut && selectedClientData.name && selectedClientData.phone != '' && isEmail(removeExtraSpaces(selectedClientData.email))) { // 2
                 validateCounter++
                 $('#selectedClientInfo').css({
                     border: '1px solid #3498db'
                 })
             } else {
                 let validateClient = 0 // debe llegar a 2
-                selectedClientData.email = $('#withoutEmail').val()
-                selectedClientData.phone = $('#withoutPhone').val()
+            
+                console.log('CLIENTDATA', selectedClientData)
+                if(selectedClientData.phone == '') {
+                    selectedClientData.phone = removeExtraSpaces($('#withoutPhone').val())
+                }
+
+                if(selectedClientData.email == '') {
+                    selectedClientData.email = removeExtraSpaces($('#withoutEmail').val())
+                }
+                console.log('CLIENTDATA2', selectedClientData)
 
                 if(selectedClientData.phone == '') {
                     $('#withoutPhone').css({
