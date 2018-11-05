@@ -140,7 +140,6 @@ let fromInvoiceArr = []
 let productDateDeliverySelected = ''
 
 $(document).ready(function(){
-    
     //$('#budgetProductDateOfDelivery').val(formatCurrentServerTime)
     $('#productDateDelivery').daterangepicker({
         "locale": {
@@ -452,7 +451,7 @@ function chargeResults(products) {
                     ${el.variedad}
                 </td>
                 <td>
-                    ${numeral(el.stock).format('0,0')}
+                    ${number_format(el.stock)}
                 </td>
                 <td>
                     <button type="button" class="btn btn-${statusProductInvoice.class} btn-sm btnSendToInvoice" id="toinvoice-${removeSpecials(el.variedad)}"><i class="fas fa-arrow-circle-${statusProductInvoice.arrow}"></i></button>
@@ -555,7 +554,7 @@ function addToInvoice(product) {
                 ${productDateDeliverySelected}
             </td>
             <td>
-                ${numeral(product.stock).format('0,0')}
+                ${number_format(product.stock)}
             </td>
             <td>
                 <div class="form-group">
@@ -634,6 +633,7 @@ $('#emptyMessageOrSaveCart').on('click', '#saveOnCartButton', function() {
             if(res.ok) {
                 toastr.success('Productos a cotizar guardados correctamente')
                 createCartBadge(res.ok)
+                window.location.replace(`${window.location.origin}/budget`);
             } else if(res.err) {
                 toastr.error(res.err)
             }

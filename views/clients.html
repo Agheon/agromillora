@@ -362,13 +362,15 @@ function chargeImportedClientsTable() {
         }
     })
 
-
+    /*
     $('#tableClients tbody').on('click', 'tr', function () {
         if ($(this).hasClass('selected')) {
+            console.log('test1')
             $(this).removeClass('selected')
             $('#optionModClient').prop('disabled', true)
             $('#optionDeleteClient').prop('disabled', true)
         } else {
+            console.log('test2')
             datatableClients.$('tr.selected').removeClass('selected');
             $(this).addClass('selected');
             $('#optionModClient').prop('disabled', false)
@@ -376,7 +378,7 @@ function chargeImportedClientsTable() {
             clientRowSelectedData = cleanData(datatableClients.row($(this)).data())
             clientRowSelected = datatableClients.row($(this))
         }
-    })
+    })*/
 }
 
 function getClientsEnabled() {
@@ -388,7 +390,7 @@ function getClientsEnabled() {
             $('#loadingClients').empty()
         } else if(res.ok) {
             let formatRes = res.ok.map(el=>{
-                el.rut = `<b>${rutFunc(el.rut)}</b>`    
+                el.rut = `${rutFunc(el.rut)}`    
                 return el
             })
 
@@ -413,8 +415,10 @@ function getImportedClientsEnabled() {
             })
             */
             
-            console.log(res.ok)
-            console.log('Duplicate names: ' + checkDuplicateInObject('Name', res.ok.list));
+            //console.log(res.ok)
+            //console.log('Duplicate names: ' + checkDuplicateInObject('Name', res.ok.list));
+
+            $('#lastUpdate').html(moment(res.ok.lastUpdate).format('DD/MM/YYYY HH:mm'))
             datatableImportedClients.rows.add(res.ok.list).draw()
             $('#loadingImportedClients').empty()
         }      
@@ -442,7 +446,7 @@ function checkDuplicateInObject(propertyName, inputArray) {
 }
 
 function cleanData(data){
-    data.rut = ktoK($(cleanRut(data.rut)).text())
+    data.rut = ktoK(cleanRut(data.rut))
 
     return data
 }
@@ -552,7 +556,8 @@ $('#optionCreateClient').on('click', function() { // CREAR CLIENTE
                 Email
                 <input id="newClientEmail" type="text" placeholder="Email del cliente" class="form-control border-input">
             </div>
-
+            
+            <br>
             <div class="col-md-12" id="newClientErrorMessage"></div>
         </div>   
     `)
@@ -578,38 +583,76 @@ $('#optionCreateClient').on('click', function() { // CREAR CLIENTE
             phone: $('#newClientPhone').val(),
             email: $('#newClientEmail').val()
         }
-        
-        
-        ajax({
-            url: 'api/client',
-            type: 'POST',
-            data: {
-                rut:clientData.rut,
-                name:clientData.name,
-                phone:clientData.phone,
-                email:clientData.email
-            }
-        }).then(res=>{
-            if(res.err) {
-                toastr.warning(res.err)
-            } else if(res.ok) {
-                toastr.success('Cliente creado correctamente')
-                
-                res.ok.rut = `<b>${rutFunc(res.ok.rut)}</b>`
+    
+        let validationCounter = 0 //debe llegar a 4
+        let errorMsg = ''
 
-                let newClientAdded = datatableClients
-                .row.add(res.ok)
-                .draw()
-                .node();
-                
-                $(newClientAdded).css( 'color', '#1abc9c' )
-                setTimeout(() => {
-                    $(newClientAdded).css( 'color', '#484848' )
-                }, 5000);
+        if(isRut(clientData.rut)) {
+            validationCounter++
+        } else {
+            errorMsg += '<br> * Debe ingresar un rut válido'
+        }
 
-                $('#clientModal').modal('hide')
-            }
-        })
+        if(clientData.name != '') {
+            validationCounter++
+        } else {
+            errorMsg += '<br> * Debe ingresar un nombre de cliente'
+        }
+
+        if(clientData.phone != '') {
+            validationCounter++
+        } else {
+            errorMsg += '<br> * Debe ingresar un teléfono de cliente'
+        }
+
+        if(isEmail(clientData.email)) {
+            validationCounter++
+        } else {
+            errorMsg += '<br> * Debe ingresar un email válido'
+        }
+
+
+        if(validationCounter == 4) {
+            ajax({
+                url: 'api/client',
+                type: 'POST',
+                data: {
+                    rut:removeExtraSpaces(clientData.rut),
+                    name:clientData.name,
+                    phone: clientData.phone,
+                    email: removeExtraSpaces(clientData.email)
+                }
+            }).then(res=>{
+                if(res.err) {
+                    toastr.warning(res.err)
+                } else if(res.ok) {
+                    toastr.success('Cliente creado correctamente')
+                    
+                    res.ok.rut = `${rutFunc(res.ok.rut)}`
+
+                    let newClientAdded = datatableClients
+                    .row.add(res.ok)
+                    .draw()
+                    .node();
+                    
+                    $(newClientAdded).css( 'color', '#1abc9c' )
+                    setTimeout(() => {
+                        $(newClientAdded).css( 'color', '#484848' )
+                    }, 5000);
+
+                    $('#clientModal').modal('hide')
+                }
+            })
+        } else {
+            $('#newClientErrorMessage').html(`
+            <div class="alert alert-dismissible alert-warning">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4 class="alert-heading">Debe solucionar los siguientes errores:</h4>
+                <p class="mb-0">${errorMsg}</p>
+            </div>
+            `)
+        }
+        
     })
 })
 
@@ -662,7 +705,7 @@ $('#optionModClient').on('click', function() { // MODIFICAR CLIENTE
         <div class="row">
             <div class="col-md-4" style="margin-top:10px;">
                 Rut del cliente
-                <input value="${rutFunc(clientRowSelectedData.rut)}" id="newClientRut" type="text" placeholder="Rut del cliente" class="form-control border-input">
+                <input disabled value="${rutFunc(clientRowSelectedData.rut)}" id="newClientRut" type="text" placeholder="Rut del cliente" class="form-control border-input">
             </div>
             
             <div class="col-md-4" style="margin-top:10px;">
@@ -705,57 +748,95 @@ $('#optionModClient').on('click', function() { // MODIFICAR CLIENTE
             phone: $('#newClientPhone').val(),
             email: $('#newClientEmail').val()
         }
+
+        let validationCounter = 0 //debe llegar a 4
+        let errorMsg = ''
+
+        if(isRut(clientData.rut)) {
+            validationCounter++
+        } else {
+            errorMsg += '<br> * Debe ingresar un rut válido'
+        }
+
+        if(clientData.name != '') {
+            validationCounter++
+        } else {
+            errorMsg += '<br> * Debe ingresar un nombre de cliente'
+        }
+
+        if(clientData.phone != '') {
+            validationCounter++
+        } else {
+            errorMsg += '<br> * Debe ingresar un teléfono de cliente'
+        }
+
+        if(isEmail(clientData.email)) {
+            validationCounter++
+        } else {
+            errorMsg += '<br> * Debe ingresar un email válido'
+        }
         
-        swal({
-            title: `¿Estás seguro de modificar el cliente?`,
-            type: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonClass: 'btn btn-primary',
-            cancelButtonClass: 'btn btn-danger',
-            buttonsStyling: false,
-            confirmButtonText: 'Si, modificar',
-            cancelButtonText: 'No, cancelar',
-        }).then((result) => {
-            if (result.value) {
-                ajax({
-                    url: 'api/client',
-                    type: 'PUT',
-                    data: {
-                        originalRut:clientRowSelectedData.rut,
-                        rut:clientData.rut,
-                        name:clientData.name,
-                        phone:clientData.phone,
-                        email:clientData.email
-                    }
-                }).then(res=>{
-                    if(res.err) {
-                        toastr.warning(res.err)
-                    } else if(res.ok) {
-                        toastr.success('Cliente modificado correctamente')
-                        res.ok.rut = `<b>${rutFunc(res.ok.rut)}</b>`
-                        
-                        datatableClients
-                        .row( clientRowSelected )
-                        .remove()
-                        .draw()
+        if(validationCounter == 4) {
+            swal({
+                title: `¿Estás seguro de modificar el cliente?`,
+                type: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonClass: 'btn btn-primary',
+                cancelButtonClass: 'btn btn-danger',
+                buttonsStyling: false,
+                confirmButtonText: 'Si, modificar',
+                cancelButtonText: 'No, cancelar',
+            }).then((result) => {
+                if (result.value) {
+                    ajax({
+                        url: 'api/client',
+                        type: 'PUT',
+                        data: {
+                            originalRut:clientRowSelectedData.rut,
+                            rut:clientData.rut,
+                            name:clientData.name,
+                            phone:clientData.phone,
+                            email:clientData.email
+                        }
+                    }).then(res=>{
+                        if(res.err) {
+                            toastr.warning(res.err)
+                        } else if(res.ok) {
+                            toastr.success('Cliente modificado correctamente')
+                            res.ok.rut = `${rutFunc(res.ok.rut)}`
+                            
+                            datatableClients
+                            .row( clientRowSelected )
+                            .remove()
+                            .draw()
 
-                        let newClientAdded = datatableClients
-                        .row.add(res.ok)
-                        .draw()
-                        .node();
-                        
-                        $(newClientAdded).css( 'color', '#1abc9c' )
-                        setTimeout(() => {
-                            $(newClientAdded).css( 'color', '#484848' )
-                        }, 5000);
+                            let newClientAdded = datatableClients
+                            .row.add(res.ok)
+                            .draw()
+                            .node();
+                            
+                            $(newClientAdded).css( 'color', '#1abc9c' )
+                            setTimeout(() => {
+                                $(newClientAdded).css( 'color', '#484848' )
+                            }, 5000);
 
-                        $('#clientModal').modal('hide')
-                    }
-                })
-            }
-        })
+                            $('#clientModal').modal('hide')
+                        }
+                    })
+                }
+            })
+        } else {
+            $('#newClientErrorMessage').html(`
+            <div class="alert alert-dismissible alert-warning">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4 class="alert-heading">Debe solucionar los siguientes errores:</h4>
+                <p class="mb-0">${errorMsg}</p>
+            </div>
+            `)
+        }
+        
         
     })
 })

@@ -7,70 +7,45 @@
 }
 </style>
 {{/extend}}
-
 <div class="row">
-    <div class="col-md-12">
-        <ul class="nav nav-pills mb-3 nav-justified" id="pills-tab" role="tablist">
-            <li class="nav-item">
-                <a class="nav-link active" id="pills-users-tab" data-toggle="pill" href="#pills-users" role="tab" aria-controls="pills-enabled" aria-selected="true">Usuarios habilitados</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="pills-disabledUsers-tab" data-toggle="pill" href="#pills-disabledUsers" role="tab" aria-controls="pills-disabled" aria-selected="false">Usuarios deshabilitados</a>
-            </li>
-        </ul>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-12">
-        <div class="tab-content" id="pills">
-            <div class="tab-pane fade show active" id="pills-users" role="tabpanel" aria-labelledby="pills-users-tab">
-                <div class="row">
-                    <div class="col-md-2 col-xs-12">
-                        <br>
-                        <button class="btn btn-dark btn-block" id="optionCreateUser">
-                            <i style="color:#3498db;" class="fas fa-user-plus"></i> Nuevo usuario
-                        </button>
-                        <hr>
-                        <button class="btn btn-dark btn-block" id="optionModUser" disabled>
-                            <i style="color:#f1c40f;" class="fas fa-user-edit"></i> Modificar usuario
-                        </button>
-                        <button class="btn btn-dark btn-block" id="optionDisableUser" disabled>
-                            <i style="color:#e74c3c;" class="fas fa-user-times"></i> Deshabilitar usuario
-                        </button>
-                    </div>
-
-                    <div class="col-md-10 col-xs-12 table-responsive">
-                        <table id="tableUsers" class="display nowrap table table-condensed" cellspacing="0" width="100%">
-                            <thead>
-                                <tr>
-                                    <th>Rut</th>
-                                    <th>Nombre</th>
-                                    <th>Apellido</th>
-                                    <th>Email</th>
-                                    <th>Teléfono</th>
-                                    <th>Rol</th>
-                                    <th>Cargo</th>
-                                </tr>
-                            </thead>
-                        </table>
-                        <div id="loadingUsers">
-                            <center>
-                                <i style="color:#3498db;" class="fa fa-spinner fa-pulse fa-2x fa-fw"></i>
-                                <span class="sr-only">Cargando...</span>
-                            </center>
-                        </div>
-                    </div>
-                   
+    <div class="col-md-12">  
+        <div class="row">
+            <div class="col-md-2 col-xs-12">
+                <br>
+                <button class="btn btn-dark btn-block" id="optionCreateUser">
+                    <i style="color:#3498db;" class="fas fa-user-plus"></i> Nuevo usuario
+                </button>
+                <hr>
+                <button class="btn btn-dark btn-block" id="optionModUser" disabled>
+                    <i style="color:#f1c40f;" class="fas fa-user-edit"></i> Modificar usuario
+                </button>
+                <button class="btn btn-dark btn-block" id="optionDeleteUser" disabled>
+                    <i style="color:#e74c3c;" class="fas fa-user-times"></i> Eliminar usuario
+                </button>
+            </div>
+            <br>
+            <div class="col-md-10 col-xs-12 table-responsive">
+                <table id="tableUsers" class="display nowrap table table-condensed" cellspacing="0" width="100%">
+                    <thead>
+                        <tr>
+                            <th>Rut</th>
+                            <th>Nombre</th>
+                            <th>Apellido</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                            <th>Rol</th>
+                            <th>Cargo</th>
+                        </tr>
+                    </thead>
+                </table>
+                <div id="loadingUsers">
+                    <center>
+                        <i style="color:#3498db;" class="fa fa-spinner fa-pulse fa-2x fa-fw"></i>
+                        <span class="sr-only">Cargando...</span>
+                    </center>
                 </div>
             </div>
-
-            <div class="tab-pane fade" id="pills-disabledUsers" role="tabpanel" aria-labelledby="pills-disabledUsers-tab">
-                <div class="row">
-                   deshabilitados
-                </div>
-            </div>
-
+            
         </div>
     </div>
 </div>
@@ -134,16 +109,22 @@ function chargeUsersTable() {
         if ($(this).hasClass('selected')) {
             $(this).removeClass('selected')
             $('#optionModUser').prop('disabled', true)
-            $('#optionDisableUser').prop('disabled', true)
+            $('#optionDeleteUser').prop('disabled', true)
         } else {
             datatableUsers.$('tr.selected').removeClass('selected');
             $(this).addClass('selected');
             $('#optionModUser').prop('disabled', false)
-            $('#optionDisableUser').prop('disabled', false)
-            userRowSelectedData = datatableUsers.row($(this)).data()
+            $('#optionDeleteUser').prop('disabled', false)
+            userRowSelectedData = cleanData(datatableUsers.row($(this)).data())
             userRowSelected = datatableUsers.row($(this))
         }
     })
+}
+
+function cleanData(data){
+    data.rut = ktoK(cleanRut(data.rut))
+
+    return data
 }
 
 function getUsersEnabled() {
@@ -155,7 +136,7 @@ function getUsersEnabled() {
             $('#loadingUsers').empty()
         } else if(res.ok) {
             let formatRes = res.ok.map(el=>{
-                el.rut = `<b>${rutFunc(el._id)}</b>`    
+                el.rut = `${rutFunc(el._id)}`    
                 return el
             })
 
@@ -196,7 +177,7 @@ $('#optionCreateUser').on('click', function() { // CREAR CLIENTE
                 <select id="newUserRole" class="custom-select">
                     <option value="commercial">Comercial </option>
                     <option value="production">Producción </option>
-                    <option value="admin">Administrador </option>
+                    <option value="sa">Administrador </option>
                 </select>
             </div>
 
@@ -239,14 +220,14 @@ $('#optionCreateUser').on('click', function() { // CREAR CLIENTE
     
     $('#saveUser').on('click', function(){
         let userData = {
-            rut: $('#newUserRut').val(),
+            rut: removeExtraSpaces($('#newUserRut').val()),
             name: $('#newUserName').val(),
             lastname: $('#newUserLastname').val(),
             password: $('#newUserPassword').val(),
             role: $('#newUserRole').val(),
             charge: $('#newUserCharge').val(),
             phone: $('#newUserPhone').val(),
-            email: $('#newUserEmail').val()
+            email: removeExtraSpaces($('#newUserEmail').val())
         }
         
         validateUserData(userData).then(res=>{
@@ -270,7 +251,7 @@ $('#optionCreateUser').on('click', function() { // CREAR CLIENTE
                     } else if(res.ok) {
                         toastr.success('Usuario creado correctamente')
                         
-                        res.ok.rut = `<b>${rutFunc(res.ok._id)}</b>`
+                        res.ok.rut = `${rutFunc(res.ok._id)}`
 
                         let newUserAdded = datatableUsers
                         .row.add(res.ok)
@@ -282,7 +263,7 @@ $('#optionCreateUser').on('click', function() { // CREAR CLIENTE
                             $(newUserAdded).css( 'color', '#484848' )
                         }, 5000);
 
-                        $('#userModal').modal('hide')
+                        $('#usersModal').modal('hide')
                     }
                 })
             }
@@ -291,6 +272,203 @@ $('#optionCreateUser').on('click', function() { // CREAR CLIENTE
         
     })
     
+})
+
+$('#optionDeleteUser').on('click', function() {
+    console.log(userRowSelectedData)
+    swal({
+        title: `¿Estás seguro de eliminar el usuario?`,
+        type: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonClass: 'btn btn-primary',
+        cancelButtonClass: 'btn btn-danger',
+        buttonsStyling: false,
+        confirmButtonText: 'Si, eliminar',
+        cancelButtonText: 'No, cancelar',
+    }).then((result) => {
+        if (result.value) {
+            ajax({
+                url: 'api/user',
+                type: 'DELETE',
+                data: {
+                    _id: userRowSelectedData._id
+                }
+            }).then(res=>{
+                if(res.err) {
+                    toastr.warning(res.err)
+                } else if(res.ok) {
+                    $('#optionModUser').prop('disabled', true)
+                    $('#optionDeleteUser').prop('disabled', true)
+                    
+                    toastr.success('Usuario eliminado correctamente')
+
+                    datatableUsers
+                    .row( userRowSelected )
+                    .remove()
+                    .draw()
+
+                    console.log(res.ok)
+                }
+            })
+        }
+    })
+})
+
+$('#optionModUser').on('click', function() {
+    console.log(userRowSelectedData)
+    
+    $('#usersModal').modal('show');
+    $('#modal_title').html(`Modificar usuario ${capitalizeAll(userRowSelectedData.name)} ${capitalizeAll(userRowSelectedData.lastname)}`)
+    $('#modal_body').html(`   
+        <div class="row">
+            <div class="col-md-4" style="margin-top:10px;">
+                Rut del usuario
+                <input disabled value="${rutFunc(userRowSelectedData._id)}" id="modUserRut" type="text" placeholder="Rut del usuario" class="form-control border-input">
+            </div>
+            
+            <div class="col-md-4" style="margin-top:10px;">
+                Nombre del usuario
+                <input value="${userRowSelectedData.name}" id="modUserName" type="text" placeholder="Nombre del usuario" class="form-control border-input">
+            </div>
+
+            <div class="col-md-4" style="margin-top:10px;">
+                Apellido del usuario
+                <input value="${userRowSelectedData.lastname}" id="modUserLastname" type="text" placeholder="Apellido del usuario" class="form-control border-input">
+            </div>
+            
+
+            <div class="col-md-4" style="margin-top:10px;">
+                <div class="form-group">
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="changePassword" >
+                        <label class="custom-control-label" for="changePassword">Cambiar contraseña</label>
+                    </div>
+                </div>
+
+                <input disabled id="modUserPassword" type="password" placeholder="Contraseña del usuario" class="form-control border-input">
+            </div>
+            
+            <div class="col-md-4" style="margin-top:10px;">
+                Rol del usuario    
+                <select id="modUserRole" class="custom-select">
+                    <option value="commercial">Comercial </option>
+                    <option value="production">Producción </option>
+                    <option value="sa">Administrador </option>
+                </select>
+            </div>
+
+            <div class="col-md-4" style="margin-top:10px;">
+                Cargo
+                <input value="${userRowSelectedData.position}" id="modUserCharge" type="text" placeholder="Cargo del usuario" class="form-control border-input">
+            </div>
+
+            <div class="col-md-4" style="margin-top:10px;">
+                Teléfono
+                <input value="${userRowSelectedData.phone}" id="modUserPhone" type="text" placeholder="Ej: +56 (9) 123123123" class="form-control border-input">
+            </div>
+
+            <div class="col-md-4" style="margin-top:10px;">
+                Email
+                <input value="${userRowSelectedData.email}" id="modUserEmail" type="text" placeholder="Email del usuario" class="form-control border-input">
+            </div>
+
+            <div class="col-md-12" id="modUserErrorMessage"></div>
+        </div>   
+    `)
+
+    $('#modal_footer').html(`
+        <button class="btn btn-dark" data-dismiss="modal">
+            <i style="color:#e74c3c;" class="fas fa-times"></i> Cancelar
+        </button>
+
+        <button class="btn btn-dark" id="saveUser">
+            <i style="color:#3498db;" class="fas fa-check"></i> Guardar
+        </button>
+    `)
+
+    $('#modUserRole').val(userRowSelectedData.role)
+    
+    $('#changePassword').on('change', function(){
+       
+        if($(this).is(':checked')) {
+            $('#modUserPassword').attr('disabled', false)
+        } else {
+            $('#modUserPassword').val('')
+            $('#modUserPassword').attr('disabled', true)
+        }
+    
+    })
+
+    $('#saveUser').on('click', function(){
+        let userData = {
+            rut: removeExtraSpaces($('#modUserRut').val()),
+            name: $('#modUserName').val(),
+            lastname: $('#modUserLastname').val(),
+            changePassword: $('#changePassword').is(':checked'),
+            password: $('#modUserPassword').val(),
+            role: $('#modUserRole').val(),
+            charge: $('#modUserCharge').val(),
+            phone: $('#modUserPhone').val(),
+            email: removeExtraSpaces($('#modUserEmail').val())
+        }
+
+        validateUserData(userData).then(res=>{
+            if(res.ok) {
+                let changePassword = ''
+                if($('#changePassword').is(':checked')) {
+                    changePassword = 'yes'
+                } else {
+                    changePassword = 'no'
+                }
+
+                ajax({
+                    url: 'api/modUser',
+                    type: 'POST',
+                    data: {
+                        rut:userData.rut,
+                        name:userData.name,
+                        lastname:userData.lastname,
+                        changePassword: changePassword,
+                        password:userData.password,
+                        role:userData.role,
+                        charge:userData.charge,
+                        phone:userData.phone,
+                        email:userData.email
+                    }
+                }).then(res=>{
+                    if(res.err) {
+                        toastr.warning(res.err)
+                    } else if(res.ok) {
+                        toastr.success('Usuario modificado correctamente')
+                        
+                        res.ok.rut = `${rutFunc(res.ok._id)}`
+                        
+                        $('#optionModUser').prop('disabled', true)
+                        $('#optionDeleteUser').prop('disabled', true)
+
+                        datatableUsers
+                        .row( userRowSelected )
+                        .remove()
+                        .draw()
+
+                        let modUserAdded = datatableUsers
+                        .row.add(res.ok)
+                        .draw()
+                        .node();
+                        
+                        $(modUserAdded).css( 'color', '#1abc9c' )
+                        setTimeout(() => {
+                            $(modUserAdded).css( 'color', '#484848' )
+                        }, 5000);
+
+                        $('#usersModal').modal('hide')
+                    }
+                })
+            }
+        })
+    })
 })
 
 function validateUserData(userData) {
@@ -324,14 +502,19 @@ function validateUserData(userData) {
             errorMessage += `<br>* Debe ingresar un <b>apellido de usuario</b>`
             $('#newUserLastname').css('border', '1px solid #e74c3c')
         }
-
-        if(userData.password.length > 1) { // 4
-            validationCounter++
-            $('#newUserPassword').css('border', '1px solid #3498db')
+        
+        if(userData.changePassword) {
+            if(userData.password.length > 1) { // 4
+                validationCounter++
+                $('#newUserPassword').css('border', '1px solid #3498db')
+            } else {
+                errorMessage += `<br>* Debe ingresar una <b>contraseña de usuario válida</b>`
+                $('#newUserPassword').css('border', '1px solid #e74c3c')
+            }
         } else {
-            errorMessage += `<br>* Debe ingresar una <b>contraseña de usuario válida</b>`
-            $('#newUserPassword').css('border', '1px solid #e74c3c')
+            validationCounter++
         }
+        
 
         if(userData.charge.length > 1) { // 5
             validationCounter++
@@ -358,10 +541,10 @@ function validateUserData(userData) {
         }
 
         if(validationCounter == 7) {
-            $('#newUserErrorMessage').empty()
+            $('#modUserErrorMessage').empty()
             resolve({ok: userData})
         } else {
-            $('#newUserErrorMessage').html(`
+            $('#modUserErrorMessage').html(`
             <div class="alert alert-dismissible alert-warning">
                 <button type="button" class="close" data-dismiss="alert">&times;</button>
                 <h4 class="alert-heading">Debe solucionar los siguientes errores</h4>

@@ -30,6 +30,7 @@ export default [
                         db.insert(result.docs[0]).then(cartRes=>{
                             if(cartRes.ok) {
                                 resolve({ok: result.docs[0].cart})
+                                
                             } else {
                                 resolve({err: 'No se ha podido agregar los productos al carrito, por favor vuelva a intentarlo nuevamente.'})
                             }

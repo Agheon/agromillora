@@ -38,7 +38,17 @@ const Login = {
     path: '/login',
     options: {
       handler: async (request, h) => {
-        if (request.auth.isAuthenticated) return h.redirect('/')
+        
+        if (request.auth.isAuthenticated) {
+          let credentials = request.auth.credentials
+          if (credentials.role == 'sa') {
+            return h.redirect('/budget')
+          } else if(credentials.role == 'production') {
+            return h.redirect('/production')
+          } else if(credentials.role == 'commercial') {
+            return h.redirect('/stockAvailability')
+          }
+        }
       
         let account = null
       
@@ -57,7 +67,14 @@ const Login = {
               delete account._rev
               await request.server.app.cache.set(sid, { account }, 0)
               request.cookieAuth.set({ sid })
-              return h.redirect('/budget')
+
+              if (account.role == 'sa') {
+                return h.redirect('/budget')
+              } else if(account.role == 'production') {
+                return h.redirect('/production')
+              } else if(account.role == 'commercial') {
+                return h.redirect('/stockAvailability')
+              }
             }
           }
         }
