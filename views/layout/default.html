@@ -105,8 +105,9 @@
             </ul>
             
             <div class="form-inline my-2 my-lg-0 white-text">
-                {{#if credentials.sa}}
+                
                 <ul class="navbar-nav mr-auto">
+                    {{#if credentials.sa}}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="configurationsDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <i class="fas fa-cog"></i> &nbsp; Administración
@@ -117,9 +118,10 @@
                             <a class="dropdown-item" href="/estimations"><i class="fas fa-calendar-alt"></i>&nbsp; Estimaciones</a>
                         </div>
                     </li>
+                    {{/if}}
                     <li class="nav-item"><div id="cart"></div></li>
                 </ul>
-                {{/if}}
+                
                 <ul class="navbar-nav mr-auto">
                     <li class="nav-item dropdown">
                         <a style="text-transform: capitalize; font-size:18px; color:white;" class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
