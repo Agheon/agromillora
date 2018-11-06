@@ -887,6 +887,20 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
     
 }
 
+function zeroTo100(selectedPercent) {
+    let counterHtml = ''
+
+    _.range(1, 101).forEach((current, index, range) => {
+        let selected = ''
+        if(current == selectedPercent) {
+            selected = 'selected'
+        }
+        counterHtml += `<option value="${current}" ${selected}>${current}%</option>`
+    })
+
+    return counterHtml
+}
+
 const draftBudget = (draftBudgetData) => {
     
     draftBudgetDataVar = draftBudgetData
@@ -1895,13 +1909,15 @@ function updateClientsNavisionHTML() {
         if(selectedClientData.email == '') {
             withoutEmail = `<input id="withoutEmail" class="form-control border-input" type="text" placeholder="Debe ingresar un email"`
         } else {
-            withoutEmail = `<center><b>${selectedClientData.email}</b></center>`
+            withoutEmail = `<input value="${selectedClientData.email}" id="withoutEmail" class="form-control border-input" type="text" placeholder="Debe ingresar un email"`
+            //withoutEmail = `<center><b>${selectedClientData.email}</b></center>`
         }
 
         if(selectedClientData.phone == '') {
             withoutPhone = `<input id="withoutPhone" class="form-control border-input" type="text" placeholder="Debe ingresar un teléfono"`
         } else {
-            withoutPhone = `<center><b>${selectedClientData.phone}</b></center>`
+            withoutPhone = `<input value="${selectedClientData.phone}" id="withoutPhone" class="form-control border-input" type="text" placeholder="Debe ingresar un teléfono"`
+           // withoutPhone = `<center><b>${selectedClientData.phone}</b></center>`
         }
         
         $('#selectedClientInfo').html(`
@@ -1979,14 +1995,17 @@ function saveBudget(type, continueDraftId) {
     if(status == 'draft') {
         if(budgetObj.reference.length > 0 && validateCounter > 0) {
 
-            if(selectedClientData.rut && selectedClientData.name && selectedClientData.phone != '' && isEmail(removeExtraSpaces(selectedClientData.email))) { // 2
+            if(selectedClientData.rut && selectedClientData.name && $('#withoutPhone').val() != '' && isEmail(removeExtraSpaces($('#withoutEmail').val()))) { // 2
+                selectedClientData.phone = removeExtraSpaces($('#withoutPhone').val())
+                selectedClientData.email = removeExtraSpaces($('#withoutEmail').val())
                 validateCounter++
                 $('#selectedClientInfo').css({
                     border: '1px solid #3498db'
                 })
             } else {
                 let validateClient = 0 // debe llegar a 2
-            
+                
+                /*
                 console.log('CLIENTDATA', selectedClientData)
                 if(selectedClientData.phone == '') {
                     selectedClientData.phone = removeExtraSpaces($('#withoutPhone').val())
@@ -1996,6 +2015,10 @@ function saveBudget(type, continueDraftId) {
                     selectedClientData.email = removeExtraSpaces($('#withoutEmail').val())
                 }
                 console.log('CLIENTDATA2', selectedClientData)
+                */
+
+                selectedClientData.phone = removeExtraSpaces($('#withoutPhone').val())
+                selectedClientData.email = removeExtraSpaces($('#withoutEmail').val())
 
                 if(selectedClientData.phone == '') {
                     $('#withoutPhone').css({
@@ -2102,14 +2125,16 @@ function saveBudget(type, continueDraftId) {
         }
         */
 
-        if(selectedClientData.rut && selectedClientData.name && selectedClientData.phone != '' && isEmail(removeExtraSpaces(selectedClientData.email))) { // 2
+        if(selectedClientData.rut && selectedClientData.name && $('#withoutPhone').val() != '' && isEmail(removeExtraSpaces($('#withoutEmail').val()))) { // 2
+            selectedClientData.phone = removeExtraSpaces($('#withoutPhone').val())
+            selectedClientData.email = removeExtraSpaces($('#withoutEmail').val())
             validateCounter++
             $('#selectedClientInfo').css({
                 border: '1px solid #3498db'
             })
         } else {
             let validateClient = 0 // debe llegar a 2
-            
+            /*
             console.log('CLIENTDATA', selectedClientData)
             if(selectedClientData.phone == '') {
                 selectedClientData.phone = removeExtraSpaces($('#withoutPhone').val())
@@ -2118,8 +2143,12 @@ function saveBudget(type, continueDraftId) {
             if(selectedClientData.email == '') {
                 selectedClientData.email = removeExtraSpaces($('#withoutEmail').val())
             }
-            console.log('CLIENTDATA2', selectedClientData)
+
             
+            console.log('CLIENTDATA2', selectedClientData)
+            */
+            selectedClientData.phone = removeExtraSpaces($('#withoutPhone').val())
+            selectedClientData.email = removeExtraSpaces($('#withoutEmail').val())
             
 
             if(selectedClientData.phone == '') {
@@ -2578,7 +2607,7 @@ $('#modal_body').on('change', '#inputSelectDivisa', function() {
     
 })
 
-function finalCalculation() {
+function finalCalculation(changePercent) {
     if(selectedLayoutData.divisa == 'clp') {
         
         $('#selectedDivisa').html(`
@@ -2683,7 +2712,11 @@ function finalCalculation() {
         },0)
 
         console.log(finalAmount)
-
+        
+        if(changePercent) {
+            advancePercent = changePercent
+        }
+        
         let finalAdvance = (finalAmount * parseInt(advancePercent)) / 100
         let finalInDelivery = (finalAmount * (100-parseInt(advancePercent)) ) / 100
 
@@ -2738,7 +2771,7 @@ function finalCalculation() {
             <table class="table table-hover">
                 <tbody>
                     <tr>
-                        <td><center>${advancePercent}% de anticipo de reserva:</center></td>
+                        <td><center> <select style="width:40px;" id="changePercentId">${zeroTo100(advancePercent)}</select> de anticipo de reserva:</center></td>
                         <td><center><b>${amountTXT}${finalAdvanceFormat}</b></center></td>
                     </tr>
                     <tr>
@@ -2760,12 +2793,15 @@ function finalCalculation() {
                 </tbody>
             </table>
         `)
+
+        $('#changePercentId').on('change', function() {
+            finalCalculation($(this).val())
+        })
     }, 200);
     
 }
 
-
-function finalCalculationDraft(draftBudgetData) {
+function finalCalculationDraft(draftBudgetData, changePercent) {
     let divisaSelect = draftBudgetData.layout.divisa
 
     if(divisaSelect == 'clp') {
@@ -2871,6 +2907,10 @@ function finalCalculationDraft(draftBudgetData) {
         },0)
 
         console.log(finalAmount)
+        
+        if(changePercent) {
+            advancePercent = changePercent
+        }
 
         let finalAdvance = (finalAmount * parseInt(advancePercent)) / 100
         let finalInDelivery = (finalAmount * (100-parseInt(advancePercent)) ) / 100
@@ -2926,7 +2966,7 @@ function finalCalculationDraft(draftBudgetData) {
             <table class="table table-hover">
                 <tbody>
                     <tr>
-                        <td><center>${advancePercent}% de anticipo de reserva:</center></td>
+                        <td><center><select style="width:40px;" id="changePercentId">${zeroTo100(advancePercent)}</select> de anticipo de reserva:</center></td>
                         <td><center><b>${amountTXT}${finalAdvanceFormat}</b></center></td>
                     </tr>
                     <tr>
@@ -2948,6 +2988,10 @@ function finalCalculationDraft(draftBudgetData) {
                 </tbody>
             </table>
         `)
+
+        $('#changePercentId').on('change', function() {
+            finalCalculationDraft(draftBudgetData, $(this).val())
+        })
     }, 200);
 }
 
