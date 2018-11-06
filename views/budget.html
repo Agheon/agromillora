@@ -890,7 +890,7 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
 function zeroTo100(selectedPercent) {
     let counterHtml = ''
 
-    _.range(1, 101).forEach((current, index, range) => {
+    _.range(0, 101).forEach((current, index, range) => {
         let selected = ''
         if(current == selectedPercent) {
             selected = 'selected'
