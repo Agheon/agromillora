@@ -431,6 +431,8 @@ $('#newBudget').on('click', function(){
 const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cancelada...
     let sendedStatus = ''
     let ifCreated = ''
+    let orderNumber = ''
+    
     console.log('VER STATUS', sendedBudgetData)
     if(sendedBudgetData.status == 'approved') {
         sendedStatus = '<span class="badge badge-secondary" style="background:#3498db;"> Aprobada </span>'
@@ -452,6 +454,10 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
     $('.modal-content').css({
         'border-color': '#1abc9c'
     })
+
+    if(sendedBudgetData.order) {
+        orderNumber = `Número de orden: <b>${sendedBudgetData.order}</b>`
+    }
 
     $('#closeModalButton').remove()
     $('#modal_header').append(`
@@ -500,7 +506,8 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
                             <td><h4>${sendedBudgetData.reference}</h4></td>
                         </tr>
                     </tbody>
-                </table> 
+                </table>
+                ${orderNumber}
             </div>
         </div>
 
@@ -620,77 +627,160 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
     })
 
 
-    $('#budgetChangeStatus').on('change', function() { // cambiar estado de una cotización
+    $('#budgetChangeStatus').on('change dblclick', function() { // cambiar estado de una cotización
         let thisStatus = $(this).val()
         let statusTranslate = ''
 
         if(thisStatus == 'reserved') {
             statusTranslate = 'reservado'
+            console.log('reservado')
+
+            swal({
+                title: 'Ingrese orden de compra',
+                input: 'text',
+                inputAttributes: {
+                    autocapitalize: 'off'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Ingresar',
+                cancelButtonText: 'Cancelar',
+                showLoaderOnConfirm: true,
+                preConfirm: (orden) => {
+                    if(orden.length != '') {
+                        return new Promise(resolve=> {
+                            resolve(orden)
+                        })
+                    }
+                },
+                allowOutsideClick: () => !swal.isLoading()
+            }).then((result) => {
+                if (result.value) {
+                    console.log(result.value)
+                    ajax({
+                        url: '/api/changeBudgetStatus',
+                        type: 'POST',
+                        data: {
+                            id: sendedBudgetData._id,
+                            toStatus: thisStatus,
+                            orden: result.value
+                        }
+                    }).then(res=>{
+                        if(res.ok) {
+                            toastr.success(`Modificada la cotización ${res.ok.number}`)
+                            $('#budgetModal').modal('hide')
+
+                            datatable
+                            .row( rowSelected )
+                            .remove()
+                            .draw()
+                            
+                            let rowCostFormat
+                            let formatRes = res.ok
+
+                            formatRes.number = `COT${res.ok.number}`
+                            if(formatRes.layout.divisa == 'clp') {
+                                rowCostFormat = number_format(parseInt(formatRes.amounts.iva)+parseInt(formatRes.amounts.subtotal))
+                            } else {
+                                rowCostFormat = (parseFloat(formatRes.amounts.iva)+parseFloat(formatRes.amounts.subtotal)).toFixed(2)
+                            }
+                            formatRes.dateOrder = dateOrder(formatRes._id) // DD/MM/YYYY to YYYYMMDD
+                            formatRes.reference = formatRes.reference.toUpperCase()
+                            formatRes.clientName = formatRes.client.name.toUpperCase()
+                            formatRes.cost = rowCostFormat
+                            formatRes.status = formatStatusText(formatRes.status)
+                            formatRes.divisa = formatRes.layout.divisa.toUpperCase()
+                            
+                            let newBudgetAdded = datatable
+                            .row.add(formatRes)
+                            .draw()
+                            .node()
+                            
+                            $(newBudgetAdded).css( 'color', '#1abc9c' )
+                            setTimeout(() => {
+                                $(newBudgetAdded).css( 'color', '#000000' )
+                            }, 5000)
+
+                            $('#budgetModal').modal('hide')
+
+                        } else if(res.err) {
+                            toastr.error(res.err)
+                        }
+                    })
+                } else {
+                    swal({
+                        type: 'error',
+                        title: 'Debe ingresar un numero de orden',
+                        text: 'El número de orden no puede estar vacío'
+                    })
+                }
+            })
         } else if(thisStatus == 'canceled') {
             statusTranslate = 'cancelado'
-        }
-        swal({
-            title: '¿Estás seguro de cambiar el estado de esta cotización?',
-            text: `El estado cambiará a ${statusTranslate}`,
-            type: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Sí, cambiar estado',
-            cancelButtonText: 'No, cancelar'
-        }).then((result) => {
-            if(result.value) {
-                ajax({
-                    url: '/api/changeBudgetStatus',
-                    type: 'POST',
-                    data: {
-                        id: sendedBudgetData._id,
-                        toStatus: thisStatus
-                    }
-                }).then(res=>{
-                    if(res.ok) {
-                        toastr.success(`Modificada la cotización ${res.ok.number}`)
-                        $('#budgetModal').modal('hide')
 
-                        datatable
-                        .row( rowSelected )
-                        .remove()
-                        .draw()
-                        
-                        let rowCostFormat
-                        let formatRes = res.ok
-
-                        formatRes.number = `COT${res.ok.number}`
-                        if(formatRes.layout.divisa == 'clp') {
-                            rowCostFormat = number_format(parseInt(formatRes.amounts.iva)+parseInt(formatRes.amounts.subtotal))
-                        } else {
-                            rowCostFormat = (parseFloat(formatRes.amounts.iva)+parseFloat(formatRes.amounts.subtotal)).toFixed(2)
+            swal({
+                title: '¿Estás seguro de cambiar el estado de esta cotización?',
+                text: `El estado cambiará a ${statusTranslate}`,
+                type: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, cambiar estado',
+                cancelButtonText: 'No, cancelar'
+            }).then((result) => {
+                if(result.value) {
+                    ajax({
+                        url: '/api/changeBudgetStatus',
+                        type: 'POST',
+                        data: {
+                            id: sendedBudgetData._id,
+                            toStatus: thisStatus
                         }
-                        formatRes.dateOrder = dateOrder(formatRes._id) // DD/MM/YYYY to YYYYMMDD
-                        formatRes.reference = formatRes.reference.toUpperCase()
-                        formatRes.clientName = formatRes.client.name.toUpperCase()
-                        formatRes.cost = rowCostFormat
-                        formatRes.status = formatStatusText(formatRes.status)
-                        formatRes.divisa = formatRes.layout.divisa.toUpperCase()
-                        
-                        let newBudgetAdded = datatable
-                        .row.add(formatRes)
-                        .draw()
-                        .node()
-                        
-                        $(newBudgetAdded).css( 'color', '#1abc9c' )
-                        setTimeout(() => {
-                            $(newBudgetAdded).css( 'color', '#000000' )
-                        }, 5000)
+                    }).then(res=>{
+                        if(res.ok) {
+                            toastr.success(`Modificada la cotización ${res.ok.number}`)
+                            $('#budgetModal').modal('hide')
 
-                        $('#budgetModal').modal('hide')
+                            datatable
+                            .row( rowSelected )
+                            .remove()
+                            .draw()
+                            
+                            let rowCostFormat
+                            let formatRes = res.ok
 
-                    } else if(res.err) {
-                        toastr.error(res.err)
-                    }
-                })
-            }
-        })
+                            formatRes.number = `COT${res.ok.number}`
+                            if(formatRes.layout.divisa == 'clp') {
+                                rowCostFormat = number_format(parseInt(formatRes.amounts.iva)+parseInt(formatRes.amounts.subtotal))
+                            } else {
+                                rowCostFormat = (parseFloat(formatRes.amounts.iva)+parseFloat(formatRes.amounts.subtotal)).toFixed(2)
+                            }
+                            formatRes.dateOrder = dateOrder(formatRes._id) // DD/MM/YYYY to YYYYMMDD
+                            formatRes.reference = formatRes.reference.toUpperCase()
+                            formatRes.clientName = formatRes.client.name.toUpperCase()
+                            formatRes.cost = rowCostFormat
+                            formatRes.status = formatStatusText(formatRes.status)
+                            formatRes.divisa = formatRes.layout.divisa.toUpperCase()
+                            
+                            let newBudgetAdded = datatable
+                            .row.add(formatRes)
+                            .draw()
+                            .node()
+                            
+                            $(newBudgetAdded).css( 'color', '#1abc9c' )
+                            setTimeout(() => {
+                                $(newBudgetAdded).css( 'color', '#000000' )
+                            }, 5000)
+
+                            $('#budgetModal').modal('hide')
+
+                        } else if(res.err) {
+                            toastr.error(res.err)
+                        }
+                    })
+                }
+            })
+        }
+        
     })
 
     /*
@@ -1867,11 +1957,11 @@ function updateClientsHTML(originalClientData) { // originalClientData en caso q
                     </tr>
                     <tr>
                         <td><center>Teléfono</center></td>
-                        <td><center><b>${selectedClientData.phone}</b></center></td>
+                        <td><input type="text" id="withoutPhone" class="form-control border-input" value="${selectedClientData.phone}"></td>
                     </tr>
                     <tr>
                         <td><center>Email</center></td>
-                        <td><center><b>${selectedClientData.email}</b></center></td>
+                        <td><input type="text" id="withoutEmail" class="form-control border-input" value="${selectedClientData.email}"></td>
                     </tr>
                 </tbody>
             </table>
@@ -1907,16 +1997,16 @@ function updateClientsNavisionHTML() {
         let withoutPhone = ''
 
         if(selectedClientData.email == '') {
-            withoutEmail = `<input id="withoutEmail" class="form-control border-input" type="text" placeholder="Debe ingresar un email"`
+            withoutEmail = `<input id="withoutEmail" class="form-control border-input" type="text" placeholder="Debe ingresar un email">`
         } else {
-            withoutEmail = `<input value="${selectedClientData.email}" id="withoutEmail" class="form-control border-input" type="text" placeholder="Debe ingresar un email"`
+            withoutEmail = `<input value="${selectedClientData.email}" id="withoutEmail" class="form-control border-input" type="text" placeholder="Debe ingresar un email">`
             //withoutEmail = `<center><b>${selectedClientData.email}</b></center>`
         }
 
         if(selectedClientData.phone == '') {
-            withoutPhone = `<input id="withoutPhone" class="form-control border-input" type="text" placeholder="Debe ingresar un teléfono"`
+            withoutPhone = `<input id="withoutPhone" class="form-control border-input" type="text" placeholder="Debe ingresar un teléfono">`
         } else {
-            withoutPhone = `<input value="${selectedClientData.phone}" id="withoutPhone" class="form-control border-input" type="text" placeholder="Debe ingresar un teléfono"`
+            withoutPhone = `<input value="${selectedClientData.phone}" id="withoutPhone" class="form-control border-input" type="text" placeholder="Debe ingresar un teléfono">`
            // withoutPhone = `<center><b>${selectedClientData.phone}</b></center>`
         }
         

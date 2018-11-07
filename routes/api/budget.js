@@ -140,6 +140,7 @@ const Budget = [
         handler: (request, h) => {
             let budgetId = request.payload.id
             let toStatus = request.payload.toStatus
+            let orden = request.payload.orden
 
             return new Promise(resolve => {
                 db.find({
@@ -149,7 +150,10 @@ const Budget = [
                 }).then(result => {
                     if (result.docs[0]) {
                         result.docs[0].status = toStatus
-
+                        if(orden) {
+                            result.docs[0].order = orden
+                        }
+                        
                         db.insert(result.docs[0]).then(budgetRes=>{
                             console.log(budgetRes)
                             if(budgetRes.ok) {
@@ -169,7 +173,8 @@ const Budget = [
         validate: {
             payload: Joi.object().keys({
                 id: Joi.string().required(),
-                toStatus: Joi.string().required()
+                toStatus: Joi.string().required(),
+                orden: Joi.string().allow(''),
             })
         }
     }
