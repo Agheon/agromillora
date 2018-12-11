@@ -2,16 +2,18 @@ import cron from 'node-cron'
 import mysql from 'mysql2/promise'
 import mssql from 'mssql'
 import moment from 'moment-timezone'
+import dotEnv from 'dotenv'
 import { db } from '../config/db'
+dotEnv.load()
 
 async function updateProducts() {
     let connection = null
 
     try {
         connection = await mysql.createConnection({
-            host     : '190.100.85.14',
-            user     : 'root',
-            password : '1234',
+            host     : process.env.DEEPBLUE_IP,
+            user     : process.env.DEEPBLUE_USER,
+            password : process.env.DEEPBLUE_PASSWORD,
             database : 'bddeepblue'
         })
     
@@ -60,7 +62,7 @@ async function updateProducts() {
 
 function updateClients() {
     return new Promise(resolve=> {
-        mssql.connect('mssql://sa:local1234@192.168.0.115/NAVISION').then(pool=>{
+        mssql.connect(`mssql://${process.env.NAVISION_USER}:${process.env.NAVISION_PASSWORD}@${process.env.NAVISION_IP}/Produccion`).then(pool=>{
             return pool.request()
             .query(`
                 SELECT
@@ -87,7 +89,7 @@ function updateClients() {
 }
 
 
-let dailyCron = cron.schedule('0 0 0 * * *', async function(){ // una vez al día a las 12 AM
+let dailyCron = cron.schedule('0 0 0 * * *', async function(){ // a diario a las 12 AM
     
     updateProducts().then(res=>{
         //aqui guardar en base de datos
