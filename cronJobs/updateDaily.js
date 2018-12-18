@@ -6,6 +6,11 @@ import dotEnv from 'dotenv'
 import { db } from '../config/db'
 dotEnv.load()
 
+/*
+    FALTA CAMBIAR ESTADO DE PRODUCTOS VENCIDOS
+
+*/
+
 async function updateProducts() {
     let connection = null
 
@@ -87,6 +92,7 @@ function updateClients() {
 
     
 }
+
 
 
 let dailyCron = cron.schedule('0 0 0 * * *', async function(){ // a diario a las 12 AM

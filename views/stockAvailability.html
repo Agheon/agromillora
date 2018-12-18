@@ -113,7 +113,7 @@
                             <th scope="col">QUITAR</th>
                             <th scope="col">PRODUCTO</th>
                             <th scope="col">FECHA ESTIMADA DE DESPACHO</th>
-                            <th scope="col">STOCK ACTUAL</th>
+                            <!--<th scope="col">STOCK ACTUAL</th>-->
                             <th scope="col">CANTIDAD A COTIZAR</th>
                         </tr>
                     </thead>
@@ -450,9 +450,11 @@ function chargeResults(products) {
                 <td>
                     ${el.variedad}
                 </td>
+                <!--
                 <td>
                     ${number_format(el.stock)}
                 </td>
+                -->
                 <td>
                     <button type="button" class="btn btn-${statusProductInvoice.class} btn-sm btnSendToInvoice" id="toinvoice-${removeSpecials(el.variedad)}"><i class="fas fa-arrow-circle-${statusProductInvoice.arrow}"></i></button>
                 </td>
@@ -488,7 +490,7 @@ function chargeResults(products) {
             <thead>
                 <tr>
                     <th scope="col">PRODUCTO</th>
-                    <th scope="col">STOCK ACTUAL</th>
+                    <!--<th scope="col">STOCK ACTUAL</th>-->
                     <th scope="col">COTIZAR</th>
                 </tr>
             </thead>
@@ -553,9 +555,11 @@ function addToInvoice(product) {
             <td>
                 ${productDateDeliverySelected}
             </td>
+            <!--
             <td>
                 ${number_format(product.stock)}
             </td>
+            -->
             <td>
                 <div class="form-group">
                     <input id="toInvoiceQty-${removeSpecials(product.variedad)}" class="form-control justNumbers" type="text" placeholder="Cantidad a cotizar">
