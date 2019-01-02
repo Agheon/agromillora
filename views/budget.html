@@ -2076,10 +2076,16 @@ function saveBudget(type, continueDraftId) {
             border: '1px solid #3498db'
         })
     } else {
+        budgetObj.reference = 'Sin nombre de referencia'
+        validateCounter++
+        $('#reference').css({
+            border: '1px solid #3498db'
+        })
+        /*
         errorMessage += `<br> * Debe ingresar nombre de referencia.`
         $('#reference').css({
             border: '1px solid #e74c3c'
-        })
+        })*/
     }
 
     if(status == 'draft') {
@@ -3480,7 +3486,7 @@ function sendEmailLoading(budgetData, loadingStatus) {
                 
                     </div>
                 </div>
-                `)
+            `)
         } else if(loadingStatus == 1) {
             if(budgetData) {
                 $('#loadingEmail').html(`

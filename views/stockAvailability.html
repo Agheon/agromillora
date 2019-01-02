@@ -562,13 +562,11 @@ function addToInvoice(product) {
             -->
             <td>
                 <div class="form-group">
-                    <input id="toInvoiceQty-${removeSpecials(product.variedad)}" class="form-control justNumbers" type="text" placeholder="Cantidad a cotizar">
+                    <input id="toInvoiceQty-${removeSpecials(product.variedad)}" class="form-control cleavePoints" type="text" placeholder="Cantidad a cotizar">
                 </div>
             </td>
         </tr>
     `)
-
-    
 
     $(`#frominvoice-${removeSpecials(product.variedad)}`).on('click', function() {
         removeFromInvoice(product)
@@ -577,6 +575,18 @@ function addToInvoice(product) {
             $(`#toinvoice-${removeSpecials(product.variedad)}`).addClass('btn-primary')
             $(`#toinvoice-${removeSpecials(product.variedad)}`).html('<i class="fas fa-arrow-circle-right"></i>')
         }
+    })
+
+    $('.cleavePoints').toArray().forEach(function(el) {
+        new Cleave(el, {
+            numeral: true,
+            numeralThousandsGroupStyle: 'thousand',
+            numeralDecimalMark: ',',
+            delimiter: '.',
+            numeralPositiveOnly: true,
+            blocks: [3],
+            numeralDecimalScale: 0
+        })
     })
 }
 
@@ -607,7 +617,7 @@ $('#emptyMessageOrSaveCart').on('click', '#saveOnCartButton', function() {
         let toInvoiceCart = arr.concat({
             productName: el.cells[1].innerText,
             deliveryDate: el.cells[2].innerText,
-            qty: $(`#toInvoiceQty-${el.id.split('-')[1]}`).val()
+            qty: removePoints($(`#toInvoiceQty-${el.id.split('-')[1]}`).val())
         })
 
         if($(`#toInvoiceQty-${el.id.split('-')[1]}`).val() == '') {  

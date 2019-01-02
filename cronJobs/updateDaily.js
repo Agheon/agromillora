@@ -5,7 +5,6 @@ import moment from 'moment-timezone'
 import dotEnv from 'dotenv'
 import { db } from '../config/db'
 dotEnv.load()
-
 /*
     FALTA CAMBIAR ESTADO DE PRODUCTOS VENCIDOS
 
@@ -65,6 +64,43 @@ async function updateProducts() {
     
 }
 
+async function expirationProducts() {
+    try {
+        db.find({
+            selector: {
+                _id: {
+                    $gt: 0
+                },
+                type: 'budget',
+                expirationDate: {
+                    $lt: moment().add(1, 'days').format('YYYY-MM-DD') 
+                },
+                status: {
+                    $in: ['draft', 'sended', 'created']
+                }
+            }
+        }).then(result => {
+            if (result.docs[0]) {
+                let docsChanges = result.docs.map(el=> {
+                    el.status = 'expirated'        
+                    return el
+                })
+
+                db.bulk({docs:docsChanges}, function(err) {
+                    if (err) throw err;
+
+                    console.log({ok: `${docsChanges.length} cotizaciones expiradas`})
+                })
+            } else {
+                console.log({ err: 'No hay cotizaciones vencidas' })
+            }
+        })
+    } catch (error) {
+        console.log(error)
+    }
+    
+}
+
 function updateClients() {
     return new Promise(resolve=> {
         mssql.connect(`mssql://${process.env.NAVISION_USER}:${process.env.NAVISION_PASSWORD}@${process.env.NAVISION_IP}/Produccion`).then(pool=>{
@@ -88,15 +124,13 @@ function updateClients() {
             mssql.close()
             resolve({err: 'No se han actualizado los clientes'})
         })
-    })
-
-    
+    }) 
 }
 
-
-
 let dailyCron = cron.schedule('0 0 0 * * *', async function(){ // a diario a las 12 AM
-    
+    console.log('test')
+    expirationProducts()
+
     updateProducts().then(res=>{
         //aqui guardar en base de datos
         db.find({

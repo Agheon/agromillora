@@ -5,12 +5,6 @@ import dotEnv from 'dotenv'
 import randtoken from 'rand-token'
 dotEnv.load()
 
-let config = {
-    from: `Agromillora. <cotizacionsur@agromillora.com>`,
-    to: ['cotizacionsur@agromillora.com', 'ereveco@michcom.cl'],
-    subject: 'Cotización'
-}
-
 let transporter = nodemailer.createTransport({
     host: 'smtp.office365.com',
     port: 587,
@@ -27,9 +21,9 @@ let transporter = nodemailer.createTransport({
 })
 
 let mailOptions = {
-    from: config.from, 
-    to: config.to, // emails de destino
-    subject: config.subject
+    from: `Agromillora. <cotizacionsur@agromillora.com>`, 
+    to: ['cotizacionsur@agromillora.com', 'ereveco@michcom.cl'], // emails de destino
+    subject: 'Cotización'
 }
 
 const pdfExport = [
@@ -41,6 +35,7 @@ const pdfExport = [
             let pdf = request.payload.pdf
             let budgetData = JSON.parse(request.payload.budgetData)
             console.log(budgetData)
+            mailOptions.to.push(budgetData.client.email)
             return new Promise(resolve => {
 
                 mailOptions.attachments = [{
