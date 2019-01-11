@@ -20,12 +20,6 @@ let transporter = nodemailer.createTransport({
     }
 })
 
-let mailOptions = {
-    from: `Agromillora. <cotizacionsur@agromillora.com>`, 
-    to: ['cotizacionsur@agromillora.com', 'ereveco@michcom.cl'], // emails de destino
-    subject: 'Cotización'
-}
-
 const pdfExport = [
 {
     method: 'POST',
@@ -34,9 +28,18 @@ const pdfExport = [
         handler: (request, h) => {
             let pdf = request.payload.pdf
             let budgetData = JSON.parse(request.payload.budgetData)
-            console.log(budgetData)
-            mailOptions.to.push(budgetData.client.email)
+            console.log('BUDGET DATA', budgetData)
+            
             return new Promise(resolve => {
+
+                let mailOptions = {
+                    from: `Agromillora. <cotizacionsur@agromillora.com>`, 
+                    to: ['cotizacionsur@agromillora.com'], // emails de destino
+                    subject: 'Cotización'
+                }
+
+                mailOptions.to.push(`Cliente <${budgetData.client.email.trim()}>`)
+                mailOptions.to.push(`Comercial <${budgetData.user.email.trim()}>`)
 
                 mailOptions.attachments = [{
                     filename: `COT${budgetData.number}.pdf`,
@@ -49,7 +52,7 @@ const pdfExport = [
                     En atención a lo solicitado, adjunto la correspondiente cotización y potenciales fechas de entrega.
                     <br>
                     <p>Para aceptar la cotización hacer clic en el siguiente enlace: <a href="${process.env.APP_DOMAIN}/iacceptthequote?token=${budgetData.acceptToken}">ACEPTO LA COTIZACIÓN</a></p>
-                    <b>Recuerde que la cotización pasa a ser una reserva cuando se transfiere el anticipo estipulado en el documento adjunto.</b>
+                    <b>RECUERDE QUE LA COTIZACIÓN PASA A SER UNA RESERVA CUANDO SE TRANSFIERE EL ANTICIPO ESTIPULADO EN EL DOCUMENTO ADJUNTO.</b>
                 `
 
                 transporter.sendMail(mailOptions, function (err, info) {           
@@ -57,8 +60,7 @@ const pdfExport = [
                         console.log(info)
                         budgetData.status = 'sended'
                         
-                        
-
+                
                         db.insert(budgetData).then(updateRes=>{
                             if(updateRes.ok) {
                                 budgetData.emailInfo = info
