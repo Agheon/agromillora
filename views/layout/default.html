@@ -20,6 +20,10 @@
     <link rel="stylesheet" href="/public/css/sweetalert2.css">
 
     <style>
+        .popover{
+            max-width: 100%; /* Max Width of the popover (depending on the container!) */
+        }
+
         .toast {
            opacity: 1.0 !important;
         }
@@ -52,6 +56,12 @@
         .btn.btn-circle {
             padding: 0;
             border-radius: 50%;
+        }
+
+        .navbar {
+            padding-top: 1px;
+            padding-bottom: 1px;
+            margin-bottom: 5px;
         }
     </style>
     {{#block "css"}}
@@ -90,6 +100,11 @@
                 {{#unless credentials.commercial}}
                 <li class="nav-item">
                     <a id="production-link" class="nav-link" href="/production"><i class="fas fa-boxes"></i>&nbsp; Producción</a>
+                </li>
+                {{/unless}}
+                {{#unless credentials.production}}
+                <li class="nav-item">
+                    <a id="production-link" class="nav-link" href="/protectedProducts"><i class="fas fa-shield-alt"></i>&nbsp; Productos protegidos</a>
                 </li>
                 {{/unless}}
                 <!--
@@ -182,6 +197,61 @@
     <script src="/public/js/cleave.min.js"></script>
     <script> 
         let cartData = null;
+        
+        const prettifyCartInfo = (data) => {
+            if(data === true) {
+                return `<i style="color:#1abc9c;" class="fas fa-2x fa-check-circle"></i>`
+            } else if(data === false) {
+                return `<i style="color:#e74c3c;" class="fas fa-2x fa-times-circle"></i>`
+            } else if(data === 'bandeja') {
+                return 'BANDEJA'
+            } else if(data === 'teku') {
+                return 'TEKU'
+            } else if(data === 'empty') {
+                return '---'
+            } else if(data === 'smartree') {
+                return 'SMARTREE'
+            } else if(data === 'eje') {
+                return 'EJE'
+            } else {
+                return data
+            }
+        }
+        
+        function _getProtectedProducts() {
+            ajax({
+                url: 'api/protectedProducts'
+            }).then(res => {
+                if (res.err) {
+                    toastr.warning(res.err)
+                    $('#loadingProducts').empty()
+                } else if(res.ok) {
+                    /*
+                    let formatRes = res.ok.map(el=>{
+                        el.rut = `${rutFunc(el.rut)}`    
+                        return el
+                    })
+                    */
+
+                    datatableProducts.rows.add(res.ok).draw()
+                    $('#loadingProducts').empty()
+                }      
+            })
+        }
+
+        const _getProtectedProductsDefault = () => {
+            return new Promise(resolve=> {
+                ajax({
+                    url: 'api/protectedProducts'
+                }).then(res => {
+                    if(res.ok) {
+                        resolve({ ok: res.ok })
+                    } else if(res.err) {
+                        resolve({ err:res.err })
+                    }
+                })
+            })
+        }
 
         $(document).ready(function(){
 
@@ -216,9 +286,12 @@
             let bodyCartHTML = cartData.products.reduce((txt,el,i)=> {
                 return txt += `
                     <tr>
-                        <td>${el.productName}</td>
-                        <td>${el.deliveryDate}</td>
-                        <td>${number_format(el.qty)}</td>
+                        <td><center>${el.productName}</center></td>
+                        <td><center>${prettifyCartInfo(el.envase)}</center></td>
+                        <td><center>${prettifyCartInfo(el.formato)}</center></td>
+                        <td><center>${prettifyCartInfo(el.injertacion)}</center></td>
+                        <td><center>${el.deliveryDate}</center></td>
+                        <td><center>${number_format(el.qty)}</center></td>
                     </tr>
                 `
             }, '')
@@ -231,6 +304,9 @@
                     <table class="table">
                         <thead>
                             <th>PRODUCTO</th>
+                            <th>ENVASE</th>
+                            <th>FORMATO</th>
+                            <th>SERVICIO DE INJERTACIÓN</th>
                             <th>FECHA DESPACHO</th>
                             <th>CANTIDAD</th>
                         </thead>
@@ -260,7 +336,7 @@
                 .done((result) => {
                     resolve(result);
                 })
-                .fail(() => {
+                .fail((err) => {
                     reject({error: 'ERROR IN --> '+url+' <--'});
                 });
             });

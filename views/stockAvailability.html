@@ -5,7 +5,7 @@
 {{/extend}}
 
 <div class="row">
-    <div class="col-xs-12 col-sm-6 col-md-6">
+    <div class="col-xs-12 col-sm-12 col-md-4">
         <div class="accordion" id="accordionAvailability">
             <div class="card">
                 <div class="card-header" id="headingFilter">
@@ -104,15 +104,19 @@
         </div>
     </div>
 
-    <div class="col-xs-12 col-sm-6 col-md-6">
+    <div class="col-xs-12 col-sm-12 col-md-8">
         <div class="card">
-            <div class="card-body">
+            <div class="card-body table-responsive">
                 <table id="toInvoiceTable" class="table table-hover">
                     <thead>
                         <tr>
                             <th scope="col">QUITAR</th>
                             <th scope="col">PRODUCTO</th>
                             <th scope="col">FECHA ESTIMADA DE DESPACHO</th>
+                            <th scope="col">ENVASE</th>
+                            <th scope="col">FORMATO</th>
+                            <th scope="col">SERVICION DE INJERTACIÓN</th>
+                            
                             <!--<th scope="col">STOCK ACTUAL</th>-->
                             <th scope="col">CANTIDAD A COTIZAR</th>
                         </tr>
@@ -260,8 +264,32 @@ function getAllProducts() {
             url:'/api/products/getAllProducts',
         }).then(res=>{
             if(res.ok) {
-                allProducts = res.ok.list
-                resolve({ok:res.ok.list})
+                _getProtectedProductsDefault().then(resProtectedProducts => {
+                    if(resProtectedProducts.ok) {
+                        let mapAllProducts = res.ok.list.map(elProduct => {
+                            let protectedProduct = resProtectedProducts.ok.filter(elProtectedProduct=> {
+                                if(elProduct.variedad !== elProtectedProduct.originalName) {
+                                    return false
+                                } else {
+                                    return true
+                                }
+                            })
+                            
+                            if(protectedProduct[0]) {
+                                elProduct.variedad = `${elProduct.variedad} (${protectedProduct[0].commercialName})`
+                                return elProduct
+                            }
+
+                            return elProduct
+                        })
+
+                        allProducts = mapAllProducts
+                        resolve({ok:mapAllProducts})
+                    } else if(resProtectedProducts.err) {
+                        allProducts = res.ok.list
+                        resolve({ok:res.ok.list})
+                    }
+                })
             } else if(res.err) {
                 toastr.warning('No se encuentran productos')
                 resolve()
@@ -535,6 +563,18 @@ function chargeResults(products) {
     })
 }
 
+function replaceCommercialName(originalName) {
+    let initRpl = originalName.indexOf('(');
+    let finRpl = originalName.indexOf(')');
+    let commercialName = originalName.substr(initRpl+1,finRpl-initRpl-1)
+
+    if(commercialName) {
+        return commercialName
+    } else {
+        return originalName
+    }
+}
+
 function addToInvoice(product) {
     fromInvoiceArr.push(product.variedad)
     if(fromInvoiceArr.length > 0) {
@@ -554,6 +594,32 @@ function addToInvoice(product) {
             </td>
             <td>
                 ${productDateDeliverySelected}
+            </td>
+            
+            <td>
+                <div class="form-group">
+                    <select class="custom-select">
+                        <option value="bandeja" selected>BANDEJA</option>
+                        <option value="teku">TEKU</option>
+                    </select>
+                </div>
+            </td>
+            <td>
+                <div class="form-group">
+                    <select class="custom-select">
+                        <option value="empty" selected>---</option>
+                        <option value="smartree">SMARTREE</option>
+                        <option value="eje">EJE</option>
+                    </select>
+                </div>
+            </td>
+            <td>
+                <div class="form-group">
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="ingestion-${removeSpecials(product.variedad)}">
+                        <label class="custom-control-label" for="ingestion-${removeSpecials(product.variedad)}">Servicio de injerción</label>
+                    </div>
+                </div>
             </td>
             <!--
             <td>
@@ -614,8 +680,12 @@ $('#emptyMessageOrSaveCart').on('click', '#saveOnCartButton', function() {
     let sendCounter = 0
     //console.log(arrToInvoice)
     let reducedToInvoice = arrToInvoice.reduce((arr, el , i)=>{
+        console.log($(el.cells[3]).children().children().val(), $(el.cells[4]).children().children().val(), $(el.cells[5]).find( 'input' ).prop('checked'))
         let toInvoiceCart = arr.concat({
-            productName: el.cells[1].innerText,
+            productName: replaceCommercialName(el.cells[1].innerText),
+            envase: $(el.cells[3]).children().children().val(),
+            formato: $(el.cells[4]).children().children().val(),
+            injertacion: $(el.cells[5]).find( 'input' ).prop('checked'),
             deliveryDate: el.cells[2].innerText,
             qty: removePoints($(`#toInvoiceQty-${el.id.split('-')[1]}`).val())
         })

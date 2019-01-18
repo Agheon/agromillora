@@ -12,7 +12,15 @@ dotEnv.load()
 
 const server = Hapi.server({
     host: '0.0.0.0',
-    port: process.env.SERVER_PORT
+    port: process.env.SERVER_PORT,
+    routes: {
+        validate: {
+            failAction: (request, h, err) => {
+                console.error('ValidationError:', err.message);
+                throw Boom.badRequest(err);
+            }
+        }
+    }
 })
   
 const init = async () => {

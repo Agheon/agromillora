@@ -5,6 +5,39 @@ import { db } from '../../config/db'
 const Budget = [
 { 
     method: 'GET',
+    path: '/getBudget', 
+    options: {
+        auth: false,
+        handler: (request, h) => {
+            return new Promise(resolve => {
+                let params = request.query
+
+                db.find({
+                    selector: {
+                        _id: {
+                            $gt: null
+                        },
+                        type: 'budget',
+                        getToken: params.token
+                    },
+                    sort: [{
+                        _id: 'desc'
+                    }]
+                }).then(result => {
+                    if (result.docs[0]) {
+                        console.log(result.docs[0])
+                        resolve({ok:result.docs[0]})
+                    } else {
+                        resolve(h.view('budgetlink', { err: 'No existe la cotización' }, { layout: false }))
+                    }
+                })
+                
+            })
+        }
+    }
+},
+{ 
+    method: 'GET',
     path: '/iacceptthequote', 
     options: {
         auth: false,
@@ -93,7 +126,7 @@ const Budget = [
     options: {
         handler: (request, h) => {
             let credentials = request.auth.credentials
-            console.log(credentials)
+            //console.log(credentials)
             let status = request.payload.status
             let query = {
                 _id: {
@@ -155,7 +188,7 @@ const Budget = [
                         }
                         
                         db.insert(result.docs[0]).then(budgetRes=>{
-                            console.log(budgetRes)
+                            //console.log(budgetRes)
                             if(budgetRes.ok) {
                                 resolve({ ok: result.docs[0] })
                             } else {
@@ -228,7 +261,7 @@ const Budget = [
                         _id: budgetId
                     }
                 }).then(result => {
-                    console.log(result)
+                    //console.log(result)
                     if (result.docs[0]) {
                         resolve({ ok: result.docs[0] })
                     } else {
@@ -311,7 +344,7 @@ const Budget = [
                         }
                         
                         db.insert(budgetObj).then(budgetRes=>{
-                            console.log(budgetRes)
+                            console.log('CREATEBUDGET: ', budgetRes)
                             if(budgetRes.ok) {
                                 budgetObj._rev = budgetRes.rev
                                 setBudgetCounter(resCounter.ok).then(setCounterRes=>{

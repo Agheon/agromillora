@@ -175,6 +175,7 @@
 
 {{#extend "js"}}
 <script src="/public/base64js/agromilloralogo.js"></script>
+<script src="/public/js/qrcode.min.js"></script>
 <script>
 let rowSelected
 let rowDataSelected
@@ -517,6 +518,9 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
                 <table class="table table-hover">
                     <thead>
                         <th>PRODUCTO</th>
+                        <th>ENVASE</th>
+                        <th>FORMATO</th>
+                        <th>SERVICIO</th>
                         <th>FECHA DE ENTREGA</th>
                         <th>UNIDADES</th>
                         <th>PRECIO UNITARIO</th>
@@ -846,6 +850,9 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
         return htmlTXT += `
         <tr>
             <td>${el.product}</td>
+            <td>${el.envase}</td>
+            <td>${el.formato}</td>
+            <td>${el.incluye}</td>
             <td>${el.deliveryDate}</td>
             <td>${number_format(el.qty)}</td>
             <td>${el.unitPrice}</td>
@@ -1199,8 +1206,12 @@ const draftBudget = (draftBudgetData) => {
     }
     productsInDraft = draftBudgetData.products.reduce((txt,el,i)=>{
         return txt += `
+        
             <tr id="toInvoiceRow-${i}">
                 <td>${el.product}</td>
+                <td>${el.envase}</td>
+                <td>${el.formato}</td>
+                <td>${el.servicio}</td>
                 <td>${el.deliveryDate}</td>
                 <td class="qtyProductClass" id="qtyProduct-${i}">${number_format(el.qty)}</td>
                 <td>
@@ -1227,6 +1238,9 @@ const draftBudget = (draftBudgetData) => {
                             <thead>
                                 <tr>
                                     <td>PRODUCTO</td>
+                                    <td>ENVASE</td>
+                                    <td>FORMATO</td>
+                                    <td>SERVICIO</td>
                                     <td>FECHA DE ENTREGA</td>
                                     <td>CANTIDAD A COTIZAR</td>
                                     <td>PRECIO UNITARIO</td>
@@ -1675,7 +1689,11 @@ const newBudget = () => {
             <div class="col-md-12 table-responsive">
                 <table class="table">
                     <thead>
+                        
                         <th>PRODUCTO</th>
+                        <th>ENVASE</th>
+                        <th>FORMATO</th>
+                        <th>SERVICIO</th>
                         <th>FECHA DE ENTREGA</th>
                         <th>CANTIDAD A COTIZAR</th>
                         <th>PRECIO UNITARIO</th>
@@ -1868,11 +1886,15 @@ const newBudget = () => {
             } else {
                 justNumbersSelected = 'justNumbersFloat'
             }
-    
+            
+            console.log(cartData)
             let budgetProductsCartHTML = cartData.products.reduce((txt, el, i) => {
                 return txt += `
                     <tr id="toInvoiceRow-${i}">
                         <td>${el.productName}</td>
+                        <td>${prettifyCartInfo(el.envase)}</td>
+                        <td>${prettifyCartInfo(el.formato)}</td>
+                        <td>${injertacion(el.injertacion)}</td>
                         <td>${el.deliveryDate}</td>
                         <td class="qtyProductClass" id="qtyProduct-${i}">${number_format(el.qty)}</td>
                         <td>
@@ -1886,6 +1908,53 @@ const newBudget = () => {
                     </tr>
                 `
             }, '')
+            
+            /*
+            setTimeout(() => {
+                console.log('selectedlayoutData', selectedLayoutData.divisa)
+
+                if(selectedLayoutData.divisa == 'clp') {
+                    $('.cleaveGrafting').toArray().forEach(function(el) {
+                        new Cleave(el, {
+                            numeral: true,
+                            numeralThousandsGroupStyle: 'thousand',
+                            numeralDecimalMark: ',',
+                            delimiter: '.',
+                            numeralPositiveOnly: true,
+                            blocks: [3],
+                            numeralDecimalScale: 0
+                        })
+                    })
+                } else if(selectedLayoutData.divisa == 'usd') {
+                    $('.cleaveGrafting').toArray().forEach(function(el) {
+                        new Cleave(el, {
+                            numeral: true,
+                            numeralThousandsGroupStyle: 'thousand',
+                            numeralDecimalMark: ',',
+                            delimiter: '.',
+                            numeralPositiveOnly: true,
+                            blocks: [3],
+                            numeralDecimalScale: 3
+                        })
+                    })   
+                } else if(selectedLayoutData.divisa == 'eur') {
+                    $('.cleaveGrafting').toArray().forEach(function(el) {
+                        new Cleave(el, {
+                            numeral: true,
+                            numeralThousandsGroupStyle: 'thousand',
+                            numeralDecimalMark: ',',
+                            delimiter: '.',
+                            numeralPositiveOnly: true,
+                            blocks: [3],
+                            numeralDecimalScale: 3
+                        })
+                    })   
+                }
+
+                
+            }, 500);
+            */
+            
 
             $('#budgetProductsCart').html(budgetProductsCartHTML)
 
@@ -2339,7 +2408,7 @@ function saveBudget(type, continueDraftId) {
 }
 
 function saveNewBudget(budgetObj) {
-    console.log(budgetObj)
+    console.log('BUDGETOBJ',budgetObj)
     sendEmailLoading(budgetObj, 0)
     ajax({
         url: 'api/newBudget',
@@ -2786,18 +2855,21 @@ function finalCalculation(changePercent) {
         addingProductsArr = rowsToInvoice.reduce((arr, el, i)=> {
             let rowTotalPrice
             if(selectedLayoutData.divisa == 'clp') {
-                rowTotalPrice = parseInt(removePoints(el.cells[4].innerText))
+                rowTotalPrice = parseInt(removePoints(el.cells[7].innerText))
             } else {
                 
-                rowTotalPrice = parseFloat(el.cells[4].innerText)
+                rowTotalPrice = parseFloat(el.cells[7].innerText)
                 //console.log('PRICE', el.cells[4].innerText)
                 //console.log('PRICECOMMAS:' , rowTotalPrice)
             }
             console.log('rowTotalPrice', rowTotalPrice)
             return arr.concat({
                 product: el.cells[0].innerText,
-                deliveryDate: el.cells[1].innerText,
-                qty: removePoints(el.cells[2].innerText),
+                envase: el.cells[1].innerText,
+                formato: el.cells[2].innerText,
+                incluye: el.cells[3].innerText,
+                deliveryDate: el.cells[4].innerText,
+                qty: removePoints(el.cells[5].innerText),
                 unitPrice: $(`#toInvoiceProductPrice-${i}`).val(),
                 totalPrice: rowTotalPrice
             })   
@@ -2898,6 +2970,14 @@ function finalCalculation(changePercent) {
     
 }
 
+const injertacion = (data) => {
+    if(data === true) {
+        return `INJERTACION`
+    } else if(data === false) {
+        return `---`
+    }
+}
+
 function finalCalculationDraft(draftBudgetData, changePercent) {
     let divisaSelect = draftBudgetData.layout.divisa
 
@@ -2991,11 +3071,14 @@ function finalCalculationDraft(draftBudgetData, changePercent) {
             console.log('rowTotalPrice', rowTotalPrice)
             return arr.concat({
                 product: el.cells[0].innerText,
-                deliveryDate: el.cells[1].innerText,
-                qty: removePoints(el.cells[2].innerText),
+                envase: el.cells[1].innerText,
+                formato: el.cells[2].innerText,
+                incluye: el.cells[3].innerText,
+                deliveryDate: el.cells[4].innerText,
+                qty: removePoints(el.cells[5].innerText),
                 unitPrice: $(`#toInvoiceProductPrice-${i}`).val(),
                 totalPrice: rowTotalPrice
-            })   
+            })    
         }, [])
         console.log(addingProductsArr)
 
@@ -3137,7 +3220,7 @@ function chargeFirm(draftFirm) {
 function exportToPdf(budgetData, statusPDF) {
     console.log(budgetData)
     return new Promise(resolve=> {
-        let doc = new jsPDF('p', 'pt', 'a4')
+        let doc = new jsPDF('p', 'pt', 'letter')
         /*
             x y w h
         */
@@ -3145,7 +3228,7 @@ function exportToPdf(budgetData, statusPDF) {
         let rightYPos = 0
         let testdispose = 0
 
-        doc.addImage(agromilloraLogoBase64, 'JPEG', 30, ypos+50, 200, 50)
+        doc.addImage(agromilloraLogoBase64, 'JPEG', 10, ypos+20, 220, 150)
         doc.setFontSize(9)
         //doc.setFontType('bold')
         //let generalBudgetInfo = 
@@ -3159,7 +3242,8 @@ function exportToPdf(budgetData, statusPDF) {
         doc.setDrawColor(189, 195, 199)
         doc.setLineWidth(0.3)
         doc.line(30, ypos, 170, ypos)
-        doc.setTextColor(52, 152, 219)
+        //doc.setTextColor(52, 152, 219)
+        doc.setTextColor(42,200,138)
         doc.setFontSize(20)
         //doc.text(190, ypos+5, `COTIZACIÓN ${budgetData.number}`)
         doc.text(`COTIZACIÓN ${budgetData.number}`, 280, ypos+5, null, null, 'center');
@@ -3179,7 +3263,7 @@ function exportToPdf(budgetData, statusPDF) {
         doc.setFontType('bold')
         doc.text(80, ypos, `${replaceAll(budgetData.client.name, '<br>', '\n')}`)
 
-        ypos += 25
+        ypos += 15
         doc.setFontType('normal')
         doc.text(30, ypos, 'Rut')
         doc.setFontType('bold')
@@ -3187,13 +3271,13 @@ function exportToPdf(budgetData, statusPDF) {
 
         
 
-        ypos += 25
+        ypos += 15
         doc.setFontType('normal')
         doc.text(30, ypos, 'Teléfono')
         doc.setFontType('bold')
         doc.text(80, ypos, `${replaceAll(budgetData.client.phone, '<br>', '\n')}`)
 
-        ypos += 25
+        ypos += 15
         doc.setFontType('normal')
         doc.text(30, ypos, 'Email')
         doc.setFontType('bold')
@@ -3207,7 +3291,7 @@ function exportToPdf(budgetData, statusPDF) {
         doc.setFontSize(9)
         doc.text(400, rightYPos, budgetData.creationDate)
 
-        rightYPos += 25
+        rightYPos += 15
         doc.setFontType('normal')
         doc.setFontSize(9)
         doc.text(300, rightYPos, 'Fecha de vencimiento')
@@ -3215,7 +3299,7 @@ function exportToPdf(budgetData, statusPDF) {
         doc.setFontSize(9)
         doc.text(400, rightYPos, moment(budgetData.expirationDate).format('DD/MM/YYYY'))
 
-        rightYPos += 25
+        rightYPos += 15
         doc.setFontType('normal')
         doc.setFontSize(9)
         doc.text(300, rightYPos, 'Referencia')
@@ -3223,7 +3307,7 @@ function exportToPdf(budgetData, statusPDF) {
         doc.setFontSize(9)
         doc.text(400, rightYPos, replaceAll(budgetData.reference, '<br>', '\n'))
 
-        let tableColumns = ['Producto', 'Fecha estimada de entrega', 'Unidades', 'Precio unitario', 'Monto'];
+        let tableColumns = ['Producto', 'Envase', 'Formato', 'Servicio', 'Fecha entrega', 'Unidades', 'Precio c/u', 'Monto'];
 
         var tableRows = budgetData.products.reduce((arr,el,i) => {
             let unitPriceFormat
@@ -3238,6 +3322,9 @@ function exportToPdf(budgetData, statusPDF) {
 
             return arr.concat([[
                 `${el.product}`,
+                `${el.envase}`,
+                `${el.formato}`,
+                `${el.incluye}`,
                 el.deliveryDate,
                 number_format(el.qty),
                 `${unitPriceFormat}`,
@@ -3247,8 +3334,12 @@ function exportToPdf(budgetData, statusPDF) {
         
         ypos += 30
         doc.autoTable(tableColumns, tableRows, {
+            createdCell: function (cell, data) {
+                cell.styles.fillColor = '#ffffff';
+            },
             styles: {
-                fontSize: 9
+                fontSize: 6,
+                fillColor: 'rgb(42,200,138)'
             },
             margin: {
                 top: ypos
@@ -3270,7 +3361,7 @@ function exportToPdf(budgetData, statusPDF) {
             doc.text(30, ypos, `${replaceAll(el.key, '<br>', '\n')}`);
             doc.setFontType('bold')
             doc.text(100, ypos, `${replaceAll(el.value, '<br>', '\n')}`);
-            ypos += 25
+            ypos += 15
         })
 
         doc.setFontType('bold')
@@ -3354,11 +3445,22 @@ function exportToPdf(budgetData, statusPDF) {
 
         rightYPos += 60
         doc.setFontType('bold')
-        doc.setFontSize(9)
+        doc.setFontSize(14)
         doc.text(300, rightYPos, `Total a pagar:`)
         doc.setFontType('bold')
         doc.setTextColor(42,200,138)
         doc.text(450, rightYPos, `${amountTXT} ${totalAmountFormat}`)
+
+        /*
+            aqui poner QR
+        
+        */
+        /*
+        if(budgetData.status !== 'draft') {
+            doc.addImage(budgetData.qrCode, 'GIF', 50, doc.internal.pageSize.getHeight() - 150, 100, 100)
+        }
+
+        */
         
         let reformatHTML = budgetData.layout.textInfo
 

@@ -1,0 +1,470 @@
+{{!< layout/default}}
+
+{{#extend "css"}}
+<style>
+    #tableProducts tbody tr {
+        cursor: pointer;
+    }
+</style>
+{{/extend}}
+
+<div class="row">
+    <div class="col-md-2 col-xs-12">
+        <br>
+        <button class="btn btn-dark btn-block btnSecond" id="optionCreateProduct">
+            <i style="color:#3498db;" class="fas fa-plus"></i> Nuevo producto protegido
+        </button>
+        <hr>
+        <!--
+        <button class="btn btn-dark btn-block btnSecond2" id="optionModProduct" disabled>
+            <i style="color:#f1c40f;" class="fas fa-edit"></i> Modificar
+        </button>
+        -->
+        <button class="btn btn-dark btn-block btnSecond2" id="optionDeleteProduct" disabled>
+            <i style="color:#e74c3c;" class="fas fa-times"></i> Eliminar
+        </button>
+    </div>
+
+    <div class="col-md-10 col-xs-12 table-responsive">
+        <table id="tableProducts" class="display nowrap table table-condensed" cellspacing="0" width="100%">
+            <thead>
+                <tr>
+                    <th>Nombre original</th>
+                    <th>Nombre comercial</th>
+                </tr>
+            </thead>
+        </table>
+        <div id="loadingProducts">
+            <center>
+                <i style="color:#3498db;" class="fa fa-spinner fa-pulse fa-2x fa-fw"></i>
+                <span class="sr-only">Cargando...</span>
+            </center>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="productsModal" role="dialog" aria-labelledby="modal_title">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modal_title"></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modal_body"></div>
+            <div class="modal-footer" id="modal_footer"></div>
+        </div>
+    </div>
+</div>
+
+{{#extend "js"}}
+
+<script>
+let datatableProducts
+let productRowSelected
+let productRowSelectedData
+
+$(document).ready(function(){
+    chargeProductsTable()
+})
+
+function chargeProductsTable() {
+    datatableProducts = $('#tableProducts')
+    .DataTable( {
+        dom: 'Bfrtip',
+        buttons: [
+            'excel', 'pdf'
+        ],
+        ordering: true,
+        iDisplayLength: 50,
+        oLanguage: {
+            sSearch: 'buscar: '
+        },
+        responsive: true,
+        columns: [
+            { data: 'originalName' },
+            { data: 'commercialName' }              
+        ],
+        initComplete: function (settings, json) {
+            getProtectedProducts()
+        }
+    })
+
+
+    $('#tableProducts tbody').on('click', 'tr', function () {
+        if ($(this).hasClass('selected')) {
+            $(this).removeClass('selected')
+            //$('#optionModProduct').prop('disabled', true)
+            $('#optionDeleteProduct').prop('disabled', true)
+        } else {
+            datatableProducts.$('tr.selected').removeClass('selected');
+            
+            if(productRowSelectedData) {
+                $(this).addClass('selected');
+                //$('#optionModProduct').prop('disabled', false)
+                $('#optionDeleteProduct').prop('disabled', false)
+                productRowSelectedData = datatableProducts.row($(this)).data()
+                productRowSelected = datatableProducts.row($(this))
+            }
+            
+        }
+    })
+}
+
+function getProtectedProducts() {
+    ajax({
+        url: 'api/protectedProducts'
+    }).then(res => {
+        if (res.err) {
+            toastr.warning(res.err)
+            $('#loadingProducts').empty()
+        } else if(res.ok) {
+            /*
+            let formatRes = res.ok.map(el=>{
+                el.rut = `${rutFunc(el.rut)}`    
+                return el
+            })
+            */
+
+            datatableProducts.rows.add(res.ok).draw()
+            $('#loadingProducts').empty()
+        }      
+    })
+}
+
+$('#optionCreateProduct').on('click', function() { // CREAR PRODUCTO
+
+    $('#productsModal').modal('show');
+    $('#modal_title').html(`Nuevo Producto protegido`)
+    $('#modal_body').html(`   
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label>Nombre original</label>
+                    <select id="originalProducts" class="custom-select">
+                        <option values="placeholder" disabled readOnly>-- NOMBRES ORIGINALES --</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="col-md-12">
+                <div class="form-group">
+                    <fieldset>
+                        <label class="control-label" for="disabledInput">Nombre comercial</label>
+                        <input class="form-control" id="newCommercialName" type="text" placeholder="Nombre comercial" onkeyup="this.value = this.value.toUpperCase();">
+                    </fieldset>
+                </div>
+            </div>
+
+            <div class="col-md-12" id="errorMessage"></div>
+        </div>   
+    `)
+
+    $('#modal_footer').html(`
+        <button class="btn btn-dark" data-dismiss="modal">
+            <i style="color:#e74c3c;" class="fas fa-times"></i> Cancelar
+        </button>
+
+        <button class="btn btn-dark" id="saveProtectedProduct">
+            <i style="color:#3498db;" class="fas fa-check"></i> Guardar
+        </button>
+    `)
+    
+    setTimeout(() => {
+        ajax({
+            url: '/api/products/getAllProducts'
+        }).then(res => {
+            console.log(res)
+            let allProducts = []
+            let s2AllProducts = []
+
+            if(res.ok) {
+                _.forEach(res.ok.list, (el, i)=> {
+                    if(el.variedad && allProducts.indexOf(el.variedad) === -1) {
+                        allProducts.push(el.variedad)
+                        
+                        s2AllProducts.push({
+                            id: el.variedad,
+                            text:el.variedad
+                        })
+                        
+                    }
+                })
+
+                $('#originalProducts').select2({
+                    data: s2AllProducts
+                })
+                
+                console.log(allProducts)
+            } else if(res.err) {
+                toastr.warning(res.err)
+            }
+
+            
+        })
+
+        
+
+        $('#newCommercialName').focus()    
+    }, 500)
+
+    $('#saveProtectedProduct').on('click', function(){
+        let productData = {
+            originalName: $('#originalProducts').val(),
+            commercialName: $('#newCommercialName').val()
+        }
+
+        console.log(productData)
+        
+        
+        let validationCounter = 0 //debe llegar a 2
+        let errorMsg = ''
+
+        if(productData.originalName) {
+            validationCounter++
+        } else {
+            errorMsg += '<br> * Debe seleccionar un producto original'
+        }
+
+        if(productData.commercialName.length > 0) {
+            if((productData.commercialName.indexOf('(') > -1) || (productData.commercialName.indexOf(')') > -1)) {
+                errorMsg += '<br> * El nombre comercial no debe contener paréntesis " ( " o " ) "'
+            } else {
+                validationCounter++
+            }
+            
+        } else {
+            errorMsg += '<br> * Debe asignar un nombre comercial'
+        }
+
+        if(validationCounter == 2) {
+            $('#errorMessage').empty()
+            ajax({
+                url: 'api/protectedProduct',
+                type: 'POST',
+                data: {
+                    originalName: productData.originalName,
+                    commercialName: productData.commercialName,
+                }
+            }).then(res=>{
+                if(res.err) {
+                    toastr.warning(res.err)
+                } else if(res.ok) {
+                    toastr.success('Producto protegido agregado correctamente')
+
+                    let newProductAdded = datatableProducts
+                    .row.add(res.ok)
+                    .draw()
+                    .node();
+                    
+                    $(newProductAdded).css( 'color', '#1abc9c' )
+                    setTimeout(() => {
+                        $(newProductAdded).css( 'color', '#484848' )
+                    }, 5000);
+
+                    $('#productsModal').modal('hide')
+                }
+            })
+        } else {
+            $('#errorMessage').html(`
+                <div class="alert alert-dismissible alert-warning">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    <h4 class="alert-heading">Debe solucionar los siguientes errores:</h4>
+                    <p class="mb-0">${errorMsg}</p>
+                </div>
+            `)
+        }
+        
+        
+    })
+})
+
+$('#optionDeleteProduct').on('click', function() {
+    swal({
+        title: `¿Estás seguro de eliminar el producto protegido seleccionado?`,
+        type: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonClass: 'btn btn-primary',
+        cancelButtonClass: 'btn btn-danger',
+        buttonsStyling: false,
+        confirmButtonText: 'Si, eliminar',
+        cancelButtonText: 'No, cancelar',
+    }).then((result) => {
+        if (result.value) {
+            ajax({
+                url: 'api/protectedProduct',
+                type: 'DELETE',
+                data: {
+                    productID: productRowSelectedData._id
+                }
+            }).then(res=>{
+                if(res.err) {
+                    toastr.warning(res.err)
+                } else if(res.ok) {
+                    //$('#optionModProduct').prop('disabled', true)
+                    $('#optionDeleteProduct').prop('disabled', true)
+                    
+                    toastr.success(res.ok)
+
+                    datatableProducts
+                    .row( productRowSelected )
+                    .remove()
+                    .draw()
+
+                    console.log('DELETEPROTECTED', res.ok)
+                }
+            })
+        }
+    })
+})
+
+/*
+$('#optionModClient').on('click', function() { // MODIFICAR CLIENTE
+
+    $('#clientModal').modal('show');
+    $('#modal_title').html(`modificar cliente: ${capitalizeAll(clientRowSelectedData.name)}`)
+    $('#modal_body').html(`   
+        <div class="row">
+            <div class="col-md-4" style="margin-top:10px;">
+                Rut del cliente
+                <input disabled value="${rutFunc(clientRowSelectedData.rut)}" id="newClientRut" type="text" placeholder="Rut del cliente" class="form-control border-input">
+            </div>
+            
+            <div class="col-md-4" style="margin-top:10px;">
+                Nombre del cliente
+                <input value="${clientRowSelectedData.name}" id="newClientName" type="text" placeholder="Nombre del cliente" class="form-control border-input">
+            </div>
+
+            <div class="col-md-4" style="margin-top:10px;">
+                Teléfono
+                <input value="${clientRowSelectedData.phone}" id="newClientPhone" type="text" placeholder="Teléfono del cliente" class="form-control border-input">
+            </div>
+
+            <div class="col-md-4" style="margin-top:10px;">
+                Email
+                <input value="${clientRowSelectedData.email}" id="newClientEmail" type="text" placeholder="Email del cliente" class="form-control border-input">
+            </div>
+
+            <div class="col-md-12" id="newClientErrorMessage"></div>
+        </div>   
+    `)
+
+    $('#modal_footer').html(`
+        <button class="btn btn-dark" data-dismiss="modal">
+            <i style="color:#e74c3c;" class="fas fa-times"></i> Cancelar
+        </button>
+
+        <button class="btn btn-dark" id="saveClient">
+            <i style="color:#3498db;" class="fas fa-check"></i> Guardar
+        </button>
+    `)
+
+    setTimeout(() => {
+        $('#newClientRut').focus()    
+    }, 500)
+
+    $('#saveClient').on('click', function(){
+        let clientData = {
+            rut: $('#newClientRut').val(),
+            name: $('#newClientName').val(),
+            phone: $('#newClientPhone').val(),
+            email: $('#newClientEmail').val()
+        }
+
+        let validationCounter = 0 //debe llegar a 4
+        let errorMsg = ''
+
+        if(isRut(clientData.rut)) {
+            validationCounter++
+        } else {
+            errorMsg += '<br> * Debe ingresar un rut válido'
+        }
+
+        if(clientData.name != '') {
+            validationCounter++
+        } else {
+            errorMsg += '<br> * Debe ingresar un nombre de cliente'
+        }
+
+        if(clientData.phone != '') {
+            validationCounter++
+        } else {
+            errorMsg += '<br> * Debe ingresar un teléfono de cliente'
+        }
+
+        if(isEmail(clientData.email)) {
+            validationCounter++
+        } else {
+            errorMsg += '<br> * Debe ingresar un email válido'
+        }
+        
+        if(validationCounter == 4) {
+            swal({
+                title: `¿Estás seguro de modificar el cliente?`,
+                type: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonClass: 'btn btn-primary',
+                cancelButtonClass: 'btn btn-danger',
+                buttonsStyling: false,
+                confirmButtonText: 'Si, modificar',
+                cancelButtonText: 'No, cancelar',
+            }).then((result) => {
+                if (result.value) {
+                    ajax({
+                        url: 'api/client',
+                        type: 'PUT',
+                        data: {
+                            originalRut:clientRowSelectedData.rut,
+                            rut:clientData.rut,
+                            name:clientData.name,
+                            phone:clientData.phone,
+                            email:clientData.email
+                        }
+                    }).then(res=>{
+                        if(res.err) {
+                            toastr.warning(res.err)
+                        } else if(res.ok) {
+                            toastr.success('Cliente modificado correctamente')
+                            res.ok.rut = `${rutFunc(res.ok.rut)}`
+                            
+                            datatableClients
+                            .row( clientRowSelected )
+                            .remove()
+                            .draw()
+
+                            let newClientAdded = datatableClients
+                            .row.add(res.ok)
+                            .draw()
+                            .node();
+                            
+                            $(newClientAdded).css( 'color', '#1abc9c' )
+                            setTimeout(() => {
+                                $(newClientAdded).css( 'color', '#484848' )
+                            }, 5000);
+
+                            $('#clientModal').modal('hide')
+                        }
+                    })
+                }
+            })
+        } else {
+            $('#newClientErrorMessage').html(`
+            <div class="alert alert-dismissible alert-warning">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4 class="alert-heading">Debe solucionar los siguientes errores:</h4>
+                <p class="mb-0">${errorMsg}</p>
+            </div>
+            `)
+        }
+        
+        
+    })
+})
+*/
+</script>
+{{/extend}}
