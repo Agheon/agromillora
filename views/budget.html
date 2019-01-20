@@ -1205,13 +1205,14 @@ const draftBudget = (draftBudgetData) => {
         justNumbersSelected = 'justNumbersFloat'
     }
     productsInDraft = draftBudgetData.products.reduce((txt,el,i)=>{
+        console.log('ELEMENTO',el)
         return txt += `
         
             <tr id="toInvoiceRow-${i}">
                 <td>${el.product}</td>
                 <td>${el.envase}</td>
                 <td>${el.formato}</td>
-                <td>${el.servicio}</td>
+                <td>${el.incluye}</td>
                 <td>${el.deliveryDate}</td>
                 <td class="qtyProductClass" id="qtyProduct-${i}">${number_format(el.qty)}</td>
                 <td>
@@ -1547,9 +1548,13 @@ function updateAction() {
             justNumbersSelected = 'justNumbersFloat'
         }
         productsInDraftUpdate = cartData.products.reduce((txt,el,i)=>{
+            console.log('PARA ACTUALIZAR',el)
             return txt += `
                 <tr id="toInvoiceRow-${i}">
                     <td>${el.productName}</td>
+                    <td>${prettifyCartInfo(el.envase)}</td>
+                    <td>${prettifyCartInfo(el.formato)}</td>
+                    <td>${injertacion(el.injertacion)}</td>
                     <td>${el.deliveryDate}</td>
                     <td class="qtyProductClass" id="qtyProduct-${i}">${number_format(el.qty)}</td>
                     <td>
@@ -2979,6 +2984,7 @@ const injertacion = (data) => {
 }
 
 function finalCalculationDraft(draftBudgetData, changePercent) {
+    console.log('FINAL CANCULATION DRAFT', draftBudgetData, changePercent)
     let divisaSelect = draftBudgetData.layout.divisa
 
     if(divisaSelect == 'clp') {
@@ -3061,11 +3067,11 @@ function finalCalculationDraft(draftBudgetData, changePercent) {
         addingProductsArr = rowsToInvoice.reduce((arr, el, i)=> {
             let rowTotalPrice
             if(divisaSelect == 'clp') {
-                rowTotalPrice = removePoints(el.cells[4].innerText)
+                rowTotalPrice = removePoints(el.cells[7].innerText)
             } else {
                 
-                rowTotalPrice = parseFloat(el.cells[4].innerText)
-                console.log('PRICE', el.cells[4].innerText)
+                rowTotalPrice = parseFloat(el.cells[7].innerText)
+                console.log('PRICE', el.cells[7].innerText)
                 console.log('PRICECOMMAS:' , rowTotalPrice)
             }
             console.log('rowTotalPrice', rowTotalPrice)
@@ -3080,7 +3086,7 @@ function finalCalculationDraft(draftBudgetData, changePercent) {
                 totalPrice: rowTotalPrice
             })    
         }, [])
-        console.log(addingProductsArr)
+        console.log('ADDING PRODUCTSARR ',addingProductsArr)
 
         let finalAmount = addingProductsArr.reduce((total, el, i)=>{
             return total += el.totalPrice
