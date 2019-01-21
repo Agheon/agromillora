@@ -286,6 +286,7 @@ const Budget = [
             let reqData = {}
             
             reqData.reference = request.payload.reference
+            reqData.observation = request.payload.observation
 
             reqData.clientRut = request.payload.clientRut
             reqData.clientName = request.payload.clientName
@@ -318,6 +319,7 @@ const Budget = [
                             status: 'created',
                             reference: reqData.reference,
                             number: resCounter.ok.count,
+                            observation: reqData.observation,
                             creationDate: reqData.creationDate,
                             expirationDate: parseExpirationDate(reqData.expirationDate),
                             products: reqData.products,
@@ -367,6 +369,7 @@ const Budget = [
         validate: {
             payload: Joi.object().keys({
                 reference: Joi.string().required(),
+                observation: Joi.string().allow(''),
                 clientRut: Joi.string().allow(''),
                 clientName: Joi.string().allow(''),
                 clientPhone: Joi.string().allow(''),
@@ -398,7 +401,8 @@ const Budget = [
                 reqData.id = request.payload.id
             }
             reqData.reference = request.payload.reference
-
+            reqData.observation = request.payload.observation
+            
             reqData.clientRut = request.payload.clientRut
             reqData.clientName = request.payload.clientName
             reqData.clientPhone = request.payload.clientPhone
@@ -438,6 +442,7 @@ const Budget = [
                             originalDraft.reference = reqData.reference
                             originalDraft.expirationDate = reqData.expirationDate
                             originalDraft.products = reqData.products
+                            originalDraft.observation = reqData.observation
                             originalDraft.amounts = {
                                 advancePercent: reqData.advancePercent,
                                 iva: reqData.iva,
@@ -472,6 +477,7 @@ const Budget = [
                                 status: 'draft',
                                 reference: reqData.reference,
                                 number: resCounter.ok.draftCount,
+                                observation: reqData.observation,
                                 creationDate: reqData.creationDate,
                                 expirationDate: reqData.expirationDate,
                                 products: reqData.products,
@@ -518,6 +524,7 @@ const Budget = [
             payload: Joi.object().keys({
                 id: Joi.string().allow(''),
                 reference: Joi.string().required(),
+                observation: Joi.string().allow(''),
                 clientRut: Joi.string().allow(''),
                 clientName: Joi.string().allow(''),
                 clientPhone: Joi.string().allow(''),

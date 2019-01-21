@@ -536,6 +536,14 @@ const sendedBudget = (sendedBudgetData) => { // aprobada, enviada, creada, cance
             <div class="col-md-6 table-responsive" id="finalCalculations"></div>
         </div>
 
+        <div style="padding-left:10px; padding-right:10px;" class="row">   
+            <b>Observaciones: </b>
+            <br>
+            <div>${sendedBudgetData.observation.toLowerCase()}</div>
+        </div>
+
+        <hr>
+
         <div class="row">
             <div class="col-md-12">
                 ${sendedBudgetData.layout.textInfo}
@@ -1000,7 +1008,7 @@ function zeroTo100(selectedPercent) {
 }
 
 const draftBudget = (draftBudgetData) => {
-    
+    console.log('DRAFTBUDGETDATA', draftBudgetData)
     draftBudgetDataVar = draftBudgetData
     $('.modal-content').css({
         'border-color': '#3498db'
@@ -1103,6 +1111,11 @@ const draftBudget = (draftBudgetData) => {
             <div class="col-md-6" id="checkingAccount">
             </div>  
             <div class="col-md-6 table-responsive" id="finalCalculations"></div>
+        </div>
+
+        <div class="form-group">
+            <label for="budgetObservations"><b>Observaciones:</b></label>
+            <textarea placeholder="Ingresar observaciones (opcional)" class="form-control" id="budgetObservations" rows="3"></textarea>
         </div>
 
         <div class="accordion" id="accordionText">
@@ -1257,6 +1270,8 @@ const draftBudget = (draftBudgetData) => {
             </div>
         </div>
     `)
+
+    $('#budgetObservations').text(draftBudgetData.observation)
     
     $('.productPrice').on('keyup change', function() { // se repite el evento
         console.log('TEST DE EVENTO!!')
@@ -1682,7 +1697,7 @@ const newBudget = () => {
                         </tr>
                         <tr>
                             <td style="background:#ecf0f1">Referencia</td>
-                            <td><input id="reference" type="text" value="" placeholder="Nombre de referencia" class="form-control border-input"></td>
+                            <td><input id="reference" type="text" value="" placeholder="Nombre de referencia (opcional)" class="form-control border-input"></td>
                         </tr>
                     </tbody>
                 </table> 
@@ -1713,6 +1728,11 @@ const newBudget = () => {
             <div class="col-md-6" id="checkingAccount">
             </div>  
             <div class="col-md-6 table-responsive" id="finalCalculations"></div>
+        </div>
+        <br>
+        <div class="form-group">
+            <label for="budgetObservations"><b>Observaciones:</b></label>
+            <textarea placeholder="Ingresar observaciones (opcional)" class="form-control" id="budgetObservations" rows="3"></textarea>
         </div>
 
         <div class="accordion" id="accordionText">
@@ -2123,6 +2143,7 @@ function saveBudget(type, continueDraftId) {
         reference: $('#reference').val(),
         creationDate: $('#serverDate').text(),
         expirationDate: $('#expirationDate').val(),
+        observation: $('#budgetObservations').val(),
         client: {
             rut: selectedClientData.rut,
             name: selectedClientData.name,
@@ -2435,7 +2456,8 @@ function saveNewBudget(budgetObj) {
             expirationDate: budgetObj.expirationDate, // ok
             advancePercent: budgetObj.amounts.advancedPercent.toString(), // ok
             iva: budgetObj.amounts.iva.toString(), // ok
-            subtotal: budgetObj.amounts.subtotal.toString() // ok
+            subtotal: budgetObj.amounts.subtotal.toString(), // ok
+            observation: budgetObj.observation
         }
     }).then(res=>{
         //console.log(res)
@@ -2546,7 +2568,8 @@ function saveDraftBudget(budgetObj) {
             expirationDate: budgetObj.expirationDate, // ok
             advancePercent: budgetObj.amounts.advancedPercent.toString(), // ok
             iva: budgetObj.amounts.iva.toString(), // ok
-            subtotal: budgetObj.amounts.subtotal.toString() // ok
+            subtotal: budgetObj.amounts.subtotal.toString(), // ok
+            observation: budgetObj.observation
         }
     }).then(res=>{
         if(res.ok) {
@@ -3275,8 +3298,6 @@ function exportToPdf(budgetData, statusPDF) {
         doc.setFontType('bold')
         doc.text(80, ypos, `${replaceAll(rutFunc(budgetData.client.rut), '<br>', '\n')}`)
 
-        
-
         ypos += 15
         doc.setFontType('normal')
         doc.text(30, ypos, 'Teléfono')
@@ -3470,8 +3491,47 @@ function exportToPdf(budgetData, statusPDF) {
         
         let reformatHTML = budgetData.layout.textInfo
 
+        doc.addPage()
+        
         ypos = 30
         
+        doc.setTextColor(0, 0, 0)
+        doc.setFontSize(9)
+        doc.setFontType('bold')
+        doc.text(30, ypos, `Observaciones: `);
+        doc.setFontType('normal')
+        ypos += 10
+        
+        /* OBSERVACIONES */
+        var lengthOfPage = 130
+        var textDocTest = budgetData.observation.toLowerCase()
+
+        let test2 = ['']
+       
+        _.forEach(textDocTest.split(''), function(el) {
+            //console.log(test2[test2.length -1].length)
+            if(test2[test2.length -1].length <= lengthOfPage) {
+                //console.log(test2.slice(-1)[0] += el)
+                test2[test2.length -1] += el
+                //console.log(test2[test2.length -1])
+            } else {
+                test2.push(el)
+            }
+        })
+    
+        //console.log(test2)
+        
+        _.range(0, test2.length).forEach(function(el) {
+            doc.text(30, ypos, test2[el]);
+            ypos += 10
+        })
+        
+        ypos += 10
+        doc.setDrawColor(189, 195, 199)
+        doc.setLineWidth(0.3)
+        doc.line(30, ypos, 580, ypos)
+        ypos += 10
+
         let margins = {
             top: ypos,
             bottom: 40,
@@ -3486,7 +3546,6 @@ function exportToPdf(budgetData, statusPDF) {
             width: 550
         }
 
-        doc.addPage()
         doc.fromHTML(
             replaceAll(reformatHTML, '•', '*'), 
             margins.left, // x coord
