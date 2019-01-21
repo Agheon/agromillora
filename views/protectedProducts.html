@@ -99,13 +99,14 @@ function chargeProductsTable() {
             $('#optionDeleteProduct').prop('disabled', true)
         } else {
             datatableProducts.$('tr.selected').removeClass('selected');
-            
+            productRowSelectedData = datatableProducts.row($(this)).data()
+            productRowSelected = datatableProducts.row($(this))
+
             if(productRowSelectedData) {
                 $(this).addClass('selected');
                 //$('#optionModProduct').prop('disabled', false)
                 $('#optionDeleteProduct').prop('disabled', false)
-                productRowSelectedData = datatableProducts.row($(this)).data()
-                productRowSelected = datatableProducts.row($(this))
+                
             }
             
         }
