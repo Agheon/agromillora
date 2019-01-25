@@ -64,7 +64,18 @@ const pdfExport = [
                     }
 
                     mailOptions.to.push(`Cliente <${budgetData.client.email.trim()}>`)
+                    mailOptions.to.push(`Comercial <${budgetData.user.email.trim()}>`)                    
+
+                    /*
+                    let mailOptions = {
+                        from: `Agromillora. <${budgetData.user.email.trim()}>`, 
+                        to: ['cotizacionsur@agromillora.com'], // emails de destino
+                        subject: 'Cotización'
+                    }
+
+                    mailOptions.to.push(`Cliente <${budgetData.client.email.trim()}>`)
                     mailOptions.to.push(`Comercial <${budgetData.user.email.trim()}>`)
+                    */
 
                     mailOptions.attachments = [{
                         filename: `COT${budgetData.number}.pdf`,

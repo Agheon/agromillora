@@ -1673,6 +1673,40 @@ const newBudget = () => {
                 <div class="tab-content" id="nav-tabContent">
                     <div class="tab-pane fade show active" id="nav-clients" role="tabpanel" aria-labelledby="nav-clients-tab">
                         <br>
+
+                        <button style="margin-left:38px;" class="btn btn-primary btn-sm" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
+                            <i class="fas fa-plus"></i> Nuevo cliente
+                        </button>
+                        <div class="collapse" id="collapseExample">
+                            <div class="card card-body">
+                                <div class="row">
+                                    <div class="col-md-12" style="margin-top:10px;">
+                                        Rut del cliente
+                                        <input id="newClientRut" type="text" placeholder="Rut del cliente" class="form-control border-input">
+                                    </div>
+                                    
+                                    <div class="col-md-12" style="margin-top:10px;">
+                                        Nombre del cliente
+                                        <input id="newClientName" type="text" placeholder="Nombre del cliente" class="form-control border-input">
+                                    </div>
+
+                                    <div class="col-md-12" style="margin-top:10px;">
+                                        Teléfono
+                                        <input id="newClientPhone" type="text" placeholder="Teléfono del cliente" class="form-control border-input">
+                                    </div>
+
+                                    <div class="col-md-12" style="margin-top:10px;">
+                                        Email
+                                        <input id="newClientEmail" type="text" placeholder="Email del cliente" class="form-control border-input">
+                                    </div>
+                                    <br>
+                                    <div class="col-md-12" id="newClientErrorMessage"></div>
+                                    <button class="btn btn-dark btn-block" id="saveNewClient">
+                                        <i style="color:#3498db;" class="fas fa-check"></i> Agregar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                         <center><select id="selectClient" name="clientName"><option></option></select></center>
                     </div>
                     <div class="tab-pane fade" id="nav-navision" role="tabpanel" aria-labelledby="nav-navision-tab">
@@ -1783,6 +1817,98 @@ const newBudget = () => {
     $('#saveBudget').attr('disabled', true)
     $('#saveDraftBudget').attr('disabled', true)
     */
+
+    $('#saveNewClient').on('click', function(){
+        let newClientData = {
+            rut: $('#newClientRut').val().trim(),
+            name: $('#newClientName').val().trim(),
+            phone: $('#newClientPhone').val().trim(),
+            email: $('#newClientEmail').val().trim()
+        }
+        
+        let newClientValidationCounter = 0 //debe llegar a 4
+        let newClientErrorMsg = ''
+
+        if(isRut(newClientData.rut)) {
+            newClientValidationCounter++
+        } else {
+            newClientErrorMsg += '<br> * Debe ingresar un rut válido.'
+        }
+
+        if(newClientData.name != '') {
+            newClientValidationCounter++
+        } else {
+            newClientErrorMsg += '<br> * Debe ingresar un nombre de cliente.'
+        }
+
+        if(newClientData.phone != '') {
+            newClientValidationCounter++
+        } else {
+            newClientErrorMsg += '<br> * Debe ingresar un teléfono de cliente.'
+        }
+
+        if(isEmail(newClientData.email)) {
+            newClientValidationCounter++
+        } else {
+            newClientErrorMsg += '<br> * Debe ingresar un email válido.'
+        }
+
+        console.log(newClientData, newClientErrorMsg)
+
+        if(newClientValidationCounter == 4) {
+            ajax({
+                url: 'api/client',
+                type: 'POST',
+                data: {
+                    rut:removeExtraSpaces(newClientData.rut),
+                    name:newClientData.name,
+                    phone: newClientData.phone,
+                    email: removeExtraSpaces(newClientData.email)
+                }
+            }).then(res=>{
+                if(res.err) {
+                    toastr.warning(res.err)
+                } else if(res.ok) {
+                    toastr.success('Cliente agregado correctamente')
+                    $('#newClientRut').val('')
+                    $('#newClientName').val('')
+                    $('#newClientPhone').val('')
+                    $('#newClientEmail').val('')
+                    $('#collapseExample').collapse('hide')
+
+                    getClients().then(clients=>{
+                        let s2clients = clients.reduce((arr, el, i)=>{
+                            return arr.concat({
+                                id: el.rut,
+                                text: el.name
+                            })
+                        }, [])
+                        
+                        $('#selectClient').empty();
+                        $('#selectClient').select2({
+                            width:'80%',
+                            data: s2clients,
+                            placeholder: 'Seleccione un cliente'
+                        })
+
+                        $('#selectClient').on('select2:select', function (e) {
+                            updateClientsHTML()
+                        });
+
+                    })
+                }
+            })
+        } else {
+            $('#newClientErrorMessage').html(`
+            <div class="alert alert-dismissible alert-warning">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <h4 class="alert-heading">Debe solucionar los siguientes errores:</h4>
+                <p class="mb-0">${newClientErrorMsg}</p>
+            </div>
+            `)
+        }
+    })
+
     $('#saveBudget').on('click', function(){
         saveBudget('new')
     })
